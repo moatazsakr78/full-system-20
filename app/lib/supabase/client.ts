@@ -11,8 +11,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
-    persistSession: false, // Memory-only storage as per requirements
-    detectSessionInUrl: true
+    persistSession: true, // Enable session persistence for authentication
+    detectSessionInUrl: true,
+    flowType: 'pkce' // Use PKCE flow for better security
   },
   realtime: {
     params: {

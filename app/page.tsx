@@ -6,6 +6,7 @@ import DesktopHome from '../components/website/DesktopHome';
 import TabletHome from '../components/website/TabletHome';
 import MobileHome from '../components/website/MobileHome';
 import { useRealCart } from '../lib/useRealCart';
+import { useAuth } from '../lib/useAuth';
 import { UserInfo } from '../components/website/shared/types';
 
 export default function HomePage() {
@@ -25,6 +26,7 @@ export default function HomePage() {
   });
 
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart, getCartItemsCount } = useRealCart();
+  const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
     // Set client flag first
@@ -52,6 +54,9 @@ export default function HomePage() {
 
   const updatedUserInfo = {
     ...userInfo,
+    id: isAuthenticated ? user?.id || '1' : '1',
+    name: isAuthenticated ? user?.name || 'عميل مسجل' : 'عميل تجريبي',
+    email: isAuthenticated ? user?.email || 'user@example.com' : 'customer@example.com',
     cart: compatibleCart // Compatible cart data format
   };
 
