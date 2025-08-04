@@ -128,19 +128,27 @@ export function useRealCart(): RealCartHook {
   const removeFromCart = useCallback(async (itemId: string): Promise<boolean> => {
     try {
       setError(null);
+      
+      // Optimistic UI update - remove item immediately from local state
+      setCart(prevCart => prevCart.filter(item => item.id !== itemId));
+      
       const success = await CartService.removeFromCart(itemId);
       if (success) {
-        // Real-time subscription will update the cart
         return true;
+      } else {
+        // If deletion failed, restore the cart
+        refreshCart();
+        return false;
       }
-      return false;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to remove from cart';
       console.error('Error removing from cart:', err);
       setError(errorMessage);
+      // If deletion failed, restore the cart
+      refreshCart();
       return false;
     }
-  }, []);
+  }, [refreshCart]);
   
   const updateQuantity = useCallback(async (itemId: string, quantity: number): Promise<boolean> => {
     try {
@@ -166,19 +174,27 @@ export function useRealCart(): RealCartHook {
   const clearCart = useCallback(async (): Promise<boolean> => {
     try {
       setError(null);
+      
+      // Optimistic UI update - clear cart immediately from local state
+      setCart([]);
+      
       const success = await CartService.clearCart(sessionIdRef.current);
       if (success) {
-        // Real-time subscription will update the cart
         return true;
+      } else {
+        // If clearing failed, restore the cart
+        refreshCart();
+        return false;
       }
-      return false;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to clear cart';
       console.error('Error clearing cart:', err);
       setError(errorMessage);
+      // If clearing failed, restore the cart
+      refreshCart();
       return false;
     }
-  }, []);
+  }, [refreshCart]);
   
   const getCartTotal = useCallback((): number => {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);

@@ -157,13 +157,20 @@ const CartPage = () => {
   
   const handleRemoveItem = async (itemId: string) => {
     try {
+      // Optimistic UI update - remove item immediately from local state
+      setCartItems(prevItems => prevItems.filter(item => item.id !== itemId));
+      
       const success = await CartService.removeFromCart(itemId);
       if (success) {
-        // Real-time subscription will handle the update
         console.log('Item removed successfully');
+      } else {
+        // If deletion failed, restore the item
+        loadCartData();
       }
     } catch (error) {
       console.error('Error removing item:', error);
+      // If deletion failed, restore the cart data
+      loadCartData();
     }
   };
   
@@ -171,13 +178,20 @@ const CartPage = () => {
     try {
       if (!sessionIdRef.current) return;
       
+      // Optimistic UI update - clear cart immediately from local state
+      setCartItems([]);
+      
       const success = await CartService.clearCart(sessionIdRef.current);
       if (success) {
-        // Real-time subscription will handle the update
         console.log('Cart cleared successfully');
+      } else {
+        // If clearing failed, restore the cart data
+        loadCartData();
       }
     } catch (error) {
       console.error('Error clearing cart:', error);
+      // If clearing failed, restore the cart data
+      loadCartData();
     }
   };
   
