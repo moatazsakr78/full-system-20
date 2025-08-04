@@ -30,8 +30,8 @@ export default function TopHeader({ onMenuClick, isMenuOpen = false }: TopHeader
     };
   }, []);
   
-  // Hide header on website pages (root and individual product pages, but not products list)
-  if (pathname === '/' || (pathname?.startsWith('/product') && pathname !== '/products')) {
+  // Hide header on website pages (root, individual product pages, and cart page, but not products list)
+  if (pathname === '/' || (pathname?.startsWith('/product') && pathname !== '/products') || pathname === '/cart') {
     return null;
   }
 
@@ -57,7 +57,7 @@ export default function TopHeader({ onMenuClick, isMenuOpen = false }: TopHeader
         {/* Right side - Website button */}
         <div className="flex items-center">
           <button 
-            onClick={() => window.open('/', '_blank')}
+            onClick={() => window.location.href = '/'}
             className="flex items-center gap-2 px-3 py-1.5 text-blue-400 hover:text-blue-300 hover:bg-gray-700 rounded-lg transition-colors"
             title="انتقل إلى الموقع الإلكتروني"
           >
