@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProducts, Product as DatabaseProduct } from '../../app/lib/hooks/useProducts';
 import { UserInfo, Product } from './shared/types';
+import AuthButtons from '../../app/components/auth/AuthButtons';
 
 interface DesktopHomeProps {
   userInfo: UserInfo;
@@ -190,20 +191,23 @@ export default function DesktopHome({
               <a href="#products" className="text-gray-300 hover:text-white transition-colors text-sm">المنتجات</a>
             </nav>
             
-            {/* Compact Cart Icon */}
-            <button 
-              onClick={() => router.push('/cart')}
-              className="relative p-2 hover:bg-red-700 rounded-lg transition-colors"
-            >
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
-              </svg>
-              {(userInfo.cart?.length || 0) > 0 && (
-                <span className="absolute -top-1 -right-1 bg-white text-red-600 text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                  {userInfo.cart?.length || 0}
-                </span>
-              )}
-            </button>
+            {/* Compact Auth & Cart */}
+            <div className="flex items-center gap-2">
+              <AuthButtons compact />
+              <button 
+                onClick={() => router.push('/cart')}
+                className="relative p-2 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
+                </svg>
+                {(userInfo.cart?.length || 0) > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-white text-red-600 text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                    {userInfo.cart?.length || 0}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </header>
       )}
@@ -244,9 +248,10 @@ export default function DesktopHome({
           </div>
           
           <div className="flex items-center gap-4">
-            {userInfo.name && (
-              <span className="text-sm text-gray-300">مرحباً، {userInfo.name}</span>
-            )}
+            {/* Authentication Buttons */}
+            <AuthButtons />
+            
+            {/* Cart Button */}
             <button 
               onClick={() => router.push('/cart')}
               className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors"

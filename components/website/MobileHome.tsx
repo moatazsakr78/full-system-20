@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProducts, Product as DatabaseProduct } from '../../app/lib/hooks/useProducts';
 import { UserInfo, Product } from './shared/types';
+import AuthButtons from '../../app/components/auth/AuthButtons';
 
 interface MobileHomeProps {
   userInfo: UserInfo;
@@ -149,16 +150,19 @@ export default function MobileHome({
             <h1 className="text-lg font-bold text-red-500">الفاروق</h1>
           </div>
           
-          <button className="relative p-2 hover:bg-gray-700 rounded-lg">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
-            </svg>
-            {(userInfo.cart?.length || 0) > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-600 text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {userInfo.cart?.length || 0}
-              </span>
-            )}
-          </button>
+          <div className="flex items-center gap-1">
+            <AuthButtons compact />
+            <button className="relative p-2 hover:bg-gray-700 rounded-lg">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
+              </svg>
+              {(userInfo.cart?.length || 0) > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-600 text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {userInfo.cart?.length || 0}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu Overlay */}

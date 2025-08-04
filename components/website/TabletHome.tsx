@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProducts, Product as DatabaseProduct } from '../../app/lib/hooks/useProducts';
 import { UserInfo, Product } from './shared/types';
+import AuthButtons from '../../app/components/auth/AuthButtons';
 
 interface TabletHomeProps {
   userInfo: UserInfo;
@@ -150,9 +151,7 @@ export default function TabletHome({
           </div>
           
           <div className="flex items-center gap-3">
-            {userInfo.name && (
-              <span className="text-sm text-gray-300 hidden sm:block">مرحباً، {userInfo.name}</span>
-            )}
+            <AuthButtons compact />
             <button 
               onClick={() => router.push('/cart')}
               className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg transition-colors"
