@@ -103,7 +103,10 @@ export function useAuth() {
   const signInWithGoogle = useCallback(async () => {
     try {
       const redirectUrl = getOAuthRedirectUrl('/auth/callback');
-      console.log('Using redirect URL:', redirectUrl);
+      console.log('🔗 OAuth Debug Info:');
+      console.log('- Redirect URL:', redirectUrl);
+      console.log('- Current window origin:', typeof window !== 'undefined' ? window.location.origin : 'server-side');
+      console.log('- Environment NEXT_PUBLIC_SITE_URL:', process.env.NEXT_PUBLIC_SITE_URL);
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -113,9 +116,11 @@ export function useAuth() {
       });
 
       if (error) {
+        console.error('❌ OAuth Error:', error);
         throw error;
       }
 
+      console.log('✅ OAuth initiated successfully');
       return { success: true, data };
     } catch (error) {
       console.error('Error signing in with Google:', error);

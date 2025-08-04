@@ -7,12 +7,21 @@
  * @returns The base URL without trailing slash
  */
 export const getBaseUrl = (): string => {
+  // Add debugging
+  if (typeof window !== 'undefined') {
+    console.log('Client-side - Current origin:', window.location.origin);
+    console.log('Client-side - NEXT_PUBLIC_SITE_URL:', process.env.NEXT_PUBLIC_SITE_URL);
+  } else {
+    console.log('Server-side - NEXT_PUBLIC_SITE_URL:', process.env.NEXT_PUBLIC_SITE_URL);
+  }
+
   // If we're in the browser, we can determine the environment dynamically
   if (typeof window !== 'undefined') {
     const origin = window.location.origin;
     
     // For localhost development - use the actual port for flexibility
     if (origin.includes('localhost')) {
+      console.log('Detected localhost environment');
       // If NEXT_PUBLIC_SITE_URL is set for development, use it
       if (process.env.NEXT_PUBLIC_SITE_URL && process.env.NEXT_PUBLIC_SITE_URL.includes('localhost')) {
         return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
@@ -21,26 +30,31 @@ export const getBaseUrl = (): string => {
       return origin;
     }
     
-    // For production - prefer environment variable
-    if (process.env.NEXT_PUBLIC_SITE_URL) {
+    // For production - ALWAYS use current origin if we're in production
+    if (origin.includes('vercel.app') || origin.includes('full-system-20')) {
+      console.log('Detected Vercel production environment, using origin:', origin);
+      return origin; // Use the actual current origin instead of hardcoded
+    }
+    
+    // For other production environments - prefer environment variable
+    if (process.env.NEXT_PUBLIC_SITE_URL && !process.env.NEXT_PUBLIC_SITE_URL.includes('localhost')) {
+      console.log('Using NEXT_PUBLIC_SITE_URL for production:', process.env.NEXT_PUBLIC_SITE_URL);
       return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
     }
     
-    // For production domains
-    if (origin.includes('vercel.app') || origin.includes('full-system-20')) {
-      return 'https://full-system-20.vercel.app';
-    }
-    
-    // Return current origin for any other domain
+    // Final fallback - return current origin
+    console.log('Fallback to current origin:', origin);
     return origin;
   }
 
   // Server-side - use environment variable if available
   if (process.env.NEXT_PUBLIC_SITE_URL) {
+    console.log('Server-side using NEXT_PUBLIC_SITE_URL:', process.env.NEXT_PUBLIC_SITE_URL);
     return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
   }
 
   // Server-side fallback
+  console.log('Server-side fallback to localhost:3000');
   return 'http://localhost:3000';
 };
 
