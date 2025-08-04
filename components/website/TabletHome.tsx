@@ -150,17 +150,21 @@ export default function TabletHome({
             <h1 className="text-xl font-bold text-red-500">متجر الفاروق</h1>
           </div>
           
-          <div className="flex items-center gap-3">
-            <AuthButtons compact />
-            <button 
-              onClick={() => router.push('/cart')}
-              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg transition-colors"
-            >
-              <span className="text-sm">السلة ({userInfo.cart?.length || 0})</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
-              </svg>
-            </button>
+          <div className="flex items-center gap-4">
+            <div className="mr-4">
+              <AuthButtons compact />
+            </div>
+            <div className="ml-2">
+              <button 
+                onClick={() => router.push('/cart')}
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg transition-colors"
+              >
+                <span className="text-sm">السلة ({userInfo.cart?.length || 0})</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 

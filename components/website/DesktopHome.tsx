@@ -191,22 +191,26 @@ export default function DesktopHome({
               <a href="#products" className="text-gray-300 hover:text-white transition-colors text-sm">المنتجات</a>
             </nav>
             
-            {/* Compact Auth & Cart */}
-            <div className="flex items-center gap-2">
-              <AuthButtons compact />
-              <button 
-                onClick={() => router.push('/cart')}
-                className="relative p-2 hover:bg-red-700 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
-                </svg>
-                {(userInfo.cart?.length || 0) > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-white text-red-600 text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                    {userInfo.cart?.length || 0}
-                  </span>
-                )}
-              </button>
+            {/* Compact Auth & Cart with better spacing */}
+            <div className="flex items-center gap-4">
+              <div className="mr-2">
+                <AuthButtons compact />
+              </div>
+              <div className="ml-1">
+                <button 
+                  onClick={() => router.push('/cart')}
+                  className="relative p-2 hover:bg-red-700 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
+                  </svg>
+                  {(userInfo.cart?.length || 0) > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-white text-red-600 text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                      {userInfo.cart?.length || 0}
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </header>
@@ -247,20 +251,24 @@ export default function DesktopHome({
             </nav>
           </div>
           
-          <div className="flex items-center gap-4">
-            {/* Authentication Buttons */}
-            <AuthButtons />
+          <div className="flex items-center gap-6">
+            {/* Authentication Buttons with margin */}
+            <div className="mr-8">
+              <AuthButtons />
+            </div>
             
-            {/* Cart Button */}
-            <button 
-              onClick={() => router.push('/cart')}
-              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors"
-            >
-              <span>السلة ({userInfo.cart?.length || 0})</span>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
-              </svg>
-            </button>
+            {/* Cart Button pushed to the right */}
+            <div className="ml-4">
+              <button 
+                onClick={() => router.push('/cart')}
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors"
+              >
+                <span>السلة ({userInfo.cart?.length || 0})</span>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </header>
