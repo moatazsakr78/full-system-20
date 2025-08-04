@@ -101,6 +101,39 @@ export function useRealCart(): RealCartHook {
         sessionIdRef.current = CartSession.getSessionId();
       }
       
+      // Optimistic UI update - check if item exists and update accordingly
+      const existingItemIndex = cart.findIndex(item => 
+        item.product_id === productId &&
+        (item.selected_color || '') === (selectedColor || '') &&
+        (item.selected_size || '') === (selectedSize || '')
+      );
+      
+      if (existingItemIndex >= 0) {
+        // Update existing item quantity optimistically
+        setCart(prevCart => 
+          prevCart.map((item, index) => 
+            index === existingItemIndex 
+              ? { ...item, quantity: item.quantity + quantity }
+              : item
+          )
+        );
+      } else {
+        // Add new item optimistically
+        const optimisticItem: CartItemData = {
+          id: `temp_${Date.now()}`, // Temporary ID
+          session_id: sessionIdRef.current,
+          product_id: productId,
+          quantity,
+          price,
+          selected_color: selectedColor || null,
+          selected_size: selectedSize || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          products: undefined // Will be populated by real-time update
+        };
+        setCart(prevCart => [optimisticItem, ...prevCart]);
+      }
+      
       const result = await CartService.addToCart(
         sessionIdRef.current,
         productId,
@@ -111,19 +144,23 @@ export function useRealCart(): RealCartHook {
       );
       
       if (result) {
-        // Real-time subscription will update the cart
+        // Real-time subscription will update with correct data
         return true;
       } else {
         console.error('Failed to add to cart - no result returned');
+        // Revert optimistic update
+        refreshCart();
         return false;
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add to cart';
       console.error('Error adding to cart:', err);
       setError(errorMessage);
+      // Revert optimistic update
+      refreshCart();
       return false;
     }
-  }, []);
+  }, [cart, refreshCart]);
   
   const removeFromCart = useCallback(async (itemId: string): Promise<boolean> => {
     try {
@@ -157,19 +194,32 @@ export function useRealCart(): RealCartHook {
         return removeFromCart(itemId);
       }
       
+      // Optimistic UI update - update quantity immediately
+      setCart(prevCart => 
+        prevCart.map(item => 
+          item.id === itemId 
+            ? { ...item, quantity }
+            : item
+        )
+      );
+      
       const result = await CartService.updateCartItemQuantity(itemId, quantity);
       if (result) {
-        // Real-time subscription will update the cart
         return true;
+      } else {
+        // If update failed, restore the cart
+        refreshCart();
+        return false;
       }
-      return false;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update quantity';
       console.error('Error updating quantity:', err);
       setError(errorMessage);
+      // If update failed, restore the cart
+      refreshCart();
       return false;
     }
-  }, [removeFromCart]);
+  }, [removeFromCart, refreshCart]);
   
   const clearCart = useCallback(async (): Promise<boolean> => {
     try {

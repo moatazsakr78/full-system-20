@@ -52,15 +52,21 @@ export class CartService {
     selectedSize?: string
   ): Promise<CartItemData | null> {
     try {
-      // Check if item already exists in cart
-      const { data: existingItem } = await supabase
+      // Check if item already exists in cart (handle null values properly)
+      const { data: existingItems } = await supabase
         .from('cart_items')
         .select('*')
         .eq('session_id', sessionId)
-        .eq('product_id', productId)
-        .eq('selected_color', selectedColor || '')
-        .eq('selected_size', selectedSize || '')
-        .single();
+        .eq('product_id', productId);
+      
+      // Find matching item considering null/empty string equivalence
+      const existingItem = existingItems?.find(item => {
+        const itemColor = item.selected_color || '';
+        const itemSize = item.selected_size || '';
+        const inputColor = selectedColor || '';
+        const inputSize = selectedSize || '';
+        return itemColor === inputColor && itemSize === inputSize;
+      });
       
       if (existingItem) {
         // Update quantity if item exists

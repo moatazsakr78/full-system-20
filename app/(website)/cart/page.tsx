@@ -145,13 +145,26 @@ const CartPage = () => {
         return;
       }
       
+      // Optimistic UI update - update quantity immediately
+      setCartItems(prevItems => 
+        prevItems.map(item => 
+          item.id === itemId 
+            ? { ...item, quantity: newQuantity }
+            : item
+        )
+      );
+      
       const updatedItem = await CartService.updateCartItemQuantity(itemId, newQuantity);
       if (updatedItem) {
-        // Real-time subscription will handle the update
         console.log('Quantity updated successfully');
+      } else {
+        // If update failed, restore the cart data
+        loadCartData();
       }
     } catch (error) {
       console.error('Error updating quantity:', error);
+      // If update failed, restore the cart data
+      loadCartData();
     }
   };
   
@@ -361,7 +374,25 @@ const CartPage = () => {
                             >
                               <span>−</span>
                             </button>
-                            <span className="w-10 text-center font-medium bg-gray-50 py-1 px-2 rounded text-black">{item.quantity}</span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => {
+                                const newQuantity = parseInt(e.target.value);
+                                if (!isNaN(newQuantity) && newQuantity > 0) {
+                                  handleQuantityChange(item.id, newQuantity);
+                                }
+                              }}
+                              onBlur={(e) => {
+                                // Ensure minimum value of 1 when user leaves the field
+                                if (!e.target.value || parseInt(e.target.value) < 1) {
+                                  handleQuantityChange(item.id, 1);
+                                }
+                              }}
+                              onFocus={(e) => e.target.select()} // Auto-select text on focus
+                              className="w-12 text-center font-medium bg-gray-50 py-1 px-2 rounded text-black border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                            />
                             <button
                               onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
                               className="w-7 h-7 bg-red-100 hover:bg-red-200 text-red-600 rounded-full flex items-center justify-center transition-colors font-bold"
