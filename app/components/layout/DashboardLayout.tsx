@@ -4,7 +4,8 @@ import { useState } from 'react'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import TopHeader from './TopHeader'
-import DropdownMenu from './DropdownMenu'
+import RightSidebar from './RightSidebar'
+import { useRightSidebar } from '../../lib/hooks/useRightSidebar'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -22,25 +23,19 @@ export default function DashboardLayout({
   showSidebar = true
 }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isDropdownMenuOpen, setIsDropdownMenuOpen] = useState(false)
+  
+  // Use right sidebar hook
+  const { isRightSidebarOpen, toggleRightSidebar, closeRightSidebar } = useRightSidebar()
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
   }
 
-  const toggleDropdownMenu = () => {
-    setIsDropdownMenuOpen(!isDropdownMenuOpen)
-  }
-
-  const closeDropdownMenu = () => {
-    setIsDropdownMenuOpen(false)
-  }
-
   return (
     <div className="min-h-screen bg-[#2B3544]">
-      <TopHeader onMenuClick={toggleDropdownMenu} isMenuOpen={isDropdownMenuOpen} />
+      <TopHeader onMenuClick={toggleRightSidebar} isMenuOpen={isRightSidebarOpen} />
       
-      <DropdownMenu isOpen={isDropdownMenuOpen} onClose={closeDropdownMenu} />
+      <RightSidebar isOpen={isRightSidebarOpen} onClose={closeRightSidebar} />
       
       {showSidebar && (
         <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />

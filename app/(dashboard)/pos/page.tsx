@@ -69,8 +69,8 @@ import { Category } from '../../types'
 import ResizableTable from '../../components/tables/ResizableTable'
 import Sidebar from '../../components/layout/Sidebar'
 import TopHeader from '../../components/layout/TopHeader'
-import DropdownMenu from '../../components/layout/DropdownMenu'
-import { useDropdownMenu } from '../../lib/hooks/useDropdownMenu'
+import RightSidebar from '../../components/layout/RightSidebar'
+import { useRightSidebar } from '../../lib/hooks/useRightSidebar'
 import RecordsSelectionModal from '../../components/RecordsSelectionModal'
 import CustomerSelectionModal from '../../components/CustomerSelectionModal'
 import BranchSelectionModal from '../../components/BranchSelectionModal'
@@ -111,8 +111,8 @@ export default function POSPage() {
   const [cartItems, setCartItems] = useState<any[]>([])
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   
-  // Use dropdown menu hook
-  const { isDropdownMenuOpen, toggleDropdownMenu, closeDropdownMenu } = useDropdownMenu()
+  // Use right sidebar hook
+  const { isRightSidebarOpen, toggleRightSidebar, closeRightSidebar } = useRightSidebar()
   const [isRecordsModalOpen, setIsRecordsModalOpen] = useState(false)
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
   const [isBranchModalOpen, setIsBranchModalOpen] = useState(false)
@@ -715,10 +715,10 @@ export default function POSPage() {
   return (
     <div className="flex h-screen bg-[#2B3544]">
       {/* Top Header */}
-      <TopHeader onMenuClick={toggleDropdownMenu} isMenuOpen={isDropdownMenuOpen} />
+      <TopHeader onMenuClick={toggleRightSidebar} isMenuOpen={isRightSidebarOpen} />
       
-      {/* Dropdown Menu */}
-      <DropdownMenu isOpen={isDropdownMenuOpen} onClose={closeDropdownMenu} />
+      {/* Right Sidebar */}
+      <RightSidebar isOpen={isRightSidebarOpen} onClose={closeRightSidebar} />
       
       {/* Sidebar */}
       <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
