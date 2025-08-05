@@ -168,7 +168,7 @@ export default function DesktopHome({
       `}</style>
       {/* Compact Sticky Header */}
       {isCompactHeaderVisible && (
-        <header className="fixed top-0 left-0 right-0 border-b border-gray-700 py-2 z-50 transition-all duration-300" style={{backgroundColor: '#661a1a'}}>
+        <header className="fixed top-0 left-0 right-0 border-b border-gray-700 py-2 z-50 transition-all duration-300" style={{backgroundColor: '#5d1f1f'}}>
           <div className="relative flex items-center min-h-[50px]">
             {/* Main Compact Content Container */}
             <div className="max-w-[90%] mx-auto px-4 flex items-center justify-between w-full min-h-[50px]">
@@ -241,7 +241,7 @@ export default function DesktopHome({
       )}
 
       {/* Main Desktop Header */}
-      <header className="border-b border-gray-700 py-0 relative z-40" style={{backgroundColor: '#661a1a'}}>
+      <header className="border-b border-gray-700 py-0 relative z-40" style={{backgroundColor: '#5d1f1f'}}>
         <div className="relative flex items-center min-h-[80px]">
           {/* Main Content Container */}
           <div className="max-w-[80%] mx-auto px-4 flex items-center justify-between min-h-[80px] w-full">

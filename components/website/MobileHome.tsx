@@ -134,7 +134,7 @@ export default function MobileHome({
   return (
     <div className="min-h-screen text-gray-800" style={{backgroundColor: '#c0c0c0'}}>
       {/* Mobile Header */}
-      <header className="border-b border-gray-700 py-3 sticky top-0 z-50" style={{backgroundColor: '#661a1a'}}>
+      <header className="border-b border-gray-700 py-3 sticky top-0 z-50" style={{backgroundColor: '#5d1f1f'}}>
         <div className="px-3 flex items-center justify-between">
           <button 
             onClick={() => setIsMenuOpen(!isMenuOpen)}
