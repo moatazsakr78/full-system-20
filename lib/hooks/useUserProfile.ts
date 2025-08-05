@@ -12,7 +12,6 @@ export interface UserProfile {
   branch_id: string | null;
   avatar_url: string | null;
   is_active: boolean | null;
-  is_admin: boolean;
   email: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -51,7 +50,7 @@ export function useUserProfile() {
           setProfile(null);
         } else {
           console.log('✅ User profile fetched:', data);
-          console.log('🔒 Is Admin:', data?.is_admin);
+          console.log('🔒 Role:', data?.role);
           // Type assertion to ensure we have the correct data structure
           setProfile(data as UserProfile);
         }
@@ -67,15 +66,15 @@ export function useUserProfile() {
     fetchProfile();
   }, [user, isAuthenticated]);
 
-  const isAdmin = profile?.is_admin ?? false;
+  const isAdmin = profile ? profile.role === 'admin' : false;
   
   // Debug logging
   if (profile) {
     console.log('🎯 useUserProfile return values:', {
       profileExists: !!profile,
       profileName: profile.full_name,
-      isAdmin: isAdmin,
-      profileIsAdmin: profile.is_admin
+      role: profile.role,
+      isAdmin: isAdmin
     });
   }
 
