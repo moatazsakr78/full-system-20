@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useProducts, Product as DatabaseProduct } from '../../app/lib/hooks/useProducts';
 import { UserInfo, Product } from './shared/types';
 import AuthButtons from '../../app/components/auth/AuthButtons';
+import RightSidebar from '../../app/components/layout/RightSidebar';
+import { useRightSidebar } from '../../app/lib/hooks/useRightSidebar';
 
 interface DesktopHomeProps {
   userInfo: UserInfo;
@@ -28,6 +30,9 @@ export default function DesktopHome({
   const [selectedCategory, setSelectedCategory] = useState('الكل');
   const [isCompactHeaderVisible, setIsCompactHeaderVisible] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  
+  // Use right sidebar hook for the website menu
+  const { isRightSidebarOpen, toggleRightSidebar, closeRightSidebar } = useRightSidebar();
   const [websiteProducts, setWebsiteProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   
@@ -137,6 +142,9 @@ export default function DesktopHome({
 
   return (
     <>
+    {/* Right Sidebar for Website Menu */}
+    <RightSidebar isOpen={isRightSidebarOpen} onClose={closeRightSidebar} />
+    
     <div className="min-h-screen text-gray-800" style={{backgroundColor: '#c0c0c0'}}>
       {/* Hide system blue header */}
       <style jsx global>{`
@@ -220,7 +228,7 @@ export default function DesktopHome({
             <div className="absolute right-0 top-0 h-full">
               <button 
                 className="h-full px-4 text-white bg-transparent flex items-center justify-center"
-                onClick={() => alert('سيتم إضافة المنيو قريباً')}
+                onClick={toggleRightSidebar}
                 title="القائمة"
               >
                 <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
@@ -294,7 +302,7 @@ export default function DesktopHome({
           <div className="absolute right-0 top-0 h-full">
             <button 
               className="h-full px-6 text-white bg-transparent flex items-center justify-center"
-              onClick={() => alert('سيتم إضافة المنيو قريباً')}
+              onClick={toggleRightSidebar}
               title="القائمة"
             >
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
