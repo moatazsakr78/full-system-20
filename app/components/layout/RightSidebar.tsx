@@ -5,8 +5,10 @@ import {
   ClipboardDocumentListIcon,
   UserIcon,
   HeartIcon,
-  XMarkIcon
+  XMarkIcon,
+  UsersIcon
 } from '@heroicons/react/24/outline';
+import { useUserProfile } from '@/lib/hooks/useUserProfile';
 
 interface RightSidebarProps {
   isOpen: boolean;
@@ -15,6 +17,7 @@ interface RightSidebarProps {
 
 export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const { profile, isAdmin, loading } = useUserProfile();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -81,59 +84,95 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
         <div className="p-3">
           <div className="space-y-1">
             
-            {/* Orders List */}
-            <button
-              onClick={() => {
-                // Handle Orders List navigation
-                alert('سيتم إضافة صفحة قائمة الطلبات قريباً');
-                onClose();
-              }}
-              className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
-            >
-              <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
-                <ClipboardDocumentListIcon className="h-5 w-5 text-white" />
+            {/* Show loading state */}
+            {loading && (
+              <div className="flex items-center justify-center p-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600"></div>
+                <span className="mr-2 text-gray-600">جاري التحميل...</span>
               </div>
-              <div className="flex-1 text-right">
-                <h3 className="font-semibold text-base text-black">قائمة الطلبات</h3>
-                <p className="text-xs text-gray-600">عرض وإدارة جميع الطلبات</p>
-              </div>
-            </button>
+            )}
 
-            {/* Profile */}
-            <button
-              onClick={() => {
-                // Handle Profile navigation
-                alert('سيتم إضافة صفحة الملف الشخصي قريباً');
-                onClose();
-              }}
-              className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
-            >
-              <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
-                <UserIcon className="h-5 w-5 text-white" />
-              </div>
-              <div className="flex-1 text-right">
-                <h3 className="font-semibold text-base text-black">الملف الشخصي</h3>
-                <p className="text-xs text-gray-600">إعدادات الحساب والمعلومات الشخصية</p>
-              </div>
-            </button>
+            {/* Admin-specific buttons */}
+            {!loading && isAdmin && (
+              <>
+                {/* Customer Orders (Admin Only) */}
+                <button
+                  onClick={() => {
+                    // Handle Customer Orders navigation for admin
+                    alert('سيتم إضافة صفحة طلبات العملاء (للإدارة) قريباً');
+                    onClose();
+                  }}
+                  className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                >
+                  <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                    <UsersIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 text-right">
+                    <h3 className="font-semibold text-base text-black">طلبات العملاء</h3>
+                    <p className="text-xs text-gray-600">إدارة ومراجعة طلبات جميع العملاء</p>
+                  </div>
+                </button>
+              </>
+            )}
 
-            {/* Favorites */}
-            <button
-              onClick={() => {
-                // Handle Favorites navigation
-                alert('سيتم إضافة صفحة المفضلة قريباً');
-                onClose();
-              }}
-              className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
-            >
-              <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
-                <HeartIcon className="h-5 w-5 text-white" />
-              </div>
-              <div className="flex-1 text-right">
-                <h3 className="font-semibold text-base text-black">المفضلة</h3>
-                <p className="text-xs text-gray-600">المنتجات والعناصر المفضلة لديك</p>
-              </div>
-            </button>
+            {/* Regular user buttons (hidden for admins) */}
+            {!loading && !isAdmin && (
+              <>
+                {/* Orders List */}
+                <button
+                  onClick={() => {
+                    // Handle Orders List navigation
+                    alert('سيتم إضافة صفحة قائمة الطلبات قريباً');
+                    onClose();
+                  }}
+                  className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                >
+                  <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                    <ClipboardDocumentListIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 text-right">
+                    <h3 className="font-semibold text-base text-black">قائمة الطلبات</h3>
+                    <p className="text-xs text-gray-600">عرض وإدارة جميع الطلبات</p>
+                  </div>
+                </button>
+
+                {/* Profile */}
+                <button
+                  onClick={() => {
+                    // Handle Profile navigation
+                    alert('سيتم إضافة صفحة الملف الشخصي قريباً');
+                    onClose();
+                  }}
+                  className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                >
+                  <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                    <UserIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 text-right">
+                    <h3 className="font-semibold text-base text-black">الملف الشخصي</h3>
+                    <p className="text-xs text-gray-600">إعدادات الحساب والمعلومات الشخصية</p>
+                  </div>
+                </button>
+
+                {/* Favorites */}
+                <button
+                  onClick={() => {
+                    // Handle Favorites navigation
+                    alert('سيتم إضافة صفحة المفضلة قريباً');
+                    onClose();
+                  }}
+                  className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                >
+                  <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                    <HeartIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 text-right">
+                    <h3 className="font-semibold text-base text-black">المفضلة</h3>
+                    <p className="text-xs text-gray-600">المنتجات والعناصر المفضلة لديك</p>
+                  </div>
+                </button>
+              </>
+            )}
 
           </div>
         </div>
