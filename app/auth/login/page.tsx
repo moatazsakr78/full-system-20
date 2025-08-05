@@ -121,7 +121,7 @@ export default function LoginPage() {
                 value={formData.email}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-right"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-right text-black"
                 placeholder="أدخل بريدك الإلكتروني"
               />
             </div>
@@ -137,7 +137,7 @@ export default function LoginPage() {
                 value={formData.password}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-right"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-right text-black"
                 placeholder="أدخل كلمة المرور"
               />
             </div>
@@ -146,7 +146,7 @@ export default function LoginPage() {
             <div className="text-center">
               <button
                 type="button"
-                className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                className="text-sm text-[#5d1f1f] hover:text-red-800 transition-colors"
                 onClick={() => alert('سيتم إضافة خاصية استعادة كلمة المرور قريباً')}
               >
                 نسيت كلمة المرور؟
@@ -157,7 +157,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#5d1f1f] hover:bg-red-800 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2">
@@ -213,7 +213,7 @@ export default function LoginPage() {
             <span className="text-sm text-gray-600">ليس لديك حساب؟ </span>
             <button
               onClick={() => router.push('/auth/signup')}
-              className="text-sm text-blue-600 hover:text-blue-800 transition-colors font-medium"
+              className="text-sm text-[#5d1f1f] hover:text-red-800 transition-colors font-medium"
             >
               إنشاء حساب جديد
             </button>

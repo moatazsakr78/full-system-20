@@ -142,7 +142,7 @@ export default function SignUpPage() {
                 value={formData.name}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-right"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-right text-black"
                 placeholder="أدخل اسمك الكامل"
               />
             </div>
@@ -158,7 +158,7 @@ export default function SignUpPage() {
                 value={formData.email}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-right"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-right text-black"
                 placeholder="أدخل بريدك الإلكتروني"
               />
             </div>
@@ -175,7 +175,7 @@ export default function SignUpPage() {
                 onChange={handleInputChange}
                 required
                 minLength={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-right"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-right text-black"
                 placeholder="أدخل كلمة المرور (6 أحرف على الأقل)"
               />
             </div>
@@ -191,7 +191,7 @@ export default function SignUpPage() {
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-right"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-right text-black"
                 placeholder="أعد إدخال كلمة المرور"
               />
             </div>
@@ -200,7 +200,7 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#5d1f1f] hover:bg-red-800 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2">
@@ -256,7 +256,7 @@ export default function SignUpPage() {
             <span className="text-sm text-gray-600">لديك حساب بالفعل؟ </span>
             <button
               onClick={() => router.push('/auth/login')}
-              className="text-sm text-blue-600 hover:text-blue-800 transition-colors font-medium"
+              className="text-sm text-[#5d1f1f] hover:text-red-800 transition-colors font-medium"
             >
               تسجيل الدخول
             </button>
