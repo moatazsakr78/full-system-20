@@ -18,7 +18,11 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      // Check if click is on menu button (has title="القائمة")
+      const menuButton = (target as Element)?.closest('button[title="القائمة"]');
+      
+      if (sidebarRef.current && !sidebarRef.current.contains(target) && !menuButton) {
         onClose();
       }
     };
@@ -58,7 +62,7 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
       {/* Sidebar */}
       <div 
         ref={sidebarRef}
-        className={`fixed top-20 right-0 h-[calc(100vh-80px)] w-64 bg-[#eaeaea] border-l border-gray-400 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-20 right-0 h-[calc(100vh-80px)] w-96 bg-[#eaeaea] border-l border-gray-400 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
