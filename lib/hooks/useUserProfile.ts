@@ -12,6 +12,7 @@ export interface UserProfile {
   branch_id: string | null;
   avatar_url: string | null;
   is_active: boolean | null;
+  is_admin: boolean;
   email: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -24,9 +25,12 @@ export function useUserProfile() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Clear profile immediately when user logs out
     if (!isAuthenticated || !user) {
+      console.log('🚪 User logged out or not authenticated, clearing profile');
       setProfile(null);
       setLoading(false);
+      setError(null);
       return;
     }
 
@@ -50,7 +54,9 @@ export function useUserProfile() {
           setProfile(null);
         } else {
           console.log('✅ User profile fetched:', data);
-          console.log('🔒 Role:', data?.role);
+          console.log('🔒 Role:', (data as any)?.role);
+          console.log('🔒 Is Admin:', (data as any)?.is_admin);
+          console.log('🔒 Full profile data:', JSON.stringify(data, null, 2));
           // Type assertion to ensure we have the correct data structure
           setProfile(data as UserProfile);
         }
@@ -63,10 +69,11 @@ export function useUserProfile() {
       }
     };
 
+    // Always fetch profile when user changes (including on fresh login)
     fetchProfile();
-  }, [user, isAuthenticated]);
+  }, [user?.id, isAuthenticated]); // Use user.id specifically to trigger on user change
 
-  const isAdmin = profile ? profile.role === 'admin' : false;
+  const isAdmin = profile ? profile.is_admin === true : false;
   
   // Debug logging
   if (profile) {
@@ -74,6 +81,7 @@ export function useUserProfile() {
       profileExists: !!profile,
       profileName: profile.full_name,
       role: profile.role,
+      isAdminFromDB: profile.is_admin,
       isAdmin: isAdmin
     });
   }
