@@ -36,6 +36,12 @@ export const getBaseUrl = (): string => {
       return origin; // Use the actual current origin instead of hardcoded
     }
     
+    // For any production domain, use current origin
+    if (!origin.includes('localhost')) {
+      console.log('Detected production environment, using origin:', origin);
+      return origin;
+    }
+    
     // For other production environments - prefer environment variable
     if (process.env.NEXT_PUBLIC_SITE_URL && !process.env.NEXT_PUBLIC_SITE_URL.includes('localhost')) {
       console.log('Using NEXT_PUBLIC_SITE_URL for production:', process.env.NEXT_PUBLIC_SITE_URL);
