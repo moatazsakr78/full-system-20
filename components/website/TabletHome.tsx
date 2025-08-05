@@ -213,17 +213,6 @@ export default function TabletHome({
 
       {/* Tablet Main Content */}
       <main className="max-w-[85%] mx-auto px-3 py-6">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-r from-red-600 to-red-800 rounded-xl p-6 mb-6">
-          <div className="text-center">
-            <div className="text-6xl mb-4">🛍️</div>
-            <h2 className="text-2xl font-bold mb-3">اكتشف منتجاتنا المميزة</h2>
-            <p className="text-lg text-red-100 mb-4">أحدث المنتجات بأفضل الأسعار والجودة العالية</p>
-            <button className="bg-white text-red-600 px-6 py-2.5 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-              تسوق الآن
-            </button>
-          </div>
-        </section>
 
         {/* Quick Categories */}
         <section className="mb-6">
@@ -256,7 +245,7 @@ export default function TabletHome({
 
         {/* Featured Products */}
         <section className="mb-6">
-          <h3 className="text-xl font-bold mb-4 text-red-400">المنتجات المميزة</h3>
+          <h3 className="text-2xl font-bold mb-4 text-black">المنتجات المميزة</h3>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             {featuredProducts.slice(0, 6).map((product) => (
               <div key={product.id} className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors border border-gray-700 cursor-pointer group">
@@ -306,7 +295,7 @@ export default function TabletHome({
 
         {/* All Products */}
         <section id="products" className="mb-6">
-          <h3 className="text-xl font-bold mb-4">جميع المنتجات</h3>
+          <h3 className="text-2xl font-bold mb-4 text-black">جميع المنتجات</h3>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredProducts.map((product) => (
               <div key={product.id} className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors border border-gray-700 cursor-pointer group">
@@ -362,7 +351,7 @@ export default function TabletHome({
 
         {/* Featured Categories */}
         <section id="categories" className="mb-6">
-          <h3 className="text-xl font-bold mb-4 text-red-400">فئات المنتجات</h3>
+          <h3 className="text-2xl font-bold mb-4 text-black">فئات المنتجات</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {categories.map((category) => (
               <div 

@@ -213,15 +213,6 @@ export default function MobileHome({
 
       {/* Mobile Main Content */}
       <main className="px-3 py-4 pb-20">
-        {/* Hero Section - Mobile Optimized */}
-        <section className="bg-gradient-to-r from-red-600 to-red-800 rounded-lg p-4 mb-4 text-center">
-          <div className="text-4xl mb-3">🛍️</div>
-          <h2 className="text-lg font-bold mb-2">اكتشف منتجاتنا المميزة</h2>
-          <p className="text-sm text-red-100 mb-3">أحدث المنتجات بأفضل الأسعار والجودة العالية</p>
-          <button className="bg-white text-red-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100">
-            تسوق الآن
-          </button>
-        </section>
 
         {/* Quick Categories - Horizontal Scroll */}
         <section className="mb-4">
@@ -255,7 +246,7 @@ export default function MobileHome({
         {/* Featured Products */}
         <section className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-red-400">المنتجات المميزة</h3>
+            <h3 className="text-xl font-bold text-black">المنتجات المميزة</h3>
             <button className="text-red-400 text-sm">عرض الكل</button>
           </div>
           
@@ -311,7 +302,7 @@ export default function MobileHome({
         {/* All Products */}
         <section id="products" className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold">جميع المنتجات</h3>
+            <h3 className="text-xl font-bold text-black">جميع المنتجات</h3>
             <button className="text-red-400 text-sm">عرض الكل</button>
           </div>
           
@@ -372,7 +363,7 @@ export default function MobileHome({
 
         {/* Featured Categories */}
         <section id="categories" className="mb-6">
-          <h3 className="text-lg font-bold mb-4 text-red-400">فئات المنتجات</h3>
+          <h3 className="text-xl font-bold mb-4 text-black">فئات المنتجات</h3>
           <div className="grid grid-cols-2 gap-3">
             {categories.slice(0, 8).map((category) => (
               <div 

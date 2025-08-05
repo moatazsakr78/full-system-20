@@ -17,6 +17,7 @@ const config: Config = {
         'pos-orange': '#F59E0B',
         'pos-gray': '#6B7280',
         'pos-light-gray': '#9CA3AF',
+        'custom-gray': '#D7D7D7',
       },
       fontFamily: {
         'arabic': ['Cairo', 'Arial', 'sans-serif'],

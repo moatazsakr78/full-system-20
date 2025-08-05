@@ -316,26 +316,13 @@ export default function DesktopHome({
 
       {/* Desktop Main Content */}
       <main className="max-w-[80%] mx-auto px-4 py-8">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-r from-red-600 to-red-800 rounded-2xl p-8 mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-bold mb-4">اكتشف منتجاتنا المميزة</h2>
-              <p className="text-xl text-red-100 mb-6">أحدث المنتجات بأفضل الأسعار والجودة العالية</p>
-              <button className="bg-white text-red-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                تسوق الآن
-              </button>
-            </div>
-            <div className="text-8xl">🛍️</div>
-          </div>
-        </section>
 
         {/* Featured Products */}
         <section className="mb-8">
-          <h3 className="text-2xl font-bold mb-6 text-red-700">المنتجات المميزة</h3>
+          <h3 className="text-3xl font-bold mb-6 text-black">المنتجات المميزة</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {featuredProducts.slice(0, 4).map((product) => (
-              <div key={product.id} className="bg-white rounded-lg p-4 hover:bg-gray-100 transition-colors border border-gray-300 shadow-md cursor-pointer group">
+              <div key={product.id} className="bg-custom-gray rounded-lg p-4 hover:bg-gray-300 transition-colors border border-gray-300 shadow-md cursor-pointer group">
                 <div className="relative mb-4" onClick={() => router.push(`/product/${product.id}`)}>
                   <img 
                     src={product.image} 
@@ -382,12 +369,12 @@ export default function DesktopHome({
 
         {/* Categories Section */}
         <section id="categories" className="mb-8">
-          <h3 className="text-2xl font-bold mb-6 text-red-700">فئات المنتجات</h3>
+          <h3 className="text-3xl font-bold mb-6 text-black">فئات المنتجات</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
             {categories.map((category) => (
               <div 
                 key={category.id} 
-                className="bg-white p-6 rounded-lg text-center hover:bg-gray-100 transition-colors cursor-pointer border border-gray-300 shadow-md group"
+                className="bg-custom-gray p-6 rounded-lg text-center hover:bg-gray-300 transition-colors cursor-pointer border border-gray-300 shadow-md group"
                 onClick={() => setSelectedCategory(category.name)}
               >
                 <div className="relative mb-4">
@@ -409,10 +396,10 @@ export default function DesktopHome({
 
         {/* All Products */}
         <section id="products" className="mb-8">
-          <h3 className="text-2xl font-bold mb-6 text-gray-800">جميع المنتجات</h3>
+          <h3 className="text-3xl font-bold mb-6 text-black">جميع المنتجات</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {filteredProducts.map((product) => (
-              <div key={product.id} className="bg-white rounded-lg p-4 hover:bg-gray-100 transition-colors border border-gray-300 shadow-md cursor-pointer group">
+              <div key={product.id} className="bg-custom-gray rounded-lg p-4 hover:bg-gray-300 transition-colors border border-gray-300 shadow-md cursor-pointer group">
                 <div className="relative mb-4" onClick={() => router.push(`/product/${product.id}`)}>
                   <img 
                     src={product.image} 
