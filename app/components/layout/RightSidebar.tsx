@@ -6,7 +6,10 @@ import {
   UserIcon,
   HeartIcon,
   XMarkIcon,
-  UsersIcon
+  UsersIcon,
+  CubeIcon,
+  ShieldCheckIcon,
+  BuildingStorefrontIcon
 } from '@heroicons/react/24/outline';
 import { useUserProfile } from '@/lib/hooks/useUserProfile';
 
@@ -110,6 +113,60 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
                   <div className="flex-1 text-right">
                     <h3 className="font-semibold text-base text-black">طلبات العملاء</h3>
                     <p className="text-xs text-gray-600">إدارة ومراجعة طلبات جميع العملاء</p>
+                  </div>
+                </button>
+
+                {/* Manage Products */}
+                <button
+                  onClick={() => {
+                    // Handle Manage Products navigation for admin
+                    alert('سيتم إضافة صفحة إدارة المنتجات قريباً');
+                    onClose();
+                  }}
+                  className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                >
+                  <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                    <CubeIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 text-right">
+                    <h3 className="font-semibold text-base text-black">إدارة المنتجات</h3>
+                    <p className="text-xs text-gray-600">إضافة وتعديل وحذف المنتجات</p>
+                  </div>
+                </button>
+
+                {/* Permissions */}
+                <button
+                  onClick={() => {
+                    // Handle Permissions navigation for admin
+                    alert('سيتم إضافة صفحة الصلاحيات قريباً');
+                    onClose();
+                  }}
+                  className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                >
+                  <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                    <ShieldCheckIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 text-right">
+                    <h3 className="font-semibold text-base text-black">الصلاحيات</h3>
+                    <p className="text-xs text-gray-600">إدارة صلاحيات المستخدمين</p>
+                  </div>
+                </button>
+
+                {/* Store Management */}
+                <button
+                  onClick={() => {
+                    // Handle Store Management navigation for admin
+                    alert('سيتم إضافة صفحة إدارة المتجر قريباً');
+                    onClose();
+                  }}
+                  className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                >
+                  <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                    <BuildingStorefrontIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 text-right">
+                    <h3 className="font-semibold text-base text-black">إدارة المتجر</h3>
+                    <p className="text-xs text-gray-600">إعدادات وإدارة المتجر العامة</p>
                   </div>
                 </button>
               </>

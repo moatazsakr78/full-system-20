@@ -211,20 +211,6 @@ export default function DesktopHome({
                 <AuthButtons compact />
               </div>
               
-              {/* Dashboard Button (Admin Only) */}
-              {isAdmin && (
-                <div className="ml-1">
-                  <button 
-                    onClick={() => router.push('/pos')}
-                    className="relative p-2 hover:bg-red-700 rounded-lg transition-colors"
-                    title="لوحة التحكم"
-                  >
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                  </button>
-                </div>
-              )}
               
               <div className="ml-1">
                 <button 
@@ -303,21 +289,6 @@ export default function DesktopHome({
               <AuthButtons />
             </div>
             
-            {/* Dashboard Button (Admin Only) */}
-            {isAdmin && (
-              <div className="ml-4">
-                <button 
-                  onClick={() => router.push('/pos')}
-                  className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg transition-colors"
-                  title="لوحة التحكم"
-                >
-                  <span>Dashboard</span>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                  </svg>
-                </button>
-              </div>
-            )}
             
             {/* Cart Button pushed to the right */}
             <div className="ml-4">

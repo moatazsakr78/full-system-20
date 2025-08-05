@@ -159,20 +159,6 @@ export default function MobileHome({
               <AuthButtons compact />
             </div>
             
-            {/* Dashboard Button (Admin Only) */}
-            {isAdmin && (
-              <div className="ml-1">
-                <button 
-                  onClick={() => router.push('/pos')}
-                  className="relative p-2 hover:bg-gray-700 rounded-lg"
-                  title="لوحة التحكم"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                  </svg>
-                </button>
-              </div>
-            )}
             
             <div className="ml-1">
               <button 
@@ -426,18 +412,6 @@ export default function MobileHome({
             <span className="text-xs">البحث</span>
           </button>
           
-          {/* Dashboard Button (Admin Only) */}
-          {isAdmin && (
-            <button 
-              onClick={() => router.push('/pos')}
-              className="flex flex-col items-center gap-1 p-2 text-gray-400"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-              <span className="text-xs">Dashboard</span>
-            </button>
-          )}
           
           <button 
             onClick={() => router.push('/cart')}

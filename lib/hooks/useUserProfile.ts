@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/app/lib/supabase/client';
-import { useAuth } from '@/lib/useAuth';
+import { useAuth } from '../useAuth';
 
 export interface UserProfile {
   id: string;
@@ -36,6 +36,9 @@ export function useUserProfile() {
         setLoading(true);
         setError(null);
 
+        console.log('🔍 useUserProfile: Fetching profile for user ID:', user.id);
+        console.log('🔍 useUserProfile: User email:', user.email);
+
         const { data, error } = await supabase
           .from('user_profiles')
           .select('*')
@@ -43,10 +46,12 @@ export function useUserProfile() {
           .single();
 
         if (error) {
-          console.error('Error fetching user profile:', error);
+          console.error('❌ Error fetching user profile:', error);
           setError(error.message);
           setProfile(null);
         } else {
+          console.log('✅ User profile fetched:', data);
+          console.log('🔒 Is Admin:', data?.is_admin);
           // Type assertion to ensure we have the correct data structure
           setProfile(data as UserProfile);
         }
@@ -62,11 +67,23 @@ export function useUserProfile() {
     fetchProfile();
   }, [user, isAuthenticated]);
 
+  const isAdmin = profile?.is_admin ?? false;
+  
+  // Debug logging
+  if (profile) {
+    console.log('🎯 useUserProfile return values:', {
+      profileExists: !!profile,
+      profileName: profile.full_name,
+      isAdmin: isAdmin,
+      profileIsAdmin: profile.is_admin
+    });
+  }
+
   return {
     profile,
     loading,
     error,
-    isAdmin: profile?.is_admin ?? false,
+    isAdmin,
     hasProfile: !!profile
   };
 }
