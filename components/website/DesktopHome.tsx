@@ -161,11 +161,13 @@ export default function DesktopHome({
       {/* Compact Sticky Header */}
       {isCompactHeaderVisible && (
         <header className="fixed top-0 left-0 right-0 border-b border-gray-700 py-2 z-50 transition-all duration-300" style={{backgroundColor: '#661a1a'}}>
-          <div className="max-w-[90%] mx-auto px-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-10 w-10 object-contain" />
-              <h1 className="text-base font-bold text-white">El Farouk Group</h1>
-            </div>
+          <div className="relative flex items-center min-h-[50px]">
+            {/* Main Compact Content Container */}
+            <div className="max-w-[90%] mx-auto px-4 flex items-center justify-between w-full min-h-[50px]">
+              <div className="flex items-center gap-3">
+                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-10 w-10 object-contain" />
+                <h1 className="text-base font-bold text-white">El Farouk Group</h1>
+              </div>
             
             {/* Compact Search Bar */}
             <div className="flex-1 max-w-xs mx-4">
@@ -211,6 +213,20 @@ export default function DesktopHome({
                   )}
                 </button>
               </div>
+              </div>
+            </div>
+            
+            {/* Compact Menu Button - Absolute Right Edge, Full Height */}
+            <div className="absolute right-0 top-0 h-full">
+              <button 
+                className="h-full px-4 text-white bg-transparent flex items-center justify-center"
+                onClick={() => alert('سيتم إضافة المنيو قريباً')}
+                title="القائمة"
+              >
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
             </div>
           </div>
         </header>
@@ -218,13 +234,15 @@ export default function DesktopHome({
 
       {/* Main Desktop Header */}
       <header className="border-b border-gray-700 py-0 relative z-40" style={{backgroundColor: '#661a1a'}}>
-        <div className="max-w-[80%] mx-auto px-4 flex items-center justify-between min-h-[80px]">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-3">
-              <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-20 w-20 object-contain" />
-              <h1 className="text-xl font-bold text-white">El Farouk Group</h1>
+        <div className="relative flex items-center min-h-[80px]">
+          {/* Main Content Container */}
+          <div className="max-w-[80%] mx-auto px-4 flex items-center justify-between min-h-[80px] w-full">
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-3">
+                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-20 w-20 object-contain" />
+                <h1 className="text-xl font-bold text-white">El Farouk Group</h1>
+              </div>
             </div>
-          </div>
           
           {/* Search Bar in Header */}
           <div className="flex-1 max-w-md mx-8">
@@ -269,6 +287,20 @@ export default function DesktopHome({
                 </svg>
               </button>
             </div>
+            </div>
+          </div>
+          
+          {/* Menu Button - Absolute Right Edge, Full Height */}
+          <div className="absolute right-0 top-0 h-full">
+            <button 
+              className="h-full px-6 text-white bg-transparent flex items-center justify-center"
+              onClick={() => alert('سيتم إضافة المنيو قريباً')}
+              title="القائمة"
+            >
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
           </div>
         </div>
       </header>

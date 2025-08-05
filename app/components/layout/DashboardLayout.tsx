@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import TopHeader from './TopHeader'
+import DropdownMenu from './DropdownMenu'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -21,14 +22,25 @@ export default function DashboardLayout({
   showSidebar = true
 }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isDropdownMenuOpen, setIsDropdownMenuOpen] = useState(false)
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
   }
 
+  const toggleDropdownMenu = () => {
+    setIsDropdownMenuOpen(!isDropdownMenuOpen)
+  }
+
+  const closeDropdownMenu = () => {
+    setIsDropdownMenuOpen(false)
+  }
+
   return (
     <div className="min-h-screen bg-[#2B3544]">
-      <TopHeader onMenuClick={toggleSidebar} isMenuOpen={isSidebarOpen} />
+      <TopHeader onMenuClick={toggleDropdownMenu} isMenuOpen={isDropdownMenuOpen} />
+      
+      <DropdownMenu isOpen={isDropdownMenuOpen} onClose={closeDropdownMenu} />
       
       {showSidebar && (
         <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
