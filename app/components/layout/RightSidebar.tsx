@@ -120,7 +120,7 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
                 <button
                   onClick={() => {
                     // Handle Manage Products navigation for admin
-                    alert('سيتم إضافة صفحة إدارة المنتجات قريباً');
+                    window.location.href = '/admin/products';
                     onClose();
                   }}
                   className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"

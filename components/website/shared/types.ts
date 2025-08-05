@@ -41,6 +41,8 @@ export interface Product {
   discount?: number;
   tags?: string[];
   specifications?: Record<string, string>;
+  isFeatured?: boolean;
+  suggestedProducts?: string[];
 }
 
 export interface Category {

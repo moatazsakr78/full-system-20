@@ -45,6 +45,10 @@ interface DatabaseProduct {
   discount_amount?: number | null;
   discount_start_date?: string | null;
   discount_end_date?: string | null;
+  is_hidden?: boolean | null;
+  is_featured?: boolean | null;
+  display_order?: number | null;
+  suggested_products?: string[] | null;
   category?: {
     id: string;
     name: string;
@@ -289,6 +293,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   });
 
   const [productDetails, setProductDetails] = useState<ProductDetail | null>(null);
+  const [suggestedProductsList, setSuggestedProductsList] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -322,6 +327,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           `)
           .eq('id', params.id)
           .eq('is_active', true)
+          .eq('is_hidden', false)
           .single();
 
         if (productError) throw productError;
@@ -411,6 +417,67 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         // Set initial selections
         setSelectedColor(productDetail.colors[0]);
         setSelectedSize(productDetail.sizes[0]);
+
+        // Fetch suggested products if available
+        if ((product as any).suggested_products && Array.isArray((product as any).suggested_products) && (product as any).suggested_products.length > 0) {
+          const suggestedIds = (product as any).suggested_products;
+          
+          const { data: suggestedData, error: suggestedError } = await supabase
+            .from('products')
+            .select(`
+              *,
+              category:categories(
+                id,
+                name,
+                name_en
+              )
+            `)
+            .in('id', suggestedIds)
+            .eq('is_active', true)
+            .eq('is_hidden', false);
+
+          if (!suggestedError && suggestedData) {
+            const convertedSuggestedProducts: Product[] = suggestedData.map((suggestedProduct: any) => {
+              // Calculate discount for suggested products
+              const now = new Date();
+              const discountStart = suggestedProduct.discount_start_date ? new Date(suggestedProduct.discount_start_date) : null;
+              const discountEnd = suggestedProduct.discount_end_date ? new Date(suggestedProduct.discount_end_date) : null;
+              
+              const isDiscountActive = (
+                (suggestedProduct.discount_percentage > 0 || suggestedProduct.discount_amount > 0) &&
+                (!discountStart || now >= discountStart) &&
+                (!discountEnd || now <= discountEnd)
+              );
+              
+              let finalPrice = suggestedProduct.price;
+              let calculatedDiscountPercentage = 0;
+              
+              if (isDiscountActive && suggestedProduct.discount_percentage > 0) {
+                finalPrice = suggestedProduct.price * (1 - (suggestedProduct.discount_percentage / 100));
+                calculatedDiscountPercentage = suggestedProduct.discount_percentage;
+              } else if (isDiscountActive && suggestedProduct.discount_amount > 0) {
+                finalPrice = Math.max(0, suggestedProduct.price - suggestedProduct.discount_amount);
+                calculatedDiscountPercentage = Math.round((suggestedProduct.discount_amount / suggestedProduct.price) * 100);
+              }
+
+              return {
+                id: parseInt(suggestedProduct.id.split('-')[0], 16) % 1000,
+                name: suggestedProduct.name,
+                description: suggestedProduct.description || '',
+                price: finalPrice,
+                originalPrice: isDiscountActive ? suggestedProduct.price : undefined,
+                image: suggestedProduct.main_image_url || '/placeholder-image.jpg',
+                category: suggestedProduct.category?.name || 'غير محدد',
+                rating: suggestedProduct.rating || 0,
+                reviews: suggestedProduct.rating_count || 0,
+                isOnSale: isDiscountActive,
+                discount: calculatedDiscountPercentage
+              };
+            });
+            
+            setSuggestedProductsList(convertedSuggestedProducts);
+          }
+        }
 
       } catch (err) {
         console.error('Error fetching product:', err);
@@ -811,78 +878,91 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         </div>
         </div>
 
-        {/* Suggested Products */}
-        <section>
-          <div className="mx-16">
-            <h3 className="text-2xl font-bold mb-6 text-red-700">منتجات مقترحة</h3>
-          </div>
-          <div className="relative">
-            {/* Navigation Arrows */}
-            <button 
-              onClick={() => setCurrentSuggestedIndex(Math.max(0, currentSuggestedIndex - 4))}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
-              disabled={currentSuggestedIndex === 0}
-            >
-              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            
-            <button 
-              onClick={() => setCurrentSuggestedIndex(Math.min(suggestedProducts.length - 4, currentSuggestedIndex + 4))}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
-              disabled={currentSuggestedIndex >= suggestedProducts.length - 4}
-            >
-              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-
-            {/* Products Grid with Margins for Arrows */}
+        {/* Suggested Products - Only show if there are suggested products */}
+        {suggestedProductsList.length > 0 && (
+          <section>
             <div className="mx-16">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                {suggestedProducts.slice(currentSuggestedIndex, currentSuggestedIndex + 4).map((product) => (
-                  <div key={product.id} className="bg-white rounded-lg p-4 hover:bg-gray-100 transition-colors border border-gray-300 shadow-md group">
-                    <div className="relative mb-4">
-                      <img 
-                        src={product.image} 
-                        alt={product.name} 
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                      {product.isOnSale && (
-                        <span className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
-                          -{product.discount}%
-                        </span>
-                      )}
-                    </div>
-                    <h4 className="font-semibold mb-2 text-gray-800 truncate group-hover:text-red-600 transition-colors">{product.name}</h4>
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        {product.originalPrice && (
-                          <span className="text-sm text-gray-500 line-through">{product.originalPrice} ريال</span>
+              <h3 className="text-2xl font-bold mb-6 text-red-700">منتجات مقترحة</h3>
+            </div>
+            <div className="relative">
+              {/* Navigation Arrows - Only show if there are more than 4 products */}
+              {suggestedProductsList.length > 4 && (
+                <>
+                  <button 
+                    onClick={() => setCurrentSuggestedIndex(Math.max(0, currentSuggestedIndex - 4))}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={currentSuggestedIndex === 0}
+                  >
+                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  
+                  <button 
+                    onClick={() => setCurrentSuggestedIndex(Math.min(suggestedProductsList.length - 4, currentSuggestedIndex + 4))}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={currentSuggestedIndex >= suggestedProductsList.length - 4}
+                  >
+                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </>
+              )}
+
+              {/* Products Grid with Margins for Arrows */}
+              <div className="mx-16">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                  {suggestedProductsList.slice(currentSuggestedIndex, currentSuggestedIndex + 4).map((product) => (
+                    <div 
+                      key={product.id} 
+                      className="bg-white rounded-lg p-4 hover:bg-gray-100 transition-colors border border-gray-300 shadow-md group cursor-pointer"
+                      onClick={() => router.push(`/product/${product.id}`)}
+                    >
+                      <div className="relative mb-4">
+                        <img 
+                          src={product.image} 
+                          alt={product.name} 
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                        {product.isOnSale && (
+                          <span className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
+                            -{product.discount}%
+                          </span>
                         )}
-                        <span className="text-lg font-bold text-red-400">{product.price} ريال</span>
+                      </div>
+                      <h4 className="font-semibold mb-2 text-gray-800 truncate group-hover:text-red-600 transition-colors">{product.name}</h4>
+                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          {product.originalPrice && (
+                            <span className="text-sm text-gray-500 line-through">{product.originalPrice} ريال</span>
+                          )}
+                          <span className="text-lg font-bold text-red-400">{product.price} ريال</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <span className="text-yellow-400">⭐</span>
+                          <span className="text-sm text-gray-400">{product.rating} ({product.reviews})</span>
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(product);
+                          }}
+                          className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-white"
+                        >
+                          أضف للسلة
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <span className="text-yellow-400">⭐</span>
-                        <span className="text-sm text-gray-400">{product.rating} ({product.reviews})</span>
-                      </div>
-                      <button 
-                        onClick={() => addToCart(product)}
-                        className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                      >
-                        أضف للسلة
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
       </main>
 
       {/* Footer */}

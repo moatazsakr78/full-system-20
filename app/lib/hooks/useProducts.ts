@@ -40,6 +40,11 @@ export interface Product {
   discount_amount?: number | null
   discount_start_date?: string | null
   discount_end_date?: string | null
+  // New management fields
+  is_hidden?: boolean | null
+  is_featured?: boolean | null
+  display_order?: number | null
+  suggested_products?: string[] | null
   // Relations
   category?: {
     id: string
@@ -148,7 +153,7 @@ export function useProducts() {
           )
         `)
         .eq('is_active', true)
-        .order('created_at', { ascending: false })
+        .order('display_order', { ascending: true })
 
       if (productsError) throw productsError
 
@@ -372,6 +377,10 @@ export function useProducts() {
           discount_amount: productData.discount_amount || 0,
           discount_start_date: productData.discount_start_date,
           discount_end_date: productData.discount_end_date,
+          is_hidden: productData.is_hidden,
+          is_featured: productData.is_featured,
+          display_order: productData.display_order,
+          suggested_products: productData.suggested_products,
           is_active: productData.is_active,
           updated_at: new Date().toISOString()
         })
@@ -433,6 +442,10 @@ export function useProducts() {
           discount_amount: productData.discount_amount || 0,
           discount_start_date: productData.discount_start_date,
           discount_end_date: productData.discount_end_date,
+          is_hidden: productData.is_hidden || false,
+          is_featured: productData.is_featured || false,
+          display_order: productData.display_order || 0,
+          suggested_products: productData.suggested_products || [],
           is_active: true
         })
         .select(`
