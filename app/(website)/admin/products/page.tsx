@@ -27,6 +27,8 @@ export default function ProductManagementPage() {
   const [isDragMode, setIsDragMode] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Set client-side flag after component mounts
   useEffect(() => {
@@ -154,6 +156,13 @@ export default function ProductManagementPage() {
     setProducts(reorderedProducts);
   };
 
+  // Filter products based on search term
+  const filteredProducts = products.filter(product =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   // Show loading state during hydration or while loading data
   if (!isClient || isLoading) {
     return (
@@ -169,7 +178,7 @@ export default function ProductManagementPage() {
   return (
     <div className="min-h-screen text-gray-800" style={{backgroundColor: '#c0c0c0'}}>
       {/* Header */}
-      <header className="border-b border-gray-700 py-3" style={{backgroundColor: '#5d1f1f'}}>
+      <header className="border-b border-gray-700 py-1" style={{backgroundColor: '#5d1f1f'}}>
         <div className="w-full px-6 flex items-center justify-between">
           {/* Right side - Title and Action buttons */}
           <div className="flex items-center gap-1">
@@ -181,13 +190,17 @@ export default function ProductManagementPage() {
             {/* Switch Centers Button - System Style */}
             <button
               onClick={toggleDragMode}
-              className="flex flex-col items-center justify-center p-4 transition-colors group min-w-[100px]"
+              className={`flex flex-col items-center justify-center p-4 transition-colors group min-w-[100px] ${
+                isDragMode 
+                  ? 'hover:text-yellow-200' 
+                  : 'hover:text-gray-200'
+              }`}
             >
               <svg 
                 className={`w-8 h-8 mb-2 transition-colors ${
                   isDragMode 
-                    ? 'text-yellow-300 hover:text-yellow-200' 
-                    : 'text-white hover:text-gray-200'
+                    ? 'text-yellow-300 group-hover:text-yellow-200' 
+                    : 'text-white group-hover:text-gray-200'
                 }`} 
                 fill="none" 
                 stroke="currentColor" 
@@ -202,8 +215,8 @@ export default function ProductManagementPage() {
               </svg>
               <span className={`text-sm font-bold text-center leading-tight transition-colors ${
                 isDragMode 
-                  ? 'text-yellow-300 hover:text-yellow-200' 
-                  : 'text-white hover:text-gray-200'
+                  ? 'text-yellow-300 group-hover:text-yellow-200' 
+                  : 'text-white group-hover:text-gray-200'
               }`}>
                 {isDragMode ? 'إلغاء تبديل' : 'تبديل المراكز'}
               </span>
@@ -216,12 +229,12 @@ export default function ProductManagementPage() {
                 <button
                   onClick={saveOrder}
                   disabled={isSaving}
-                  className="flex flex-col items-center justify-center p-4 transition-colors group min-w-[100px]"
+                  className="flex flex-col items-center justify-center p-4 transition-colors group min-w-[100px] hover:text-green-200"
                 >
-                  <svg className="w-8 h-8 mb-2 text-green-300 hover:text-green-200 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 mb-2 text-green-300 group-hover:text-green-200 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm font-bold text-center leading-tight text-green-300 hover:text-green-200 transition-colors">
+                  <span className="text-sm font-bold text-center leading-tight text-green-300 group-hover:text-green-200 transition-colors">
                     {isSaving ? 'جاري الحفظ' : 'حفظ الترتيب'}
                   </span>
                 </button>
@@ -302,9 +315,91 @@ export default function ProductManagementPage() {
 
         {/* Products Content - Left Side */}
         <main className="flex-1 p-6">
+          {/* Search and View Controls Bar */}
+          <div className="bg-white border border-gray-300 rounded-lg py-3 px-4 mb-6">
+            <div className="flex items-center justify-between gap-4">
+              {/* Search Bar */}
+              <div className="flex-1 max-w-md">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="البحث في المنتجات..."
+                    className="w-full px-4 py-2 pr-10 text-right border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
+                    style={{
+                      '--tw-ring-color': '#5D1F1F',
+                      '--tw-ring-opacity': '0.5'
+                    } as React.CSSProperties}
+                    onFocus={(e) => {
+                      e.target.style.boxShadow = '0 0 0 2px rgba(93, 31, 31, 0.5)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.boxShadow = 'none';
+                    }}
+                  />
+                  <svg 
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* View Mode Toggle Buttons */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 mr-3">وضع العرض:</span>
+                
+                {/* Grid View Button */}
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-lg transition-colors ${
+                    viewMode === 'grid'
+                      ? 'text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  style={viewMode === 'grid' ? { backgroundColor: '#5D1F1F' } : {}}
+                  title="عرض الصور"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                </button>
+
+                {/* List View Button */}
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-lg transition-colors ${
+                    viewMode === 'list'
+                      ? 'text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  style={viewMode === 'list' ? { backgroundColor: '#5D1F1F' } : {}}
+                  title="عرض الصفوف"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Search Results Count */}
+              <div className="text-sm text-gray-500">
+                {searchTerm && (
+                  <span>
+                    {filteredProducts.length} من {products.length} منتج
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
           <DragDropProvider>
             <ProductManagementGrid
-              products={products}
+              products={filteredProducts}
               isDragMode={isDragMode}
               onReorder={handleReorder}
               onToggleVisibility={toggleVisibility}

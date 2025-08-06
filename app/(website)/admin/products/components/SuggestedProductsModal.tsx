@@ -91,8 +91,8 @@ export default function SuggestedProductsModal({
         </div>
 
         {/* Selected Count */}
-        <div className="px-4 py-2 bg-blue-50 border-b">
-          <p className="text-sm text-blue-800">
+        <div className="px-4 py-2 border-b" style={{ backgroundColor: '#F5F1F1' }}>
+          <p className="text-sm" style={{ color: '#5D1F1F' }}>
             تم تحديد {selectedSuggestions.length} منتج كمقترحات
           </p>
         </div>
@@ -108,9 +108,10 @@ export default function SuggestedProductsModal({
                   onClick={() => toggleSuggestion(product.id)}
                   className={`border rounded-lg p-3 cursor-pointer transition-all ${
                     isSelected 
-                      ? 'border-blue-500 bg-blue-50 shadow-md' 
+                      ? 'shadow-md' 
                       : 'border-gray-300 bg-white hover:border-gray-400 hover:shadow-sm'
                   }`}
+                  style={isSelected ? { borderColor: '#5D1F1F', backgroundColor: '#F5F1F1' } : {}}
                 >
                   <div className="flex items-start gap-3">
                     <img 
@@ -129,11 +130,14 @@ export default function SuggestedProductsModal({
                       </p>
                     </div>
                     <div className="flex-shrink-0">
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                        isSelected 
-                          ? 'bg-blue-500 border-blue-500' 
-                          : 'border-gray-300'
-                      }`}>
+                      <div 
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                          isSelected 
+                            ? '' 
+                            : 'border-gray-300'
+                        }`}
+                        style={isSelected ? { backgroundColor: '#5D1F1F', borderColor: '#5D1F1F' } : {}}
+                      >
                         {isSelected && (
                           <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

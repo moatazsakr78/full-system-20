@@ -140,7 +140,7 @@ export default function DesktopHome({
     return (
       <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#c0c0c0'}}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{borderBottomColor: '#5D1F1F'}}></div>
           <p className="text-gray-600">جاري تحميل التطبيق...</p>
         </div>
       </div>
@@ -192,7 +192,14 @@ export default function DesktopHome({
                   placeholder="ابحث عن المنتجات..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white border-0 rounded-full px-4 py-1.5 pr-8 text-sm text-gray-800 placeholder-gray-500 shadow-sm focus:outline-none focus:ring-1 focus:ring-red-300"
+                  className="w-full bg-white border-0 rounded-full px-4 py-1.5 pr-8 text-sm text-gray-800 placeholder-gray-500 shadow-sm focus:outline-none focus:ring-1"
+                  style={{"--tw-ring-color": "#5D1F1F"} as React.CSSProperties}
+                  onFocus={(e) => {
+                    e.target.style.boxShadow = '0 0 0 1px #5D1F1F';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
                 <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -218,13 +225,20 @@ export default function DesktopHome({
               <div className="ml-1">
                 <button 
                   onClick={() => router.push('/cart')}
-                  className="relative p-2 hover:bg-red-700 rounded-lg transition-colors"
+                  className="relative p-2 rounded-lg transition-colors"
+                  style={{":hover": {backgroundColor: "#4A1616"}}}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = 'transparent';
+                  }}
                 >
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
                   </svg>
                   {(userInfo.cart?.length || 0) > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-white text-red-600 text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                    <span className="absolute -top-1 -right-1 bg-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" style={{color: '#5D1F1F'}}>
                       {userInfo.cart?.length || 0}
                     </span>
                   )}
@@ -269,7 +283,14 @@ export default function DesktopHome({
                 placeholder="ابحث عن المنتجات..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border-0 rounded-full px-5 py-2.5 pr-12 text-gray-800 placeholder-gray-500 shadow-md focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-300"
+                className="w-full bg-white border-0 rounded-full px-5 py-2.5 pr-12 text-gray-800 placeholder-gray-500 shadow-md focus:outline-none focus:ring-2 transition-all duration-300"
+                style={{"--tw-ring-color": "#5D1F1F"} as React.CSSProperties}
+                onFocus={(e) => {
+                  e.target.style.boxShadow = '0 0 0 2px #5D1F1F';
+                }}
+                onBlur={(e) => {
+                  e.target.style.boxShadow = 'none';
+                }}
               />
               <svg className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -279,10 +300,10 @@ export default function DesktopHome({
           
           <div className="flex items-center gap-4">
             <nav className="flex gap-6">
-              <a href="#products" className="text-gray-300 hover:text-red-400 transition-colors font-medium">المنتجات</a>
-              <a href="#categories" className="text-gray-300 hover:text-red-400 transition-colors font-medium">الفئات</a>
-              <a href="#offers" className="text-gray-300 hover:text-red-400 transition-colors font-medium">العروض</a>
-              <a href="#about" className="text-gray-300 hover:text-red-400 transition-colors font-medium">عن المتجر</a>
+              <a href="#products" className="text-gray-300 transition-colors font-medium hover:text-[#5D1F1F]">المنتجات</a>
+              <a href="#categories" className="text-gray-300 transition-colors font-medium hover:text-[#5D1F1F]">الفئات</a>
+              <a href="#offers" className="text-gray-300 transition-colors font-medium hover:text-[#5D1F1F]">العروض</a>
+              <a href="#about" className="text-gray-300 transition-colors font-medium hover:text-[#5D1F1F]">عن المتجر</a>
             </nav>
           </div>
           
@@ -297,7 +318,14 @@ export default function DesktopHome({
             <div className="ml-4">
               <button 
                 onClick={() => router.push('/cart')}
-                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-white"
+                style={{backgroundColor: '#5D1F1F'}}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+                }}
               >
                 <span>السلة ({userInfo.cart?.length || 0})</span>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -346,14 +374,24 @@ export default function DesktopHome({
                   )}
                 </div>
                 <div onClick={() => router.push(`/product/${product.id}`)}>
-                  <h4 className="font-semibold mb-2 text-gray-800 truncate group-hover:text-red-600 transition-colors">{product.name}</h4>
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
+                  <h4 className="font-semibold mb-2 text-gray-800 truncate transition-colors group-hover:text-[#5D1F1F]">{product.name}</h4>
+                  <div className="h-10 mb-3">
+                    <p className="text-gray-600 text-sm overflow-hidden" style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      lineHeight: '1.25rem',
+                      maxHeight: '2.5rem'
+                    }}>
+                      {product.description}
+                    </p>
+                  </div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       {product.originalPrice && (
                         <span className="text-sm text-gray-500 line-through">{product.originalPrice} ريال</span>
                       )}
-                      <span className="text-lg font-bold text-red-400">{product.price} ريال</span>
+                      <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>{product.price} ريال</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -368,7 +406,14 @@ export default function DesktopHome({
                     e.stopPropagation();
                     await onAddToCart(product);
                   }}
-                  className="w-full mt-3 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  className="w-full mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-white"
+                  style={{backgroundColor: '#5D1F1F'}}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+                  }}
                 >
                   أضف للسلة
                 </button>
@@ -397,7 +442,7 @@ export default function DesktopHome({
                     <span className="text-4xl">{category.icon}</span>
                   </div>
                 </div>
-                <h4 className="font-semibold text-gray-800 group-hover:text-red-600 transition-colors">{category.name}</h4>
+                <h4 className="font-semibold text-gray-800 transition-colors group-hover:text-[#5D1F1F]">{category.name}</h4>
                 <p className="text-sm text-gray-600 mt-1">{category.productCount} منتج</p>
               </div>
             ))}
@@ -423,14 +468,24 @@ export default function DesktopHome({
                   )}
                 </div>
                 <div onClick={() => router.push(`/product/${product.id}`)}>
-                  <h4 className="font-semibold mb-2 text-gray-800 truncate group-hover:text-red-600 transition-colors">{product.name}</h4>
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
+                  <h4 className="font-semibold mb-2 text-gray-800 truncate transition-colors group-hover:text-[#5D1F1F]">{product.name}</h4>
+                  <div className="h-10 mb-3">
+                    <p className="text-gray-600 text-sm overflow-hidden" style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      lineHeight: '1.25rem',
+                      maxHeight: '2.5rem'
+                    }}>
+                      {product.description}
+                    </p>
+                  </div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       {product.originalPrice && (
                         <span className="text-sm text-gray-500 line-through">{product.originalPrice} ريال</span>
                       )}
-                      <span className="text-lg font-bold text-red-400">{product.price} ريال</span>
+                      <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>{product.price} ريال</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -445,7 +500,14 @@ export default function DesktopHome({
                     e.stopPropagation();
                     await onAddToCart(product);
                   }}
-                  className="w-full mt-3 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  className="w-full mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-white"
+                  style={{backgroundColor: '#5D1F1F'}}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+                  }}
                 >
                   أضف للسلة
                 </button>
@@ -463,26 +525,26 @@ export default function DesktopHome({
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-8 w-8 object-contain" />
-                <h5 className="font-bold text-lg text-red-400">متجر الفاروق</h5>
+                <h5 className="font-bold text-lg" style={{color: '#5D1F1F'}}>متجر الفاروق</h5>
               </div>
               <p className="text-gray-400">متجرك المتكامل للحصول على أفضل المنتجات بأسعار مميزة وجودة عالية</p>
             </div>
             <div>
               <h6 className="font-semibold mb-3">روابط سريعة</h6>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-red-400 transition-colors">الرئيسية</a></li>
-                <li><a href="#" className="hover:text-red-400 transition-colors">المنتجات</a></li>
-                <li><a href="#" className="hover:text-red-400 transition-colors">من نحن</a></li>
-                <li><a href="#" className="hover:text-red-400 transition-colors">اتصل بنا</a></li>
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">الرئيسية</a></li>
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">المنتجات</a></li>
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">من نحن</a></li>
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">اتصل بنا</a></li>
               </ul>
             </div>
             <div>
               <h6 className="font-semibold mb-3">خدمة العملاء</h6>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-red-400 transition-colors">المساعدة</a></li>
-                <li><a href="#" className="hover:text-red-400 transition-colors">سياسة الإرجاع</a></li>
-                <li><a href="#" className="hover:text-red-400 transition-colors">الشحن والتوصيل</a></li>
-                <li><a href="#" className="hover:text-red-400 transition-colors">الدفع</a></li>
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">المساعدة</a></li>
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">سياسة الإرجاع</a></li>
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">الشحن والتوصيل</a></li>
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">الدفع</a></li>
               </ul>
             </div>
             <div>

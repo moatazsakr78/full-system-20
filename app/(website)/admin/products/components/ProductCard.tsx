@@ -99,7 +99,17 @@ export default function ProductCard({
       {/* Product Info */}
       <div className="mb-4">
         <h4 className="font-semibold text-gray-800 mb-1 truncate">{product.name}</h4>
-        <p className="text-gray-600 text-sm mb-2 line-clamp-2">{product.description}</p>
+        <div className="h-10 mb-2">
+          <p className="text-gray-600 text-sm overflow-hidden" style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            lineHeight: '1.25rem',
+            maxHeight: '2.5rem'
+          }}>
+            {product.description}
+          </p>
+        </div>
         <div className="flex items-center justify-between">
           <span className="text-lg font-bold" style={{color: '#5d1f1f'}}>{product.price} ريال</span>
           <span className="text-sm text-gray-500">{product.category}</span>
@@ -116,6 +126,9 @@ export default function ProductCard({
               checked={!product.isHidden}
               onChange={onToggleVisibility}
               className="rounded"
+              style={{
+                accentColor: '#5D1F1F'
+              }}
             />
             <span className={product.isHidden ? 'text-red-600' : 'text-green-600'}>
               {product.isHidden ? 'مخفي من المتجر' : 'ظاهر في المتجر'}
@@ -130,6 +143,9 @@ export default function ProductCard({
               checked={product.isFeatured}
               onChange={onToggleFeatured}
               className="rounded"
+              style={{
+                accentColor: '#5D1F1F'
+              }}
             />
             <span className={product.isFeatured ? 'text-yellow-600' : 'text-gray-600'}>
               منتج مميز
@@ -140,7 +156,19 @@ export default function ProductCard({
         {/* Suggestions Button */}
         <button
           onClick={onManageSuggestions}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
+          className="w-full text-white px-3 py-2 rounded text-sm font-medium transition-colors"
+          style={{
+            backgroundColor: '#5D1F1F',
+            '&:hover': {
+              backgroundColor: '#4A1616'
+            }
+          }}
+          onMouseEnter={(e) => {
+            (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+          }}
+          onMouseLeave={(e) => {
+            (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+          }}
         >
           إدارة المقترحات ({product.suggestedProducts.length})
         </button>

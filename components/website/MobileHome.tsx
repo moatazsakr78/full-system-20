@@ -169,7 +169,7 @@ export default function MobileHome({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
                 </svg>
                 {(userInfo.cart?.length || 0) > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center" style={{backgroundColor: '#5D1F1F'}}>
                     {userInfo.cart?.length || 0}
                   </span>
                 )}
@@ -227,9 +227,10 @@ export default function MobileHome({
               onClick={() => setSelectedCategory('الكل')}
               className={`flex-shrink-0 px-3 py-2 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
                 selectedCategory === 'الكل' 
-                  ? 'bg-red-600 text-white' 
+                  ? 'text-white' 
                   : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
               }`}
+              style={selectedCategory === 'الكل' ? {backgroundColor: '#5D1F1F'} : {}}
             >
               الكل
             </button>
@@ -239,9 +240,10 @@ export default function MobileHome({
                 onClick={() => setSelectedCategory(category.name)}
                 className={`flex-shrink-0 px-3 py-2 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
                   selectedCategory === category.name 
-                    ? 'bg-red-600 text-white' 
+                    ? 'text-white' 
                     : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
                 }`}
+                style={selectedCategory === category.name ? {backgroundColor: '#5D1F1F'} : {}}
               >
                 {category.name}
               </button>
@@ -273,7 +275,17 @@ export default function MobileHome({
                 </div>
                 <div onClick={() => router.push(`/product/${product.id}`)}>
                   <h4 className="font-semibold mb-1 text-sm truncate text-white group-hover:text-red-600 transition-colors">{product.name}</h4>
-                  <p className="text-gray-400 text-xs mb-2 truncate">{product.description}</p>
+                  <div className="h-8 mb-2">
+                    <p className="text-gray-400 text-xs overflow-hidden" style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      lineHeight: '1rem',
+                      maxHeight: '2rem'
+                    }}>
+                      {product.description}
+                    </p>
+                  </div>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1">
                       {product.originalPrice && (
@@ -294,7 +306,14 @@ export default function MobileHome({
                     e.stopPropagation();
                     await onAddToCart(product);
                   }}
-                  className="bg-red-600 hover:bg-red-700 p-1.5 rounded-lg w-full mt-2"
+                  className="p-1.5 rounded-lg w-full mt-2 transition-colors text-white"
+                  style={{backgroundColor: '#5D1F1F'}}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+                  }}
                 >
                   <svg className="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -329,7 +348,17 @@ export default function MobileHome({
                 </div>
                 <div onClick={() => router.push(`/product/${product.id}`)}>
                   <h4 className="font-semibold mb-1 text-sm truncate text-white group-hover:text-red-600 transition-colors">{product.name}</h4>
-                  <p className="text-gray-400 text-xs mb-2 truncate">{product.description}</p>
+                  <div className="h-8 mb-2">
+                    <p className="text-gray-400 text-xs overflow-hidden" style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      lineHeight: '1rem',
+                      maxHeight: '2rem'
+                    }}>
+                      {product.description}
+                    </p>
+                  </div>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1">
                       {product.originalPrice && (
@@ -350,7 +379,14 @@ export default function MobileHome({
                     e.stopPropagation();
                     await onAddToCart(product);
                   }}
-                  className="bg-red-600 hover:bg-red-700 p-1.5 rounded-lg w-full mt-2"
+                  className="p-1.5 rounded-lg w-full mt-2 transition-colors text-white"
+                  style={{backgroundColor: '#5D1F1F'}}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+                  }}
                 >
                   <svg className="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -421,7 +457,7 @@ export default function MobileHome({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
             </svg>
             {(userInfo.cart?.length || 0) > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-600 text-xs rounded-full w-4 h-4 flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 text-xs rounded-full w-4 h-4 flex items-center justify-center text-white" style={{backgroundColor: '#5D1F1F'}}>
                 {userInfo.cart?.length || 0}
               </span>
             )}

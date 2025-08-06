@@ -128,7 +128,7 @@ export default function TabletHome({
     return (
       <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#c0c0c0'}}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{borderBottomColor: '#5D1F1F'}}></div>
           <p className="text-gray-600">جاري تحميل التطبيق...</p>
         </div>
       </div>
@@ -151,7 +151,7 @@ export default function TabletHome({
           
           <div className="flex items-center gap-2">
             <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-10 w-10 object-contain" />
-            <h1 className="text-xl font-bold text-red-500">متجر الفاروق</h1>
+            <h1 className="text-xl font-bold" style={{color: '#5D1F1F'}}>متجر الفاروق</h1>
           </div>
           
           <div className="flex items-center gap-4">
@@ -163,7 +163,14 @@ export default function TabletHome({
             <div className="ml-2">
               <button 
                 onClick={() => router.push('/cart')}
-                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-white"
+                style={{backgroundColor: '#5D1F1F'}}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+                }}
               >
                 <span className="text-sm">السلة ({userInfo.cart?.length || 0})</span>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,10 +185,10 @@ export default function TabletHome({
         {isMenuOpen && (
           <div className="bg-gray-700 border-t border-gray-600 md:hidden">
             <nav className="px-4 py-2 space-y-2">
-              <a href="#products" className="block py-2 px-3 text-gray-300 hover:text-red-400 hover:bg-gray-600 rounded transition-colors">المنتجات</a>
-              <a href="#categories" className="block py-2 px-3 text-gray-300 hover:text-red-400 hover:bg-gray-600 rounded transition-colors">الفئات</a>
-              <a href="#offers" className="block py-2 px-3 text-gray-300 hover:text-red-400 hover:bg-gray-600 rounded transition-colors">العروض</a>
-              <a href="#about" className="block py-2 px-3 text-gray-300 hover:text-red-400 hover:bg-gray-600 rounded transition-colors">عن المتجر</a>
+              <a href="#products" className="block py-2 px-3 text-gray-300 hover:bg-gray-600 rounded transition-colors hover:text-[#5D1F1F]">المنتجات</a>
+              <a href="#categories" className="block py-2 px-3 text-gray-300 hover:bg-gray-600 rounded transition-colors hover:text-[#5D1F1F]">الفئات</a>
+              <a href="#offers" className="block py-2 px-3 text-gray-300 hover:bg-gray-600 rounded transition-colors hover:text-[#5D1F1F]">العروض</a>
+              <a href="#about" className="block py-2 px-3 text-gray-300 hover:bg-gray-600 rounded transition-colors hover:text-[#5D1F1F]">عن المتجر</a>
             </nav>
           </div>
         )}
@@ -197,7 +204,24 @@ export default function TabletHome({
                 placeholder="ابحث عن المنتجات..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 pr-10 text-white placeholder-gray-400 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                style={{
+                  backgroundColor: '#374151',
+                  border: '1px solid #4B5563',
+                  borderRadius: '8px',
+                  padding: '10px 16px',
+                  paddingRight: '40px',
+                  color: 'white',
+                  outline: 'none'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#5D1F1F';
+                  e.target.style.boxShadow = '0 0 0 1px #5D1F1F';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#4B5563';
+                  e.target.style.boxShadow = 'none';
+                }}
+                className="w-full text-white placeholder-gray-400"
               />
               <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -206,7 +230,21 @@ export default function TabletHome({
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-red-500"
+              style={{
+                backgroundColor: '#374151',
+                border: '1px solid #4B5563',
+                borderRadius: '8px',
+                padding: '10px 12px',
+                color: 'white',
+                fontSize: '14px',
+                outline: 'none'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#5D1F1F';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#4B5563';
+              }}
             >
               <option value="الكل">جميع الفئات</option>
               {categories.map(category => (
@@ -225,11 +263,26 @@ export default function TabletHome({
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             <button 
               onClick={() => setSelectedCategory('الكل')}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-                selectedCategory === 'الكل' 
-                  ? 'bg-red-600 text-white' 
-                  : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
-              }`}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '9999px',
+                fontSize: '14px',
+                fontWeight: '500',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s',
+                backgroundColor: selectedCategory === 'الكل' ? '#5D1F1F' : '#1F2937',
+                color: selectedCategory === 'الكل' ? 'white' : '#D1D5DB'
+              }}
+              onMouseEnter={(e) => {
+                if (selectedCategory !== 'الكل') {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#374151';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (selectedCategory !== 'الكل') {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#1F2937';
+                }
+              }}
             >
               الكل
             </button>
@@ -237,11 +290,26 @@ export default function TabletHome({
               <button 
                 key={category.id}
                 onClick={() => setSelectedCategory(category.name)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-                  selectedCategory === category.name 
-                    ? 'bg-red-600 text-white' 
-                    : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
-                }`}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '9999px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s',
+                  backgroundColor: selectedCategory === category.name ? '#5D1F1F' : '#1F2937',
+                  color: selectedCategory === category.name ? 'white' : '#D1D5DB'
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedCategory !== category.name) {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#374151';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedCategory !== category.name) {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#1F2937';
+                  }
+                }}
               >
                 {category.name}
               </button>
@@ -268,14 +336,24 @@ export default function TabletHome({
                   )}
                 </div>
                 <div onClick={() => router.push(`/product/${product.id}`)}>
-                  <h4 className="font-semibold mb-2 text-sm text-white truncate group-hover:text-red-600 transition-colors">{product.name}</h4>
-                  <p className="text-gray-400 text-xs mb-3 line-clamp-2">{product.description}</p>
+                  <h4 className="font-semibold mb-2 text-sm text-white truncate transition-colors" style={{'--hover-color': '#5D1F1F'}} onMouseEnter={(e) => {(e.target as HTMLElement).style.color = '#5D1F1F';}} onMouseLeave={(e) => {(e.target as HTMLElement).style.color = 'white';}}>{product.name}</h4>
+                  <div className="h-8 mb-3">
+                    <p className="text-gray-400 text-xs overflow-hidden" style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      lineHeight: '1rem',
+                      maxHeight: '2rem'
+                    }}>
+                      {product.description}
+                    </p>
+                  </div>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1">
                       {product.originalPrice && (
                         <span className="text-xs text-gray-500 line-through">{product.originalPrice} ريال</span>
                       )}
-                      <span className="text-sm font-bold text-red-400">{product.price} ريال</span>
+                      <span className="text-sm font-bold" style={{color: '#5D1F1F'}}>{product.price} ريال</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -290,7 +368,23 @@ export default function TabletHome({
                     e.stopPropagation();
                     await onAddToCart(product);
                   }}
-                  className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors w-full mt-2"
+                  style={{
+                    backgroundColor: '#5D1F1F',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    width: '100%',
+                    marginTop: '8px',
+                    color: 'white',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+                  }}
                 >
                   أضف
                 </button>
@@ -318,14 +412,24 @@ export default function TabletHome({
                   )}
                 </div>
                 <div onClick={() => router.push(`/product/${product.id}`)}>
-                  <h4 className="font-semibold mb-2 text-sm text-white truncate group-hover:text-red-600 transition-colors">{product.name}</h4>
-                  <p className="text-gray-400 text-xs mb-3 line-clamp-2">{product.description}</p>
+                  <h4 className="font-semibold mb-2 text-sm text-white truncate transition-colors" style={{'--hover-color': '#5D1F1F'}} onMouseEnter={(e) => {(e.target as HTMLElement).style.color = '#5D1F1F';}} onMouseLeave={(e) => {(e.target as HTMLElement).style.color = 'white';}}>{product.name}</h4>
+                  <div className="h-8 mb-3">
+                    <p className="text-gray-400 text-xs overflow-hidden" style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      lineHeight: '1rem',
+                      maxHeight: '2rem'
+                    }}>
+                      {product.description}
+                    </p>
+                  </div>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-1">
                       {product.originalPrice && (
                         <span className="text-xs text-gray-500 line-through">{product.originalPrice} ريال</span>
                       )}
-                      <span className="text-sm font-bold text-red-400">{product.price} ريال</span>
+                      <span className="text-sm font-bold" style={{color: '#5D1F1F'}}>{product.price} ريال</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -340,7 +444,23 @@ export default function TabletHome({
                     e.stopPropagation();
                     await onAddToCart(product);
                   }}
-                  className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors w-full mt-2"
+                  style={{
+                    backgroundColor: '#5D1F1F',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    width: '100%',
+                    marginTop: '8px',
+                    color: 'white',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+                  }}
                 >
                   أضف
                 </button>
@@ -375,7 +495,7 @@ export default function TabletHome({
                     <span className="text-2xl">{category.icon}</span>
                   </div>
                 </div>
-                <h4 className="font-semibold text-sm text-white group-hover:text-red-400 transition-colors">{category.name}</h4>
+                <h4 className="font-semibold text-sm text-white transition-colors" onMouseEnter={(e) => {(e.target as HTMLElement).style.color = '#5D1F1F';}} onMouseLeave={(e) => {(e.target as HTMLElement).style.color = 'white';}}>{category.name}</h4>
                 <p className="text-xs text-gray-400 mt-1">{category.productCount} منتج</p>
               </div>
             ))}
@@ -390,7 +510,7 @@ export default function TabletHome({
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-6 w-6 object-contain" />
-                <h5 className="font-bold text-lg text-red-400">متجر الفاروق</h5>
+                <h5 className="font-bold text-lg" style={{color: '#5D1F1F'}}>متجر الفاروق</h5>
               </div>
               <p className="text-gray-400 text-sm mb-4">متجرك المتكامل للحصول على أفضل المنتجات بأسعار مميزة وجودة عالية</p>
               <div className="space-y-1 text-gray-400 text-sm">
