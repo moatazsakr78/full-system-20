@@ -22,7 +22,7 @@ interface ProductManagementItem {
 
 export default function ProductManagementPage() {
   const router = useRouter();
-  const { products: databaseProducts, isLoading } = useProducts();
+  const { products: databaseProducts, isLoading, fetchProducts } = useProducts();
   const [products, setProducts] = useState<ProductManagementItem[]>([]);
   const [originalProducts, setOriginalProducts] = useState<ProductManagementItem[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -54,7 +54,8 @@ export default function ProductManagementPage() {
 
   // Convert database products to management format
   useEffect(() => {
-    if (databaseProducts && databaseProducts.length > 0) {
+    // Only update from database if we don't have unsaved changes
+    if (databaseProducts && databaseProducts.length > 0 && !hasUnsavedChanges && !isSaving) {
       const convertedProducts: ProductManagementItem[] = databaseProducts.map((dbProduct: any, index: number) => ({
         id: dbProduct.id,
         name: dbProduct.name || 'منتج بدون اسم',
@@ -74,7 +75,7 @@ export default function ProductManagementPage() {
       setOriginalProducts(JSON.parse(JSON.stringify(convertedProducts))); // Deep copy
       setHasUnsavedChanges(false);
     }
-  }, [databaseProducts]);
+  }, [databaseProducts, hasUnsavedChanges, isSaving]);
 
   const toggleDragMode = () => {
     setIsDragMode(!isDragMode);
@@ -213,12 +214,16 @@ export default function ProductManagementPage() {
       setOriginalProducts(JSON.parse(JSON.stringify(products)));
       setHasUnsavedChanges(false);
       
-      alert(`تم حفظ ${successCount} تغيير بنجاح!`);
+      // Refresh products from database to get the latest state
+      setTimeout(async () => {
+        try {
+          await fetchProducts();
+        } catch (error) {
+          console.error('Error refreshing products:', error);
+        }
+      }, 500);
       
-      // Optional: Refresh data without full page reload
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      alert(`تم حفظ ${successCount} تغيير بنجاح!`);
       
     } catch (error) {
       console.error('❌ Error saving changes:', error);
