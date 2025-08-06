@@ -100,7 +100,7 @@ export default function SuggestedProductsModal({
         {/* Products Grid */}
         <div className="p-4 overflow-y-auto max-h-96">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredProducts.map((product) => {
+            {filteredProducts.slice(0, 9).map((product) => {
               const isSelected = selectedSuggestions.includes(product.id);
               return (
                 <div

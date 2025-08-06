@@ -528,7 +528,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     return (
       <div className="min-h-screen text-gray-800 flex items-center justify-center" style={{backgroundColor: '#c0c0c0'}}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{borderBottomColor: '#5D1F1F'}}></div>
           <p className="text-lg">جاري تحميل المنتج...</p>
         </div>
       </div>
@@ -545,7 +545,14 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           <p className="text-lg mb-4">{error || 'المنتج غير موجود'}</p>
           <button 
             onClick={() => router.back()}
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors"
+            className="text-white px-6 py-2 rounded-lg transition-colors"
+            style={{backgroundColor: '#5D1F1F'}}
+            onMouseEnter={(e) => {
+              (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+            }}
           >
             العودة
           </button>
@@ -649,7 +656,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
             {updatedUserInfo.name && (
               <span className="text-sm text-gray-300">مرحباً، {updatedUserInfo.name}</span>
             )}
-            <button className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors">
+            <button className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-white" style={{backgroundColor: '#5D1F1F'}} onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616'; }} onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F'; }}>
               <span>السلة ({updatedUserInfo.cart?.length || 0})</span>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
@@ -663,7 +670,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       <main className="ml-0 px-4 py-8">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6">
-          <button onClick={() => router.push('/')} className="hover:text-red-600 transition-colors">الرئيسية</button>
+          <button onClick={() => router.push('/')} className="transition-colors hover:text-[#5D1F1F]">الرئيسية</button>
           <span>›</span>
           <span className="text-gray-800">{productDetails.category}</span>
           <span>›</span>
@@ -707,12 +714,12 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
             {/* Price */}
             <div className="flex items-center gap-4">
-              <span className="text-3xl font-bold text-red-600">{productDetails.price} ريال</span>
+              <span className="text-3xl font-bold" style={{color: '#5D1F1F'}}>{productDetails.price} ريال</span>
               {productDetails.originalPrice && (
                 <span className="text-xl text-gray-500 line-through">{productDetails.originalPrice} ريال</span>
               )}
               {productDetails.isOnSale && (
-                <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm font-bold">
+                <span className="px-3 py-1 rounded-full text-sm font-bold" style={{backgroundColor: '#F5F1F1', color: '#5D1F1F'}}>
                   خصم {productDetails.discount}%
                 </span>
               )}
@@ -810,14 +817,21 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
             <div className="flex gap-4 pt-4">
               <button
                 onClick={handleAddToCart}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                className="flex-1 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                style={{backgroundColor: '#5D1F1F'}}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+                }}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
                 </svg>
                 أضف إلى السلة
               </button>
-              <button className="px-6 py-3 border border-red-600 text-red-600 hover:bg-red-50 rounded-lg font-semibold transition-colors flex items-center justify-center">
+              <button className="px-6 py-3 border rounded-lg font-semibold transition-colors flex items-center justify-center" style={{borderColor: '#5D1F1F', color: '#5D1F1F'}} onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#F5F1F1'; }} onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = 'transparent'; }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
@@ -854,9 +868,9 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           <div className="bg-white rounded-lg p-6 shadow-lg mb-12">
           <div className="border-b border-gray-200 mb-6">
             <nav className="flex gap-8">
-              <button className="pb-4 border-b-2 border-red-500 text-red-600 font-semibold">الوصف التفصيلي</button>
-              <button className="pb-4 text-gray-600 hover:text-red-600 transition-colors">المواصفات</button>
-              <button className="pb-4 text-gray-600 hover:text-red-600 transition-colors">آراء العملاء</button>
+              <button className="pb-4 border-b-2 font-semibold" style={{borderBottomColor: '#5D1F1F', color: '#5D1F1F'}}>الوصف التفصيلي</button>
+              <button className="pb-4 text-gray-600 transition-colors hover:text-[#5D1F1F]">المواصفات</button>
+              <button className="pb-4 text-gray-600 transition-colors hover:text-[#5D1F1F]">آراء العملاء</button>
             </nav>
           </div>
           
@@ -882,7 +896,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         {suggestedProductsList.length > 0 && (
           <section>
             <div className="mx-16">
-              <h3 className="text-2xl font-bold mb-6 text-red-700">منتجات مقترحة</h3>
+              <h3 className="text-2xl font-bold mb-6" style={{color: '#5D1F1F'}}>منتجات مقترحة</h3>
             </div>
             <div className="relative">
               {/* Navigation Arrows - Only show if there are more than 4 products */}
@@ -931,14 +945,14 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                           </span>
                         )}
                       </div>
-                      <h4 className="font-semibold mb-2 text-gray-800 truncate group-hover:text-red-600 transition-colors">{product.name}</h4>
+                      <h4 className="font-semibold mb-2 text-gray-800 truncate transition-colors group-hover:text-[#5D1F1F]">{product.name}</h4>
                       <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           {product.originalPrice && (
                             <span className="text-sm text-gray-500 line-through">{product.originalPrice} ريال</span>
                           )}
-                          <span className="text-lg font-bold text-red-400">{product.price} ريال</span>
+                          <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>{product.price} ريال</span>
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
@@ -951,7 +965,14 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                             e.stopPropagation();
                             addToCart(product);
                           }}
-                          className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-white"
+                          className="px-4 py-2 rounded-lg text-sm font-medium transition-colors text-white"
+                          style={{backgroundColor: '#5D1F1F'}}
+                          onMouseEnter={(e) => {
+                            (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+                          }}
                         >
                           أضف للسلة
                         </button>
