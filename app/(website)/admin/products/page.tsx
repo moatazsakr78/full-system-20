@@ -114,55 +114,116 @@ export default function ProductManagementPage() {
 
   const saveAllChanges = async () => {
     setIsSaving(true);
+    console.log('🟢 Starting save process...');
+    console.log('Current products:', products);
+    console.log('Original products:', originalProducts);
+    
     try {
-      // Prepare all updates
-      const updates = products.map((product, index) => {
+      // Prepare all updates - use Promise.all for better performance
+      const updates: Array<{
+        id: string;
+        display_order: number;
+        is_hidden: boolean;
+        is_featured: boolean;
+        suggested_products: string[];
+        hasChanges: boolean;
+      }> = [];
+
+      for (let index = 0; index < products.length; index++) {
+        const product = products[index];
         const original = originalProducts.find(op => op.id === product.id);
-        return {
+        
+        const hasChanges = !original || (
+          original.displayOrder !== index ||
+          original.isHidden !== product.isHidden ||
+          original.isFeatured !== product.isFeatured ||
+          JSON.stringify(original.suggestedProducts || []) !== JSON.stringify(product.suggestedProducts || [])
+        );
+        
+        console.log(`Product ${product.name}:`, {
           id: product.id,
-          display_order: index,
-          is_hidden: product.isHidden,
-          is_featured: product.isFeatured,
-          suggested_products: product.suggestedProducts,
-          // Only include fields that have actually changed
-          hasChanges: !original || (
-            original.displayOrder !== index ||
-            original.isHidden !== product.isHidden ||
-            original.isFeatured !== product.isFeatured ||
-            JSON.stringify(original.suggestedProducts) !== JSON.stringify(product.suggestedProducts)
-          )
-        };
-      }).filter(update => update.hasChanges);
+          hasChanges,
+          changes: {
+            displayOrder: { from: original?.displayOrder, to: index },
+            isHidden: { from: original?.isHidden, to: product.isHidden },
+            isFeatured: { from: original?.isFeatured, to: product.isFeatured },
+            suggestedProducts: { from: original?.suggestedProducts, to: product.suggestedProducts }
+          }
+        });
+
+        if (hasChanges) {
+          updates.push({
+            id: product.id,
+            display_order: index,
+            is_hidden: product.isHidden,
+            is_featured: product.isFeatured,
+            suggested_products: product.suggestedProducts || [],
+            hasChanges: true
+          });
+        }
+      }
+
+      console.log('Updates to be processed:', updates);
 
       if (updates.length === 0) {
+        console.log('🟡 No changes to save');
         alert('لا توجد تغييرات للحفظ');
         setIsSaving(false);
         return;
       }
 
-      // Update database
-      for (const update of updates) {
-        const { error } = await supabase
+      // Update database using Promise.all for better performance
+      console.log('🔄 Updating database...');
+      const updatePromises = updates.map(async (update) => {
+        console.log(`Updating product ${update.id}:`, {
+          display_order: update.display_order,
+          is_hidden: update.is_hidden,
+          is_featured: update.is_featured,
+          suggested_products: update.suggested_products
+        });
+        
+        const { data, error } = await supabase
           .from('products')
           .update({
             display_order: update.display_order,
             is_hidden: update.is_hidden,
             is_featured: update.is_featured,
-            suggested_products: update.suggested_products
-          } as any)
-          .eq('id', update.id);
+            suggested_products: update.suggested_products,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', update.id)
+          .select('id, name');
         
-        if (error) throw error;
-      }
+        if (error) {
+          console.error(`❌ Error updating product ${update.id}:`, error);
+          throw new Error(`Failed to update product ${update.id}: ${error.message}`);
+        }
+        
+        console.log(`✅ Successfully updated product ${update.id}:`, data);
+        return { id: update.id, success: true, data };
+      });
+
+      // Execute all updates in parallel
+      const results = await Promise.all(updatePromises);
+      const successCount = results.filter(r => r.success).length;
       
-      // Update original products state
+      console.log(`🎉 Successfully updated ${successCount} products`);
+      
+      // Update original products state to match current state
       setOriginalProducts(JSON.parse(JSON.stringify(products)));
       setHasUnsavedChanges(false);
-      alert(`تم حفظ ${updates.length} تغيير بنجاح!`);
+      
+      alert(`تم حفظ ${successCount} تغيير بنجاح!`);
+      
+      // Optional: Refresh data without full page reload
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
       
     } catch (error) {
-      console.error('Error saving changes:', error);
-      alert('حدث خطأ أثناء حفظ التغييرات');
+      console.error('❌ Error saving changes:', error);
+      const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف';
+      alert(`حدث خطأ أثناء حفظ التغييرات: ${errorMessage}`);
     } finally {
       setIsSaving(false);
     }

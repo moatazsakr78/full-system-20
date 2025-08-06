@@ -154,6 +154,7 @@ export function useProducts() {
         `)
         .eq('is_active', true)
         .order('display_order', { ascending: true })
+        .order('name', { ascending: true })
 
       if (productsError) throw productsError
 

@@ -41,25 +41,33 @@ export default function MobileHome({
 
   // Convert database products to website format
   useEffect(() => {
-    if (databaseProducts && databaseProducts.length > 0) {
-      const convertedProducts: Product[] = databaseProducts.map((dbProduct: DatabaseProduct) => ({
-        id: dbProduct.id,
-        name: dbProduct.name,
-        description: dbProduct.description || '',
-        price: dbProduct.finalPrice || dbProduct.price,
-        originalPrice: dbProduct.isDiscounted ? dbProduct.price : undefined,
-        image: dbProduct.main_image_url || undefined,
-        images: dbProduct.allImages || [],
-        category: dbProduct.category?.name || 'عام',
-        brand: 'El Farouk Group',
-        stock: dbProduct.totalQuantity || 0,
-        rating: dbProduct.rating || 0,
-        reviews: dbProduct.rating_count || 0,
-        isOnSale: dbProduct.isDiscounted || false,
-        discount: dbProduct.isDiscounted && dbProduct.discount_percentage ? Math.round(dbProduct.discount_percentage) : undefined,
-        tags: []
-      }));
-      setWebsiteProducts(convertedProducts);
+    try {
+      if (databaseProducts && databaseProducts.length > 0) {
+        const convertedProducts: Product[] = databaseProducts
+          .filter((dbProduct: DatabaseProduct) => !dbProduct.is_hidden) // Hide hidden products
+          .map((dbProduct: DatabaseProduct) => ({
+            id: dbProduct.id,
+            name: dbProduct.name || 'منتج بدون اسم',
+            description: dbProduct.description || '',
+            price: dbProduct.finalPrice || dbProduct.price || 0,
+            originalPrice: dbProduct.isDiscounted ? dbProduct.price : undefined,
+            image: dbProduct.main_image_url || undefined,
+            images: dbProduct.allImages || [],
+            category: dbProduct.category?.name || 'عام',
+            brand: 'El Farouk Group',
+            stock: dbProduct.totalQuantity || 0,
+            rating: dbProduct.rating || 0,
+            reviews: dbProduct.rating_count || 0,
+            isOnSale: dbProduct.isDiscounted || false,
+            discount: dbProduct.isDiscounted && dbProduct.discount_percentage ? Math.round(dbProduct.discount_percentage) : undefined,
+            tags: [],
+            isFeatured: dbProduct.is_featured || false
+          }));
+        setWebsiteProducts(convertedProducts);
+      }
+    } catch (error) {
+      console.error('Error converting database products:', error);
+      setWebsiteProducts([]);
     }
   }, [databaseProducts]);
 
@@ -121,7 +129,7 @@ export default function MobileHome({
     return matchesSearch && matchesCategory;
   });
 
-  const featuredProducts = websiteProducts.filter(product => product.isOnSale || (product.rating && product.rating >= 4.5));
+  const featuredProducts = websiteProducts.filter(product => product.isFeatured || product.isOnSale);
 
   // Show loading state during hydration or while loading data
   if (!isClient || isLoading) {
