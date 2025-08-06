@@ -35,9 +35,9 @@ npm i -g vercel
 # Login and check environment variables
 vercel login
 vercel env ls
-```
+``````
 
-### 3. Correct Google Cloud Console Configuration
+### 3. Correct Google Cloud Console Configuration <sdgs>
 
 #### Current Setup (might be incorrect):
 - ❌ `http://localhost:3000/auth/v1/callback`

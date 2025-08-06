@@ -1,7 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: [],
+    domains: ['images.unsplash.com', 'via.placeholder.com'],
+    unoptimized: false,
+  },
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
   },
 }
 
