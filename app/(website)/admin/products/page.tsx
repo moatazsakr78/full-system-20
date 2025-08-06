@@ -171,20 +171,10 @@ export default function ProductManagementPage() {
       {/* Header */}
       <header className="border-b border-gray-700 py-4" style={{backgroundColor: '#5d1f1f'}}>
         <div className="w-full px-6 flex items-center justify-between">
-          {/* Left side - Exit button */}
-          <button
-            onClick={() => router.back()}
-            className="text-white hover:text-red-300 transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          
-          {/* Center - Title */}
+          {/* Right side - Title */}
           <h1 className="text-2xl font-bold text-white">إدارة المنتجات</h1>
           
-          {/* Right side - Action buttons */}
+          {/* Center - Action buttons */}
           <div className="flex items-center gap-3">
             {isDragMode && (
               <button
@@ -195,17 +185,17 @@ export default function ProductManagementPage() {
                 {isSaving ? 'جاري الحفظ...' : 'حفظ الترتيب'}
               </button>
             )}
-            <button
-              onClick={toggleDragMode}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                isDragMode 
-                  ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-            >
-              {isDragMode ? 'إلغاء تبديل المراكز' : 'تبديل المراكز'}
-            </button>
           </div>
+          
+          {/* Left side - Exit button */}
+          <button
+            onClick={() => router.back()}
+            className="text-white hover:text-red-300 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
         </div>
       </header>
 
@@ -215,6 +205,25 @@ export default function ProductManagementPage() {
         <div className="w-80 bg-white border-l border-gray-300 p-6">
           <div className="mb-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4">لوحة التحكم</h2>
+            
+            {/* Drag Mode Toggle Button */}
+            <div className="mb-4">
+              <button
+                onClick={toggleDragMode}
+                className={`w-full flex items-center justify-between px-4 py-3 text-right rounded-lg transition-colors font-bold ${
+                  isDragMode 
+                    ? 'bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-2 border-yellow-400' 
+                    : 'bg-blue-100 hover:bg-blue-200 text-blue-800 border-2 border-blue-400'
+                }`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                <span className="font-bold text-lg">
+                  {isDragMode ? 'إلغاء تبديل المراكز' : 'تبديل المراكز'}
+                </span>
+              </button>
+            </div>
             
             {/* Navigation Buttons */}
             <div className="space-y-3">
