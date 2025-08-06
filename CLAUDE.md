@@ -94,6 +94,12 @@ pos-sys/
 - Maintain proper styling and hover states
 - Display placeholder text where appropriate
 
+### Layout Restrictions:
+- **IMPORTANT**: Do not use the blue TopHeader stripe in any store/admin product management pages
+- The TopHeader component should be hidden for all admin product pages (`/admin/products`)
+- Only use TopHeader for POS system pages, not for customer-facing store pages
+- This ensures proper visibility of page-specific header designs (like the red header in admin products)
+
 ## Real-time Requirements
 - **Visibility-aware subscriptions**: Handle browser tab minimize/restore
 - **Reconnection logic**: Automatic reconnection on connection loss
