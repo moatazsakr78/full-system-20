@@ -170,19 +170,21 @@ export default function ProductManagementPage() {
     <div className="min-h-screen text-gray-800" style={{backgroundColor: '#c0c0c0'}}>
       {/* Header */}
       <header className="border-b border-gray-700 py-4" style={{backgroundColor: '#5d1f1f'}}>
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.back()}
-              className="text-white hover:text-red-300 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="text-2xl font-bold text-white">إدارة المنتجات</h1>
-          </div>
+        <div className="w-full px-6 flex items-center justify-between">
+          {/* Left side - Exit button */}
+          <button
+            onClick={() => router.back()}
+            className="text-white hover:text-red-300 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
           
+          {/* Center - Title */}
+          <h1 className="text-2xl font-bold text-white">إدارة المنتجات</h1>
+          
+          {/* Right side - Action buttons */}
           <div className="flex items-center gap-3">
             {isDragMode && (
               <button
@@ -208,30 +210,86 @@ export default function ProductManagementPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <DragDropProvider>
-          <ProductManagementGrid
-            products={products}
-            isDragMode={isDragMode}
-            onReorder={handleReorder}
-            onToggleVisibility={toggleVisibility}
-            onToggleFeatured={toggleFeatured}
-            onUpdateSuggestedProducts={updateSuggestedProducts}
-          />
-        </DragDropProvider>
-      </main>
-
-      {/* Instructions */}
-      <div className="max-w-7xl mx-auto px-6 pb-8">
-        <div className="bg-white rounded-lg p-6 border border-gray-300 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">تعليمات الاستخدام:</h3>
-          <ul className="list-disc pr-5 space-y-2 text-gray-600">
-            <li><strong>تبديل المراكز:</strong> اضغط على زر &quot;تبديل المراكز&quot; لتفعيل خاصية السحب والإفلات، ثم اسحب المنتجات لإعادة ترتيبها</li>
-            <li><strong>إخفاء/إظهار:</strong> استخدم مفتاح &quot;مخفي من المتجر&quot; لإخفاء أو إظهار المنتج في الموقع</li>
-            <li><strong>المنتجات المميزة:</strong> فعل مفتاح &quot;منتج مميز&quot; لإضافة المنتج لقسم المنتجات المميزة</li>
-            <li><strong>المنتجات المقترحة:</strong> اضغط على &quot;إدارة المقترحات&quot; لتحديد المنتجات التي ستظهر كمقترحات مع هذا المنتج</li>
-          </ul>
+      <div className="flex min-h-screen">
+        {/* Control Panel - Right Side */}
+        <div className="w-80 bg-white border-l border-gray-300 p-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">لوحة التحكم</h2>
+            
+            {/* Navigation Buttons */}
+            <div className="space-y-3">
+              <button className="w-full flex items-center justify-between px-4 py-3 text-right bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <span className="text-gray-700 font-medium">إدارة المنتجات</span>
+              </button>
+              
+              <button className="w-full flex items-center justify-between px-4 py-3 text-right bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                <span className="text-gray-700 font-medium">طلبات العملاء</span>
+              </button>
+              
+              <button className="w-full flex items-center justify-between px-4 py-3 text-right bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <span className="text-gray-700 font-medium">سجل العملاء</span>
+              </button>
+              
+              <button className="w-full flex items-center justify-between px-4 py-3 text-right bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                </svg>
+                <span className="text-gray-700 font-medium">المبيعات</span>
+              </button>
+              
+              <button className="w-full flex items-center justify-between px-4 py-3 text-right bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span className="text-gray-700 font-medium">المستخدمين</span>
+              </button>
+              
+              <button className="w-full flex items-center justify-between px-4 py-3 text-right bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="text-gray-700 font-medium">تسجيل الخروج</span>
+              </button>
+            </div>
+          </div>
         </div>
+
+        {/* Products Content - Left Side */}
+        <main className="flex-1 p-6">
+          <DragDropProvider>
+            <ProductManagementGrid
+              products={products}
+              isDragMode={isDragMode}
+              onReorder={handleReorder}
+              onToggleVisibility={toggleVisibility}
+              onToggleFeatured={toggleFeatured}
+              onUpdateSuggestedProducts={updateSuggestedProducts}
+            />
+          </DragDropProvider>
+          
+          {/* Instructions */}
+          <div className="mt-8">
+            <div className="bg-white rounded-lg p-6 border border-gray-300 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">تعليمات الاستخدام:</h3>
+              <ul className="list-disc pr-5 space-y-2 text-gray-600">
+                <li><strong>تبديل المراكز:</strong> اضغط على زر &quot;تبديل المراكز&quot; لتفعيل خاصية السحب والإفلات، ثم اسحب المنتجات لإعادة ترتيبها</li>
+                <li><strong>إخفاء/إظهار:</strong> استخدم مفتاح &quot;مخفي من المتجر&quot; لإخفاء أو إظهار المنتج في الموقع</li>
+                <li><strong>المنتجات المميزة:</strong> فعل مفتاح &quot;منتج مميز&quot; لإضافة المنتج لقسم المنتجات المميزة</li>
+                <li><strong>المنتجات المقترحة:</strong> اضغط على &quot;إدارة المقترحات&quot; لتحديد المنتجات التي ستظهر كمقترحات مع هذا المنتج</li>
+              </ul>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );
