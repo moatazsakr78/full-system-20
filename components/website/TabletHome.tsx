@@ -336,7 +336,7 @@ export default function TabletHome({
                   )}
                 </div>
                 <div onClick={() => router.push(`/product/${product.id}`)}>
-                  <h4 className="font-semibold mb-2 text-sm text-white truncate transition-colors" style={{'--hover-color': '#5D1F1F'}} onMouseEnter={(e) => {(e.target as HTMLElement).style.color = '#5D1F1F';}} onMouseLeave={(e) => {(e.target as HTMLElement).style.color = 'white';}}>{product.name}</h4>
+                  <h4 className="font-semibold mb-2 text-sm text-white truncate transition-colors" onMouseEnter={(e) => {(e.target as HTMLElement).style.color = '#5D1F1F';}} onMouseLeave={(e) => {(e.target as HTMLElement).style.color = 'white';}}>{product.name}</h4>
                   <div className="h-8 mb-3">
                     <p className="text-gray-400 text-xs overflow-hidden" style={{
                       display: '-webkit-box',
@@ -412,7 +412,7 @@ export default function TabletHome({
                   )}
                 </div>
                 <div onClick={() => router.push(`/product/${product.id}`)}>
-                  <h4 className="font-semibold mb-2 text-sm text-white truncate transition-colors" style={{'--hover-color': '#5D1F1F'}} onMouseEnter={(e) => {(e.target as HTMLElement).style.color = '#5D1F1F';}} onMouseLeave={(e) => {(e.target as HTMLElement).style.color = 'white';}}>{product.name}</h4>
+                  <h4 className="font-semibold mb-2 text-sm text-white truncate transition-colors" onMouseEnter={(e) => {(e.target as HTMLElement).style.color = '#5D1F1F';}} onMouseLeave={(e) => {(e.target as HTMLElement).style.color = 'white';}}>{product.name}</h4>
                   <div className="h-8 mb-3">
                     <p className="text-gray-400 text-xs overflow-hidden" style={{
                       display: '-webkit-box',

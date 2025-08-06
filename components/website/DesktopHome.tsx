@@ -226,7 +226,6 @@ export default function DesktopHome({
                 <button 
                   onClick={() => router.push('/cart')}
                   className="relative p-2 rounded-lg transition-colors"
-                  style={{":hover": {backgroundColor: "#4A1616"}}}
                   onMouseEnter={(e) => {
                     (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
                   }}

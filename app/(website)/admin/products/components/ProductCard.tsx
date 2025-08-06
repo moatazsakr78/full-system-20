@@ -158,10 +158,7 @@ export default function ProductCard({
           onClick={onManageSuggestions}
           className="w-full text-white px-3 py-2 rounded text-sm font-medium transition-colors"
           style={{
-            backgroundColor: '#5D1F1F',
-            '&:hover': {
-              backgroundColor: '#4A1616'
-            }
+            backgroundColor: '#5D1F1F'
           }}
           onMouseEnter={(e) => {
             (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
