@@ -24,6 +24,8 @@ export default function ProductManagementPage() {
   const router = useRouter();
   const { products: databaseProducts, isLoading } = useProducts();
   const [products, setProducts] = useState<ProductManagementItem[]>([]);
+  const [originalProducts, setOriginalProducts] = useState<ProductManagementItem[]>([]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isDragMode, setIsDragMode] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -34,6 +36,21 @@ export default function ProductManagementPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Warn user when leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'لديك تغييرات غير محفوظة. هل تريد المغادرة دون حفظ؟';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
 
   // Convert database products to management format
   useEffect(() => {
@@ -54,6 +71,8 @@ export default function ProductManagementPage() {
       // Sort by display order
       convertedProducts.sort((a, b) => a.displayOrder - b.displayOrder);
       setProducts(convertedProducts);
+      setOriginalProducts(JSON.parse(JSON.stringify(convertedProducts))); // Deep copy
+      setHasUnsavedChanges(false);
     }
   }, [databaseProducts]);
 
@@ -61,99 +80,107 @@ export default function ProductManagementPage() {
     setIsDragMode(!isDragMode);
   };
 
-  const saveOrder = async () => {
+
+  const toggleVisibility = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    const newHiddenState = !product.isHidden;
+    
+    setProducts(prev => prev.map(p => 
+      p.id === productId ? { ...p, isHidden: newHiddenState } : p
+    ));
+    setHasUnsavedChanges(true);
+  };
+
+  const toggleFeatured = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    const newFeaturedState = !product.isFeatured;
+    
+    setProducts(prev => prev.map(p => 
+      p.id === productId ? { ...p, isFeatured: newFeaturedState } : p
+    ));
+    setHasUnsavedChanges(true);
+  };
+
+  const updateSuggestedProducts = (productId: string, suggestedIds: string[]) => {
+    setProducts(prev => prev.map(p => 
+      p.id === productId ? { ...p, suggestedProducts: suggestedIds } : p
+    ));
+    setHasUnsavedChanges(true);
+  };
+
+  const saveAllChanges = async () => {
     setIsSaving(true);
     try {
-      const updates = products.map((product, index) => ({
-        id: product.id,
-        display_order: index
-      }));
+      // Prepare all updates
+      const updates = products.map((product, index) => {
+        const original = originalProducts.find(op => op.id === product.id);
+        return {
+          id: product.id,
+          display_order: index,
+          is_hidden: product.isHidden,
+          is_featured: product.isFeatured,
+          suggested_products: product.suggestedProducts,
+          // Only include fields that have actually changed
+          hasChanges: !original || (
+            original.displayOrder !== index ||
+            original.isHidden !== product.isHidden ||
+            original.isFeatured !== product.isFeatured ||
+            JSON.stringify(original.suggestedProducts) !== JSON.stringify(product.suggestedProducts)
+          )
+        };
+      }).filter(update => update.hasChanges);
 
+      if (updates.length === 0) {
+        alert('لا توجد تغييرات للحفظ');
+        setIsSaving(false);
+        return;
+      }
+
+      // Update database
       for (const update of updates) {
         const { error } = await supabase
           .from('products')
-          .update({ display_order: update.display_order } as any)
+          .update({
+            display_order: update.display_order,
+            is_hidden: update.is_hidden,
+            is_featured: update.is_featured,
+            suggested_products: update.suggested_products
+          } as any)
           .eq('id', update.id);
         
         if (error) throw error;
       }
       
-      alert('تم حفظ الترتيب بنجاح');
-      setIsDragMode(false);
+      // Update original products state
+      setOriginalProducts(JSON.parse(JSON.stringify(products)));
+      setHasUnsavedChanges(false);
+      alert(`تم حفظ ${updates.length} تغيير بنجاح!`);
+      
     } catch (error) {
-      console.error('Error saving order:', error);
-      alert('حدث خطأ أثناء حفظ الترتيب');
+      console.error('Error saving changes:', error);
+      alert('حدث خطأ أثناء حفظ التغييرات');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const toggleVisibility = async (productId: string) => {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
-
-    try {
-      const newHiddenState = !product.isHidden;
-      
-      const { error } = await supabase
-        .from('products')
-        .update({ is_hidden: newHiddenState } as any)
-        .eq('id', productId);
-      
-      if (error) throw error;
-
-      setProducts(prev => prev.map(p => 
-        p.id === productId ? { ...p, isHidden: newHiddenState } : p
-      ));
-    } catch (error) {
-      console.error('Error updating visibility:', error);
-      alert('حدث خطأ أثناء تحديث حالة المنتج');
-    }
-  };
-
-  const toggleFeatured = async (productId: string) => {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
-
-    try {
-      const newFeaturedState = !product.isFeatured;
-      
-      const { error } = await supabase
-        .from('products')
-        .update({ is_featured: newFeaturedState } as any)
-        .eq('id', productId);
-      
-      if (error) throw error;
-
-      setProducts(prev => prev.map(p => 
-        p.id === productId ? { ...p, isFeatured: newFeaturedState } : p
-      ));
-    } catch (error) {
-      console.error('Error updating featured status:', error);
-      alert('حدث خطأ أثناء تحديث حالة المنتج المميز');
-    }
-  };
-
-  const updateSuggestedProducts = async (productId: string, suggestedIds: string[]) => {
-    try {
-      const { error } = await supabase
-        .from('products')
-        .update({ suggested_products: suggestedIds } as any)
-        .eq('id', productId);
-      
-      if (error) throw error;
-
-      setProducts(prev => prev.map(p => 
-        p.id === productId ? { ...p, suggestedProducts: suggestedIds } : p
-      ));
-    } catch (error) {
-      console.error('Error updating suggested products:', error);
-      alert('حدث خطأ أثناء تحديث المنتجات المقترحة');
+  const discardChanges = () => {
+    if (!hasUnsavedChanges) return;
+    
+    if (confirm('هل أنت متأكد من إلغاء جميع التغييرات؟')) {
+      setProducts(JSON.parse(JSON.stringify(originalProducts)));
+      setHasUnsavedChanges(false);
+      setIsDragMode(false);
     }
   };
 
   const handleReorder = (reorderedProducts: ProductManagementItem[]) => {
     setProducts(reorderedProducts);
+    setHasUnsavedChanges(true);
   };
 
   // Filter products based on search term
@@ -227,7 +254,7 @@ export default function ProductManagementPage() {
               <>
                 <div className="w-px h-8 bg-white/30 mx-2"></div>
                 <button
-                  onClick={saveOrder}
+                  onClick={saveAllChanges}
                   disabled={isSaving}
                   className="flex flex-col items-center justify-center p-4 transition-colors group min-w-[100px] hover:text-green-200"
                 >
@@ -256,6 +283,60 @@ export default function ProductManagementPage() {
           </button>
         </div>
       </header>
+
+      {/* Save Changes Bar */}
+      {hasUnsavedChanges && (
+        <div className="sticky top-0 z-40 bg-amber-50 border-b-2 border-amber-200 px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse"></div>
+              <span className="text-amber-800 font-semibold">
+                لديك تغييرات غير محفوظة
+              </span>
+              <span className="text-sm text-amber-600">
+                احفظ التغييرات لتطبيقها على المتجر
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={discardChanges}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={isSaving}
+              >
+                إلغاء التغييرات
+              </button>
+              <button
+                onClick={saveAllChanges}
+                disabled={isSaving}
+                className="px-6 py-2 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+                style={{
+                  backgroundColor: '#5D1F1F'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSaving) (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSaving) (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+                }}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    جاري الحفظ...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    حفظ جميع التغييرات
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex min-h-screen">
@@ -417,6 +498,7 @@ export default function ProductManagementPage() {
                 <li><strong>إخفاء/إظهار:</strong> استخدم مفتاح &quot;مخفي من المتجر&quot; لإخفاء أو إظهار المنتج في الموقع</li>
                 <li><strong>المنتجات المميزة:</strong> فعل مفتاح &quot;منتج مميز&quot; لإضافة المنتج لقسم المنتجات المميزة</li>
                 <li><strong>المنتجات المقترحة:</strong> اضغط على &quot;إدارة المقترحات&quot; لتحديد المنتجات التي ستظهر كمقترحات مع هذا المنتج</li>
+                <li><strong>⚠️ مهم:</strong> جميع التغييرات تتطلب الضغط على زر &quot;حفظ التغييرات&quot; لتطبيقها على المتجر</li>
               </ul>
             </div>
           </div>
