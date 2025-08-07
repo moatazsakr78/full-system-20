@@ -6,6 +6,8 @@ import { useProducts, Product as DatabaseProduct } from '../../app/lib/hooks/use
 import { UserInfo, Product } from './shared/types';
 import AuthButtons from '../../app/components/auth/AuthButtons';
 import { useUserProfile } from '../../lib/hooks/useUserProfile';
+import CategoryCarousel from './CategoryCarousel';
+import FeaturedProductsCarousel from './FeaturedProductsCarousel';
 
 interface MobileHomeProps {
   userInfo: UserInfo;
@@ -263,74 +265,24 @@ export default function MobileHome({
         <section className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold text-black">المنتجات المميزة</h3>
-            <button className="text-red-400 text-sm">عرض الكل</button>
           </div>
           
-          <div className="grid grid-cols-2 gap-3">
-            {featuredProducts.slice(0, 6).map((product) => (
-              <div key={product.id} className="bg-gray-800 rounded-lg p-3 border border-gray-700 cursor-pointer group">
-                <div className="relative mb-3" onClick={() => router.push(`/product/${product.id}`)}>
-                  <img 
-                    src={product.image} 
-                    alt={product.name} 
-                    className="w-full h-40 object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {product.isOnSale && (
-                    <span className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
-                      -{product.discount}%
-                    </span>
-                  )}
-                </div>
-                <div onClick={() => router.push(`/product/${product.id}`)}>
-                  <h4 className="font-semibold mb-1 text-sm truncate text-white group-hover:text-red-600 transition-colors">{product.name}</h4>
-                  <div className="h-8 mb-2">
-                    <p className="text-gray-400 text-xs overflow-hidden" style={{
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      lineHeight: '1rem',
-                      maxHeight: '2rem'
-                    }}>
-                      {product.description}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1">
-                      {product.originalPrice && (
-                        <span className="text-xs text-gray-500 line-through">{product.originalPrice}</span>
-                      )}
-                      <span className="text-sm font-bold text-red-400">{product.price} ريال</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <span className="text-yellow-400 text-xs">⭐</span>
-                      <span className="text-xs text-gray-400">{product.rating}</span>
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    await onAddToCart(product);
-                  }}
-                  className="p-1.5 rounded-lg w-full mt-2 transition-colors text-white"
-                  style={{backgroundColor: '#5D1F1F'}}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
-                  }}
-                >
-                  <svg className="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                </button>
-              </div>
-            ))}
-          </div>
+          {featuredProducts.length > 0 ? (
+            <FeaturedProductsCarousel
+              products={featuredProducts}
+              onAddToCart={onAddToCart}
+              itemsPerView={2}
+              className="mobile-carousel"
+            />
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-gray-400 text-lg mb-2">⭐</div>
+              <p className="text-gray-500">لا توجد منتجات مميزة حالياً</p>
+              <p className="text-gray-400 text-sm">يمكنك إضافة منتجات مميزة من لوحة إدارة المنتجات</p>
+            </div>
+          )}
         </section>
+
 
         {/* All Products */}
         <section id="products" className="mb-6">

@@ -8,6 +8,8 @@ import AuthButtons from '../../app/components/auth/AuthButtons';
 import RightSidebar from '../../app/components/layout/RightSidebar';
 import { useRightSidebar } from '../../app/lib/hooks/useRightSidebar';
 import { useUserProfile } from '../../lib/hooks/useUserProfile';
+import CategoryCarousel from './CategoryCarousel';
+import FeaturedProductsCarousel from './FeaturedProductsCarousel';
 
 interface DesktopHomeProps {
   userInfo: UserInfo;
@@ -357,95 +359,30 @@ export default function DesktopHome({
         {/* Featured Products */}
         <section className="mb-8">
           <h3 className="text-3xl font-bold mb-6 text-black">المنتجات المميزة</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {featuredProducts.slice(0, 4).map((product) => (
-              <div key={product.id} className="bg-custom-gray rounded-lg p-4 hover:bg-gray-300 transition-colors border border-gray-300 shadow-md cursor-pointer group">
-                <div className="relative mb-4" onClick={() => router.push(`/product/${product.id}`)}>
-                  <img 
-                    src={product.image} 
-                    alt={product.name} 
-                    className="w-full h-72 object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {product.isOnSale && (
-                    <span className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
-                      -{product.discount}%
-                    </span>
-                  )}
-                </div>
-                <div onClick={() => router.push(`/product/${product.id}`)}>
-                  <h4 className="font-semibold mb-2 text-gray-800 truncate transition-colors group-hover:text-[#5D1F1F]">{product.name}</h4>
-                  <div className="h-10 mb-3">
-                    <p className="text-gray-600 text-sm overflow-hidden" style={{
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      lineHeight: '1.25rem',
-                      maxHeight: '2.5rem'
-                    }}>
-                      {product.description}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      {product.originalPrice && (
-                        <span className="text-sm text-gray-500 line-through">{product.originalPrice} ريال</span>
-                      )}
-                      <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>{product.price} ريال</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <span className="text-yellow-400">⭐</span>
-                      <span className="text-sm text-gray-400">{product.rating} ({product.reviews})</span>
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    await onAddToCart(product);
-                  }}
-                  className="w-full mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-white"
-                  style={{backgroundColor: '#5D1F1F'}}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
-                  }}
-                >
-                  أضف للسلة
-                </button>
-              </div>
-            ))}
-          </div>
+          {featuredProducts.length > 0 ? (
+            <FeaturedProductsCarousel
+              products={featuredProducts}
+              onAddToCart={onAddToCart}
+              itemsPerView={4}
+            />
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-gray-400 text-lg mb-2">⭐</div>
+              <p className="text-gray-500">لا توجد منتجات مميزة حالياً</p>
+              <p className="text-gray-400 text-sm">يمكنك إضافة منتجات مميزة من لوحة إدارة المنتجات</p>
+            </div>
+          )}
         </section>
+
 
         {/* Categories Section */}
         <section id="categories" className="mb-8">
           <h3 className="text-3xl font-bold mb-6 text-black">فئات المنتجات</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-            {categories.map((category) => (
-              <div 
-                key={category.id} 
-                className="bg-custom-gray p-6 rounded-lg text-center hover:bg-gray-300 transition-colors cursor-pointer border border-gray-300 shadow-md group"
-                onClick={() => setSelectedCategory(category.name)}
-              >
-                <div className="relative mb-4">
-                  <img 
-                    src={category.image} 
-                    alt={category.name} 
-                    className="w-full h-40 object-cover rounded-lg"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-center justify-center">
-                    <span className="text-4xl">{category.icon}</span>
-                  </div>
-                </div>
-                <h4 className="font-semibold text-gray-800 transition-colors group-hover:text-[#5D1F1F]">{category.name}</h4>
-                <p className="text-sm text-gray-600 mt-1">{category.productCount} منتج</p>
-              </div>
-            ))}
-          </div>
+          <CategoryCarousel
+            categories={categories}
+            onCategorySelect={setSelectedCategory}
+            itemsPerView={4}
+          />
         </section>
 
         {/* All Products */}

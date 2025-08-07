@@ -53,7 +53,9 @@
       "Bash(powershell:*)",
       "mcp__playwright__playwright_press_key",
       "Bash(dir /s *.cache)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npx supabase sql:*)"
     ],
     "deny": []
   }

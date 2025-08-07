@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useProducts } from '../../../lib/hooks/useProducts';
 import { DragDropProvider } from './components/DragDropProvider';
 import ProductManagementGrid from './components/ProductManagementGrid';
+import CategoryManagementGrid from './components/CategoryManagementGrid';
 import { supabase } from '../../../lib/supabase/client';
 
 interface ProductManagementItem {
@@ -31,6 +32,9 @@ export default function ProductManagementPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [managementMode, setManagementMode] = useState<'products' | 'categories'>('products');
+  const [categories, setCategories] = useState<any[]>([]);
+  const [originalCategories, setOriginalCategories] = useState<any[]>([]);
 
   // Set client-side flag after component mounts
   useEffect(() => {
@@ -77,6 +81,40 @@ export default function ProductManagementPage() {
     }
   }, [databaseProducts, hasUnsavedChanges, isSaving]);
 
+  // Fetch categories from database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      if (managementMode === 'categories' && !isSaving) {
+        try {
+          const { data, error } = await supabase
+            .from('categories')
+            .select('*')
+            .order('sort_order', { ascending: true });
+          
+          if (error) throw error;
+          
+          const convertedCategories = (data || []).map((cat: any, index: number) => ({
+            id: cat.id,
+            name: cat.name,
+            description: cat.description || '',
+            image: cat.image_url || '',
+            isHidden: !cat.is_active,
+            displayOrder: cat.sort_order || index,
+            color: cat.color || '#3B82F6'
+          }));
+          
+          setCategories(convertedCategories);
+          setOriginalCategories(JSON.parse(JSON.stringify(convertedCategories)));
+          setHasUnsavedChanges(false);
+        } catch (error) {
+          console.error('Error fetching categories:', error);
+        }
+      }
+    };
+    
+    fetchCategories();
+  }, [managementMode, isSaving]);
+
   const toggleDragMode = () => {
     setIsDragMode(!isDragMode);
   };
@@ -113,9 +151,36 @@ export default function ProductManagementPage() {
     setHasUnsavedChanges(true);
   };
 
+  // Category management functions
+  const toggleCategoryVisibility = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return;
+
+    const newHiddenState = !category.isHidden;
+    
+    setCategories(prev => prev.map(c => 
+      c.id === categoryId ? { ...c, isHidden: newHiddenState } : c
+    ));
+    setHasUnsavedChanges(true);
+  };
+
+  const handleCategoryReorder = (reorderedCategories: any[]) => {
+    setCategories(reorderedCategories);
+    setHasUnsavedChanges(true);
+  };
+
   const saveAllChanges = async () => {
     setIsSaving(true);
     console.log('🟢 Starting save process...');
+    
+    if (managementMode === 'categories') {
+      return await saveCategoryChanges();
+    } else {
+      return await saveProductChanges();
+    }
+  };
+
+  const saveProductChanges = async () => {
     console.log('Current products:', products);
     console.log('Original products:', originalProducts);
     
@@ -234,11 +299,93 @@ export default function ProductManagementPage() {
     }
   };
 
+  const saveCategoryChanges = async () => {
+    console.log('Current categories:', categories);
+    console.log('Original categories:', originalCategories);
+    
+    try {
+      const updates: Array<{
+        id: string;
+        sort_order: number;
+        is_active: boolean;
+        hasChanges: boolean;
+      }> = [];
+
+      for (let index = 0; index < categories.length; index++) {
+        const category = categories[index];
+        const original = originalCategories.find(oc => oc.id === category.id);
+        
+        const hasChanges = !original || (
+          original.displayOrder !== index ||
+          original.isHidden !== category.isHidden
+        );
+        
+        if (hasChanges) {
+          updates.push({
+            id: category.id,
+            sort_order: index,
+            is_active: !category.isHidden,
+            hasChanges: true
+          });
+        }
+      }
+
+      console.log('Category updates to be processed:', updates);
+
+      if (updates.length === 0) {
+        console.log('🟡 No category changes to save');
+        alert('لا توجد تغييرات للحفظ');
+        setIsSaving(false);
+        return;
+      }
+
+      const updatePromises = updates.map(async (update) => {
+        const { data, error } = await supabase
+          .from('categories')
+          .update({
+            sort_order: update.sort_order,
+            is_active: update.is_active,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', update.id)
+          .select('id, name');
+        
+        if (error) {
+          console.error(`❌ Error updating category ${update.id}:`, error);
+          throw new Error(`Failed to update category ${update.id}: ${error.message}`);
+        }
+        
+        return { id: update.id, success: true, data };
+      });
+
+      const results = await Promise.all(updatePromises);
+      const successCount = results.filter(r => r.success).length;
+      
+      console.log(`🎉 Successfully updated ${successCount} categories`);
+      
+      setOriginalCategories(JSON.parse(JSON.stringify(categories)));
+      setHasUnsavedChanges(false);
+      
+      alert(`تم حفظ ${successCount} تغيير بنجاح!`);
+      
+    } catch (error) {
+      console.error('❌ Error saving category changes:', error);
+      const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف';
+      alert(`حدث خطأ أثناء حفظ التغييرات: ${errorMessage}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const discardChanges = () => {
     if (!hasUnsavedChanges) return;
     
     if (confirm('هل أنت متأكد من إلغاء جميع التغييرات؟')) {
-      setProducts(JSON.parse(JSON.stringify(originalProducts)));
+      if (managementMode === 'categories') {
+        setCategories(JSON.parse(JSON.stringify(originalCategories)));
+      } else {
+        setProducts(JSON.parse(JSON.stringify(originalProducts)));
+      }
       setHasUnsavedChanges(false);
       setIsDragMode(false);
     }
@@ -254,6 +401,12 @@ export default function ProductManagementPage() {
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  // Filter categories based on search term
+  const filteredCategories = categories.filter(category =>
+    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // Show loading state during hydration or while loading data
@@ -275,7 +428,9 @@ export default function ProductManagementPage() {
         <div className="w-full px-6 flex items-center justify-between">
           {/* Right side - Title and Action buttons */}
           <div className="flex items-center gap-1">
-            <h1 className="text-2xl font-bold text-white">إدارة المنتجات</h1>
+            <h1 className="text-2xl font-bold text-white">
+              {managementMode === 'products' ? 'إدارة المنتجات' : 'إدارة الفئات'}
+            </h1>
             
             {/* White separator line */}
             <div className="w-px h-8 bg-white/30 mx-3"></div>
@@ -412,13 +567,34 @@ export default function ProductManagementPage() {
             <h2 className="text-xl font-bold text-gray-800 mb-4">لوحة التحكم</h2>
             
             
-            {/* Navigation Buttons */}
+            {/* Management Mode Buttons */}
             <div className="space-y-3">
-              <button className="w-full flex items-center justify-between px-4 py-3 text-right bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button 
+                onClick={() => setManagementMode('products')}
+                className={`w-full flex items-center justify-between px-4 py-3 text-right rounded-lg transition-colors ${
+                  managementMode === 'products' 
+                    ? 'bg-red-100 border-2 border-red-300' 
+                    : 'bg-gray-50 hover:bg-gray-100'
+                }`}
+              >
+                <svg className={`w-5 h-5 ${managementMode === 'products' ? 'text-red-600' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
-                <span className="text-gray-700 font-medium">إدارة المنتجات</span>
+                <span className={`font-medium ${managementMode === 'products' ? 'text-red-600' : 'text-gray-700'}`}>إدارة المنتجات</span>
+              </button>
+              
+              <button 
+                onClick={() => setManagementMode('categories')}
+                className={`w-full flex items-center justify-between px-4 py-3 text-right rounded-lg transition-colors ${
+                  managementMode === 'categories' 
+                    ? 'bg-red-100 border-2 border-red-300' 
+                    : 'bg-gray-50 hover:bg-gray-100'
+                }`}
+              >
+                <svg className={`w-5 h-5 ${managementMode === 'categories' ? 'text-red-600' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <span className={`font-medium ${managementMode === 'categories' ? 'text-red-600' : 'text-gray-700'}`}>إدارة الفئات</span>
               </button>
               
               <button className="w-full flex items-center justify-between px-4 py-3 text-right bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
@@ -472,7 +648,7 @@ export default function ProductManagementPage() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="البحث في المنتجات..."
+                    placeholder={managementMode === 'products' ? 'البحث في المنتجات...' : 'البحث في الفئات...'}
                     className="w-full px-4 py-2 pr-10 text-right border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
                     style={{
                       '--tw-ring-color': '#5D1F1F',
@@ -537,35 +713,60 @@ export default function ProductManagementPage() {
               <div className="text-sm text-gray-500">
                 {searchTerm && (
                   <span>
-                    {filteredProducts.length} من {products.length} منتج
+                    {managementMode === 'products' 
+                      ? `${filteredProducts.length} من ${products.length} منتج`
+                      : `${filteredCategories.length} من ${categories.length} فئة`
+                    }
                   </span>
                 )}
               </div>
             </div>
           </div>
 
-          <DragDropProvider>
-            <ProductManagementGrid
-              products={filteredProducts}
-              isDragMode={isDragMode}
-              onReorder={handleReorder}
-              onToggleVisibility={toggleVisibility}
-              onToggleFeatured={toggleFeatured}
-              onUpdateSuggestedProducts={updateSuggestedProducts}
-            />
-          </DragDropProvider>
+          {managementMode === 'products' ? (
+            <DragDropProvider>
+              <ProductManagementGrid
+                products={filteredProducts}
+                isDragMode={isDragMode}
+                onReorder={handleReorder}
+                onToggleVisibility={toggleVisibility}
+                onToggleFeatured={toggleFeatured}
+                onUpdateSuggestedProducts={updateSuggestedProducts}
+              />
+            </DragDropProvider>
+          ) : (
+            // Category Management Grid with Drag & Drop
+            <DragDropProvider>
+              <CategoryManagementGrid
+                categories={filteredCategories}
+                isDragMode={isDragMode}
+                onReorder={handleCategoryReorder}
+                onToggleVisibility={toggleCategoryVisibility}
+              />
+            </DragDropProvider>
+          )}
           
           {/* Instructions */}
           <div className="mt-8">
             <div className="bg-white rounded-lg p-6 border border-gray-300 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-800 mb-3">تعليمات الاستخدام:</h3>
-              <ul className="list-disc pr-5 space-y-2 text-gray-600">
-                <li><strong>تبديل المراكز:</strong> اضغط على زر &quot;تبديل المراكز&quot; لتفعيل خاصية السحب والإفلات، ثم اسحب المنتجات لإعادة ترتيبها</li>
-                <li><strong>إخفاء/إظهار:</strong> استخدم مفتاح &quot;مخفي من المتجر&quot; لإخفاء أو إظهار المنتج في الموقع</li>
-                <li><strong>المنتجات المميزة:</strong> فعل مفتاح &quot;منتج مميز&quot; لإضافة المنتج لقسم المنتجات المميزة</li>
-                <li><strong>المنتجات المقترحة:</strong> اضغط على &quot;إدارة المقترحات&quot; لتحديد المنتجات التي ستظهر كمقترحات مع هذا المنتج</li>
-                <li><strong>⚠️ مهم:</strong> جميع التغييرات تتطلب الضغط على زر &quot;حفظ التغييرات&quot; لتطبيقها على المتجر</li>
-              </ul>
+              {managementMode === 'products' ? (
+                <ul className="list-disc pr-5 space-y-2 text-gray-600">
+                  <li><strong>تبديل المراكز:</strong> اضغط على زر &quot;تبديل المراكز&quot; لتفعيل خاصية السحب والإفلات، ثم اسحب المنتجات لإعادة ترتيبها</li>
+                  <li><strong>إخفاء/إظهار:</strong> استخدم مفتاح &quot;مخفي من المتجر&quot; لإخفاء أو إظهار المنتج في الموقع</li>
+                  <li><strong>المنتجات المميزة:</strong> فعل مفتاح &quot;منتج مميز&quot; لإضافة المنتج لقسم المنتجات المميزة</li>
+                  <li><strong>المنتجات المقترحة:</strong> اضغط على &quot;إدارة المقترحات&quot; لتحديد المنتجات التي ستظهر كمقترحات مع هذا المنتج</li>
+                  <li><strong>⚠️ مهم:</strong> جميع التغييرات تتطلب الضغط على زر &quot;حفظ التغييرات&quot; لتطبيقها على المتجر</li>
+                </ul>
+              ) : (
+                <ul className="list-disc pr-5 space-y-2 text-gray-600">
+                  <li><strong>تبديل المراكز:</strong> اضغط على زر &quot;تبديل المراكز&quot; لتفعيل خاصية السحب والإفلات، ثم اسحب الفئات لإعادة ترتيبها</li>
+                  <li><strong>إخفاء/إظهار:</strong> استخدم مفتاح التبديل لإخفاء أو إظهار الفئة في الموقع</li>
+                  <li><strong>ترتيب الفئات:</strong> يتم عرض الفئات حسب الترتيب المحدد، ويمكن إعادة ترتيبها بالسحب والإفلات</li>
+                  <li><strong>ألوان الفئات:</strong> كل فئة لها لون مميز يساعد في التنظيم والعرض</li>
+                  <li><strong>⚠️ مهم:</strong> جميع التغييرات تتطلب الضغط على زر &quot;حفظ التغييرات&quot; لتطبيقها على المتجر</li>
+                </ul>
+              )}
             </div>
           </div>
         </main>

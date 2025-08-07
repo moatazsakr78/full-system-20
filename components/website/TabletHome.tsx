@@ -6,6 +6,8 @@ import { useProducts, Product as DatabaseProduct } from '../../app/lib/hooks/use
 import { UserInfo, Product } from './shared/types';
 import AuthButtons from '../../app/components/auth/AuthButtons';
 import { useUserProfile } from '../../lib/hooks/useUserProfile';
+import CategoryCarousel from './CategoryCarousel';
+import FeaturedProductsCarousel from './FeaturedProductsCarousel';
 
 interface TabletHomeProps {
   userInfo: UserInfo;
@@ -328,78 +330,22 @@ export default function TabletHome({
         {/* Featured Products */}
         <section className="mb-6">
           <h3 className="text-2xl font-bold mb-4 text-black">المنتجات المميزة</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {featuredProducts.slice(0, 6).map((product) => (
-              <div key={product.id} className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors border border-gray-700 cursor-pointer group">
-                <div className="relative mb-3" onClick={() => router.push(`/product/${product.id}`)}>
-                  <img 
-                    src={product.image} 
-                    alt={product.name} 
-                    className="w-full h-48 object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {product.isOnSale && (
-                    <span className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
-                      -{product.discount}%
-                    </span>
-                  )}
-                </div>
-                <div onClick={() => router.push(`/product/${product.id}`)}>
-                  <h4 className="font-semibold mb-2 text-sm text-white truncate transition-colors" onMouseEnter={(e) => {(e.target as HTMLElement).style.color = '#5D1F1F';}} onMouseLeave={(e) => {(e.target as HTMLElement).style.color = 'white';}}>{product.name}</h4>
-                  <div className="h-8 mb-3">
-                    <p className="text-gray-400 text-xs overflow-hidden" style={{
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      lineHeight: '1rem',
-                      maxHeight: '2rem'
-                    }}>
-                      {product.description}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1">
-                      {product.originalPrice && (
-                        <span className="text-xs text-gray-500 line-through">{product.originalPrice} ريال</span>
-                      )}
-                      <span className="text-sm font-bold" style={{color: '#5D1F1F'}}>{product.price} ريال</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <span className="text-yellow-400 text-sm">⭐</span>
-                      <span className="text-xs text-gray-400">{product.rating}</span>
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    await onAddToCart(product);
-                  }}
-                  style={{
-                    backgroundColor: '#5D1F1F',
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    width: '100%',
-                    marginTop: '8px',
-                    color: 'white',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
-                  }}
-                >
-                  أضف
-                </button>
-              </div>
-            ))}
-          </div>
+          {featuredProducts.length > 0 ? (
+            <FeaturedProductsCarousel
+              products={featuredProducts}
+              onAddToCart={onAddToCart}
+              itemsPerView={3}
+              className="tablet-carousel"
+            />
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-gray-400 text-lg mb-2">⭐</div>
+              <p className="text-gray-500">لا توجد منتجات مميزة حالياً</p>
+              <p className="text-gray-400 text-sm">يمكنك إضافة منتجات مميزة من لوحة إدارة المنتجات</p>
+            </div>
+          )}
         </section>
+
 
         {/* All Products */}
         <section id="products" className="mb-6">
