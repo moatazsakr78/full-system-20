@@ -838,6 +838,8 @@ export default function POSPage() {
             .items-table th:nth-child(4),
             .items-table td:nth-child(4) {
               width: 25%; /* Total - increased for full visibility */
+              text-align: right !important; /* Align value column to the right */
+              padding-right: 4px !important;
             }
 
             .item-name {
