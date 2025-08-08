@@ -801,6 +801,7 @@ export default function POSPage() {
               border-collapse: collapse;
               margin: 5px 0;
               border: 1px solid #000;
+              table-layout: fixed; /* Forces table to use full width */
             }
             
             .items-table th,
@@ -818,13 +819,36 @@ export default function POSPage() {
               font-size: 12px;
             }
             
+            /* Column width optimization for 80mm thermal paper */
+            .items-table th:nth-child(4),
+            .items-table td:nth-child(4) {
+              width: 50%; /* Item name - maximum space */
+            }
+            
+            .items-table th:nth-child(3),
+            .items-table td:nth-child(3) {
+              width: 15%; /* Quantity - minimal space */
+            }
+            
+            .items-table th:nth-child(2),
+            .items-table td:nth-child(2) {
+              width: 18%; /* Price - moderate space */
+            }
+            
+            .items-table th:nth-child(1),
+            .items-table td:nth-child(1) {
+              width: 17%; /* Total - moderate space */
+            }
+
             .item-name {
               text-align: right !important;
-              padding-right: 6px !important;
+              padding-right: 4px !important;
+              padding-left: 2px !important;
               font-size: 11px;
               font-weight: bold;
               word-wrap: break-word;
               white-space: normal;
+              overflow-wrap: break-word;
             }
             
             .total-row {
@@ -864,21 +888,35 @@ export default function POSPage() {
             }
             
             @media print {
-              body {
-                width: 100%;
-                max-width: none;
+              @page {
+                size: 80mm auto;
                 margin: 0;
-                padding: 0;
               }
+              
+              body {
+                width: 80mm !important;
+                max-width: 80mm !important;
+                margin: 0 !important;
+                padding: 0 1.5mm !important;
+              }
+              
               .no-print {
                 display: none;
               }
+              
               .items-table {
-                margin: 5px 0;
+                margin: 3px 0;
+                width: 100% !important;
               }
+              
               .items-table th,
               .items-table td {
-                padding: 3px;
+                padding: 2px;
+              }
+              
+              /* Ensure no containers limit width */
+              * {
+                max-width: none !important;
               }
             }
           </style>
