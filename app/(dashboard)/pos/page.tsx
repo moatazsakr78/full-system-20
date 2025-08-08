@@ -765,16 +765,15 @@ export default function POSPage() {
               line-height: 1.3;
               color: #000;
               background: white;
-              width: 80mm;
-              max-width: 80mm;
+              width: 100%;
               margin: 0;
-              padding: 0 2mm;
+              padding: 0;
             }
             
             .receipt-header {
               text-align: center;
-              margin-bottom: 6px;
-              padding: 0;
+              margin-bottom: 8px;
+              padding: 0 2px;
             }
             
             .receipt-number {
@@ -800,119 +799,86 @@ export default function POSPage() {
             .items-table {
               width: 100%;
               border-collapse: collapse;
-              margin: 4px 0;
+              margin: 5px 0;
               border: 1px solid #000;
             }
             
             .items-table th,
             .items-table td {
               border: 1px solid #000;
-              padding: 3px 2px;
+              padding: 5px;
               text-align: center;
-              font-size: 11px;
+              font-size: 12px;
               font-weight: 400;
-              vertical-align: top;
             }
             
             .items-table th {
               background-color: #f5f5f5;
               font-weight: 600;
-              font-size: 11px;
-            }
-            
-            /* Column widths optimized for 80mm paper */
-            .items-table th:nth-child(1),
-            .items-table td:nth-child(1) {
-              width: 45%; /* Item name - expanded */
-            }
-            
-            .items-table th:nth-child(2),
-            .items-table td:nth-child(2) {
-              width: 12%; /* Quantity */
-            }
-            
-            .items-table th:nth-child(3),
-            .items-table td:nth-child(3) {
-              width: 20%; /* Price */
-            }
-            
-            .items-table th:nth-child(4),
-            .items-table td:nth-child(4) {
-              width: 23%; /* Total */
+              font-size: 12px;
             }
             
             .item-name {
               text-align: right !important;
-              padding: 3px 4px !important;
-              font-size: 10px;
+              padding-right: 6px !important;
+              font-size: 11px;
               font-weight: bold;
               word-wrap: break-word;
               white-space: normal;
-              line-height: 1.2;
             }
             
             .total-row {
               border-top: 2px solid #000;
               font-weight: 700;
-              font-size: 11px;
+              font-size: 12px;
             }
             
             .payment-section {
-              margin-top: 6px;
+              margin-top: 8px;
               text-align: center;
-              font-size: 10px;
-              padding: 0;
+              font-size: 11px;
+              padding: 0 2px;
             }
             
             .payment-table {
               width: 100%;
               border-collapse: collapse;
-              margin: 4px 0;
+              margin: 5px 0;
               border: 1px solid #000;
             }
             
             .payment-table th,
             .payment-table td {
               border: 1px solid #000;
-              padding: 3px 2px;
+              padding: 4px;
               text-align: center;
-              font-size: 10px;
+              font-size: 11px;
             }
             
             .footer {
               text-align: center;
-              margin-top: 6px;
-              font-size: 8px;
+              margin-top: 8px;
+              font-size: 9px;
               border-top: 1px solid #000;
-              padding: 2px 0 0 0;
+              padding: 3px 2px 0 2px;
             }
             
             @media print {
               body {
-                width: 80mm;
-                max-width: 80mm;
+                width: 100%;
+                max-width: none;
                 margin: 0;
-                padding: 0 1.5mm;
+                padding: 0;
               }
               .no-print {
                 display: none;
               }
               .items-table {
-                margin: 3px 0;
+                margin: 5px 0;
               }
               .items-table th,
               .items-table td {
-                padding: 2px 1px;
-              }
-              .item-name {
-                padding: 2px 3px !important;
-                font-size: 9px;
-              }
-              .receipt-header {
-                margin-bottom: 4px;
-              }
-              .payment-section {
-                margin-top: 4px;
+                padding: 3px;
               }
             }
           </style>
