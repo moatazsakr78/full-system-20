@@ -932,26 +932,26 @@ export default function POSPage() {
           <table class="items-table">
             <thead>
               <tr>
-                <th>قيمة</th>
-                <th>سعر</th>
-                <th>كمية</th>
                 <th class="item-name">الصنف</th>
+                <th>كمية</th>
+                <th>سعر</th>
+                <th>قيمة</th>
               </tr>
             </thead>
             <tbody>
               ${dataToUse.cartItems.map((item: any) => `
                 <tr>
-                  <td>${(item.price * item.quantity).toFixed(0)}</td>
-                  <td>${item.price.toFixed(0)}</td>
-                  <td>${item.quantity}</td>
                   <td class="item-name">${item.product.name}</td>
+                  <td>${item.quantity}</td>
+                  <td>${item.price.toFixed(0)}</td>
+                  <td>${(item.price * item.quantity).toFixed(0)}</td>
                 </tr>
               `).join('')}
               <tr class="total-row">
-                <td>${dataToUse.totalAmount.toFixed(0)}</td>
+                <td class="item-name">-</td>
                 <td>${dataToUse.cartItems.length}</td>
                 <td>= اجمالي =</td>
-                <td class="item-name">-</td>
+                <td>${dataToUse.totalAmount.toFixed(0)}</td>
               </tr>
             </tbody>
           </table>
