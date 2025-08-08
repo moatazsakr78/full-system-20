@@ -822,22 +822,22 @@ export default function POSPage() {
             /* Column width optimization for 80mm thermal paper */
             .items-table th:nth-child(1),
             .items-table td:nth-child(1) {
-              width: 50%; /* Item name - maximum space */
+              width: 45%; /* Item name - reduced slightly */
             }
             
             .items-table th:nth-child(2),
             .items-table td:nth-child(2) {
-              width: 15%; /* Quantity - minimal space */
+              width: 12%; /* Quantity - reduced slightly */
             }
             
             .items-table th:nth-child(3),
             .items-table td:nth-child(3) {
-              width: 18%; /* Price - moderate space */
+              width: 18%; /* Price - same */
             }
             
             .items-table th:nth-child(4),
             .items-table td:nth-child(4) {
-              width: 17%; /* Total - moderate space */
+              width: 25%; /* Total - increased for full visibility */
             }
 
             .item-name {
