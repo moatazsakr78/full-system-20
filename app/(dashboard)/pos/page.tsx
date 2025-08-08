@@ -761,18 +761,19 @@ export default function POSPage() {
             
             body {
               font-family: 'Arial', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              font-size: 12px;
+              font-size: 13px;
               line-height: 1.3;
               color: #000;
               background: white;
               width: 100%;
               margin: 0;
-              padding: 3px;
+              padding: 0;
             }
             
             .receipt-header {
               text-align: center;
               margin-bottom: 8px;
+              padding: 0 2px;
             }
             
             .receipt-number {
@@ -798,29 +799,30 @@ export default function POSPage() {
             .items-table {
               width: 100%;
               border-collapse: collapse;
-              margin: 8px 0;
+              margin: 5px 0;
               border: 1px solid #000;
             }
             
             .items-table th,
             .items-table td {
               border: 1px solid #000;
-              padding: 4px;
+              padding: 5px;
               text-align: center;
-              font-size: 11px;
+              font-size: 12px;
               font-weight: 400;
             }
             
             .items-table th {
               background-color: #f5f5f5;
               font-weight: 600;
-              font-size: 11px;
+              font-size: 12px;
             }
             
             .item-name {
               text-align: right !important;
-              padding-right: 5px !important;
-              font-size: 10px;
+              padding-right: 6px !important;
+              font-size: 11px;
+              font-weight: bold;
               word-wrap: break-word;
               white-space: normal;
             }
@@ -828,13 +830,14 @@ export default function POSPage() {
             .total-row {
               border-top: 2px solid #000;
               font-weight: 700;
-              font-size: 11px;
+              font-size: 12px;
             }
             
             .payment-section {
               margin-top: 8px;
               text-align: center;
-              font-size: 10px;
+              font-size: 11px;
+              padding: 0 2px;
             }
             
             .payment-table {
@@ -847,9 +850,9 @@ export default function POSPage() {
             .payment-table th,
             .payment-table td {
               border: 1px solid #000;
-              padding: 3px;
+              padding: 4px;
               text-align: center;
-              font-size: 10px;
+              font-size: 11px;
             }
             
             .footer {
@@ -857,7 +860,7 @@ export default function POSPage() {
               margin-top: 8px;
               font-size: 9px;
               border-top: 1px solid #000;
-              padding-top: 3px;
+              padding: 3px 2px 0 2px;
             }
             
             @media print {
@@ -947,7 +950,7 @@ export default function POSPage() {
     `
 
     // Open new window with receipt content
-    const printWindow = window.open('', '_blank', 'width=400,height=600,scrollbars=yes,resizable=yes')
+    const printWindow = window.open('', '_blank', 'width=450,height=650,scrollbars=yes,resizable=yes')
     if (printWindow) {
       printWindow.document.write(receiptContent)
       printWindow.document.close()
