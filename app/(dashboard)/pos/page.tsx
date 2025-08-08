@@ -781,6 +781,12 @@ export default function POSPage() {
               height: auto;
               margin: 0 auto 4px auto;
               display: block;
+              max-height: 60px;
+              object-fit: contain;
+            }
+            
+            .company-logo-fallback {
+              display: none;
             }
             
             .company-name {
@@ -908,6 +914,15 @@ export default function POSPage() {
                 max-width: 80mm !important;
                 margin: 0 !important;
                 padding: 0 1.5mm !important;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              
+              .company-logo {
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                print-color-adjust: exact !important;
               }
               
               .no-print {
@@ -933,7 +948,13 @@ export default function POSPage() {
         </head>
         <body>
           <div class="receipt-header">
-            <img src="/assets/logo/El Farouk Group2.png" alt="El Farouk Group" class="company-logo" />
+            <img 
+              src="${window.location.origin}/assets/logo/El Farouk Group2.png" 
+              alt="El Farouk Group" 
+              class="company-logo"
+              onerror="this.style.display='none'; document.querySelector('.company-logo-fallback').style.display='block';"
+            />
+            <div class="company-logo-fallback" style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 4px;">🏢</div>
             <div class="company-name">El Farouk Group</div>
             <div class="receipt-date">${new Date().toLocaleDateString('ar-EG')} - ${new Date().toLocaleDateString('en-US')}</div>
             <div class="receipt-address">${selections.branch?.name || 'الفرع الرئيسي'}</div>
