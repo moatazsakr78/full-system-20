@@ -760,111 +760,125 @@ export default function POSPage() {
             }
             
             body {
-              font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              font-size: 14px;
-              line-height: 1.4;
+              font-family: 'Arial', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              font-size: 11px;
+              line-height: 1.2;
               color: #000;
               background: white;
-              max-width: 300px;
+              max-width: 220px;
               margin: 0 auto;
-              padding: 10px;
+              padding: 5px;
             }
             
             .receipt-header {
               text-align: center;
-              margin-bottom: 15px;
-            }
-            
-            .receipt-number {
-              font-size: 24px;
-              font-weight: 700;
               margin-bottom: 8px;
             }
             
+            .receipt-number {
+              font-size: 16px;
+              font-weight: 700;
+              margin-bottom: 4px;
+            }
+            
             .receipt-date {
-              font-size: 12px;
-              margin-bottom: 3px;
+              font-size: 10px;
+              margin-bottom: 2px;
             }
             
             .receipt-address {
-              font-size: 11px;
-              margin-bottom: 3px;
+              font-size: 9px;
+              margin-bottom: 2px;
             }
             
             .receipt-phone {
-              font-size: 11px;
+              font-size: 9px;
             }
             
             .items-table {
               width: 100%;
               border-collapse: collapse;
-              margin: 15px 0;
+              margin: 8px 0;
               border: 1px solid #000;
             }
             
             .items-table th,
             .items-table td {
               border: 1px solid #000;
-              padding: 4px;
+              padding: 2px;
               text-align: center;
-              font-size: 12px;
+              font-size: 9px;
               font-weight: 400;
+              white-space: nowrap;
             }
             
             .items-table th {
               background-color: #f5f5f5;
               font-weight: 600;
+              font-size: 9px;
             }
             
             .item-name {
               text-align: right !important;
-              padding-right: 6px !important;
-              max-width: 120px;
-              word-wrap: break-word;
+              padding-right: 3px !important;
+              max-width: 80px;
+              font-size: 8px;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
             
             .total-row {
               border-top: 2px solid #000;
               font-weight: 700;
+              font-size: 9px;
             }
             
             .payment-section {
-              margin-top: 15px;
+              margin-top: 8px;
               text-align: center;
-              font-size: 12px;
+              font-size: 9px;
             }
             
             .payment-table {
               width: 100%;
               border-collapse: collapse;
-              margin: 10px 0;
+              margin: 5px 0;
               border: 1px solid #000;
             }
             
             .payment-table th,
             .payment-table td {
               border: 1px solid #000;
-              padding: 4px;
+              padding: 2px;
               text-align: center;
-              font-size: 12px;
+              font-size: 8px;
             }
             
             .footer {
               text-align: center;
-              margin-top: 15px;
-              font-size: 10px;
+              margin-top: 8px;
+              font-size: 7px;
               border-top: 1px solid #000;
-              padding-top: 5px;
+              padding-top: 3px;
             }
             
             @media print {
               body {
                 max-width: none;
                 margin: 0;
-                padding: 5px;
+                padding: 2px;
+                font-size: 9px;
               }
               .no-print {
                 display: none;
+              }
+              .items-table th,
+              .items-table td {
+                padding: 1px;
+                font-size: 8px;
+              }
+              .item-name {
+                font-size: 7px;
               }
             }
           </style>
@@ -910,14 +924,14 @@ export default function POSPage() {
             <table class="payment-table">
               <tr>
                 <th>مدين</th>
-                <th>سابق</th>
                 <th>آجل</th>
+                <th>سابق</th>
                 <th>مدفوع</th>
               </tr>
               <tr>
                 <td>0</td>
-                <td>-135</td>
                 <td>135</td>
+                <td>-135</td>
                 <td>1350</td>
               </tr>
             </table>
@@ -936,7 +950,7 @@ export default function POSPage() {
     `
 
     // Open new window with receipt content
-    const printWindow = window.open('', '_blank', 'width=400,height=600,scrollbars=yes,resizable=yes')
+    const printWindow = window.open('', '_blank', 'width=300,height=500,scrollbars=yes,resizable=yes')
     if (printWindow) {
       printWindow.document.write(receiptContent)
       printWindow.document.close()
