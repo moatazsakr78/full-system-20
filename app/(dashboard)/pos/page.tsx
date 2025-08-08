@@ -820,23 +820,23 @@ export default function POSPage() {
             }
             
             /* Column width optimization for 80mm thermal paper */
-            .items-table th:nth-child(4),
-            .items-table td:nth-child(4) {
+            .items-table th:nth-child(1),
+            .items-table td:nth-child(1) {
               width: 50%; /* Item name - maximum space */
-            }
-            
-            .items-table th:nth-child(3),
-            .items-table td:nth-child(3) {
-              width: 15%; /* Quantity - minimal space */
             }
             
             .items-table th:nth-child(2),
             .items-table td:nth-child(2) {
+              width: 15%; /* Quantity - minimal space */
+            }
+            
+            .items-table th:nth-child(3),
+            .items-table td:nth-child(3) {
               width: 18%; /* Price - moderate space */
             }
             
-            .items-table th:nth-child(1),
-            .items-table td:nth-child(1) {
+            .items-table th:nth-child(4),
+            .items-table td:nth-child(4) {
               width: 17%; /* Total - moderate space */
             }
 
