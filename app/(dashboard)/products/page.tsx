@@ -466,14 +466,13 @@ export default function ProductsPage() {
   }
 
 
-  // Fetch categories for CategorySidebar usage
+  // Fetch categories for CategorySidebar usage - ADMIN SYSTEM: Show ALL categories
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true })
       
       if (error) throw error
       

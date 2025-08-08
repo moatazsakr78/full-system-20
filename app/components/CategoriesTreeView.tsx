@@ -168,11 +168,11 @@ export default function CategoriesTreeView({
 
   const fetchCategories = async () => {
     try {
+      // ADMIN SYSTEM: Show ALL categories, not just active ones
       const { data, error } = await supabase
         .from('categories')
         .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true })
       
       if (error) throw error
       
@@ -193,15 +193,15 @@ export default function CategoriesTreeView({
 
   const handleCategoryChange = (payload: any) => {
     if (payload.eventType === 'INSERT') {
-      // Only add if it's active
-      if (payload.new && payload.new.is_active) {
+      // ADMIN SYSTEM: Add all categories, not just active ones
+      if (payload.new) {
         setCategories(prev => [...prev, payload.new])
       }
     } else if (payload.eventType === 'UPDATE') {
       // Update existing category
       setCategories(prev => prev.map(cat => 
         cat.id === payload.new.id ? payload.new : cat
-      ).filter(cat => cat.is_active)) // Filter out inactive ones
+      )) // Show all categories in admin system
     } else if (payload.eventType === 'DELETE') {
       // Remove deleted category from the list
       setCategories(prev => prev.filter(cat => cat.id !== payload.old.id))
@@ -211,13 +211,13 @@ export default function CategoriesTreeView({
   const updateGroupsFromCategories = (cats: Category[]) => {
     console.log('Updating groups from categories:', cats)
     
-    // Find the "منتجات" category
-    const productsCategory = cats.find(cat => cat.name === 'منتجات' && cat.is_active)
+    // ADMIN SYSTEM: Find the "منتجات" category without filtering by is_active
+    const productsCategory = cats.find(cat => cat.name === 'منتجات')
     console.log('Products category found:', productsCategory)
     
-    // Convert flat categories to nested structure
+    // Convert flat categories to nested structure - SHOW ALL categories
     const buildTree = (parentId: string | null = null): ProductGroup[] => {
-      const filtered = cats.filter(cat => cat.parent_id === parentId && cat.is_active)
+      const filtered = cats.filter(cat => cat.parent_id === parentId)
       console.log(`Building tree for parent ${parentId}, found ${filtered.length} categories:`, filtered)
       
       return filtered.map(cat => ({

@@ -10,6 +10,7 @@ import { useRightSidebar } from '../../app/lib/hooks/useRightSidebar';
 import { useUserProfile } from '../../lib/hooks/useUserProfile';
 import CategoryCarousel from './CategoryCarousel';
 import FeaturedProductsCarousel from './FeaturedProductsCarousel';
+import InteractiveProductCard from './InteractiveProductCard';
 
 interface DesktopHomeProps {
   userInfo: UserInfo;
@@ -390,64 +391,12 @@ export default function DesktopHome({
           <h3 className="text-3xl font-bold mb-6 text-black">جميع المنتجات</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {filteredProducts.map((product) => (
-              <div key={product.id} className="bg-custom-gray rounded-lg p-4 hover:bg-gray-300 transition-colors border border-gray-300 shadow-md cursor-pointer group">
-                <div className="relative mb-4" onClick={() => router.push(`/product/${product.id}`)}>
-                  <img 
-                    src={product.image} 
-                    alt={product.name} 
-                    className="w-full h-72 object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {product.isOnSale && (
-                    <span className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
-                      -{product.discount}%
-                    </span>
-                  )}
-                </div>
-                <div onClick={() => router.push(`/product/${product.id}`)}>
-                  <h4 className="font-semibold mb-2 text-gray-800 truncate transition-colors group-hover:text-[#5D1F1F]">{product.name}</h4>
-                  <div className="h-10 mb-3">
-                    <p className="text-gray-600 text-sm overflow-hidden" style={{
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      lineHeight: '1.25rem',
-                      maxHeight: '2.5rem'
-                    }}>
-                      {product.description}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      {product.originalPrice && (
-                        <span className="text-sm text-gray-500 line-through">{product.originalPrice} ريال</span>
-                      )}
-                      <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>{product.price} ريال</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <span className="text-yellow-400">⭐</span>
-                      <span className="text-sm text-gray-400">{product.rating} ({product.reviews})</span>
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    await onAddToCart(product);
-                  }}
-                  className="w-full mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-white"
-                  style={{backgroundColor: '#5D1F1F'}}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
-                  }}
-                >
-                  أضف للسلة
-                </button>
-              </div>
+              <InteractiveProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={onAddToCart}
+                deviceType="desktop"
+              />
             ))}
           </div>
         </section>

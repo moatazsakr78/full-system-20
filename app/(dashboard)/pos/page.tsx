@@ -100,7 +100,8 @@ import {
   ClockIcon,
   ShoppingBagIcon,
   BuildingStorefrontIcon,
-  ArrowUturnLeftIcon
+  ArrowUturnLeftIcon,
+  PrinterIcon
 } from '@heroicons/react/24/outline'
 
 export default function POSPage() {
@@ -133,6 +134,10 @@ export default function POSPage() {
   
   // Returns State - simple toggle
   const [isReturnMode, setIsReturnMode] = useState(false)
+  
+  // Print Receipt States
+  const [showPrintReceiptModal, setShowPrintReceiptModal] = useState(false)
+  const [lastInvoiceData, setLastInvoiceData] = useState<any>(null)
   
   // Use persistent selections hook
   const {
@@ -599,9 +604,21 @@ export default function POSPage() {
           isReturn: isReturnMode // Pass return mode flag
         })
 
-        // Show success message
-        const messageType = isReturnMode ? 'مرتجع الشراء' : 'فاتورة الشراء'
-        alert(`تم إنشاء ${messageType} بنجاح\nرقم الفاتورة: ${result.invoiceNumber}\nالإجمالي: ${result.totalAmount.toFixed(2)} ريال`)
+        // Store invoice data for printing
+        setLastInvoiceData({
+          invoiceNumber: result.invoiceNumber,
+          totalAmount: result.totalAmount,
+          cartItems: cartItems,
+          isReturn: isReturnMode,
+          isPurchaseMode: true,
+          date: new Date(),
+          supplier: selectedSupplier,
+          warehouse: selectedWarehouse,
+          record: selections.record
+        })
+
+        // Show print confirmation modal
+        setShowPrintReceiptModal(true)
       } else {
         // Handle sales invoice creation (or return)
         const result = await createSalesInvoice({
@@ -616,9 +633,21 @@ export default function POSPage() {
           isReturn: isReturnMode // Pass return mode flag
         })
 
-        // Show success message
-        const messageType = isReturnMode ? 'مرتجع البيع' : 'الفاتورة'
-        alert(`تم إنشاء ${messageType} بنجاح\nرقم الفاتورة: ${result.invoiceNumber}\nالإجمالي: ${result.totalAmount.toFixed(2)} ريال`)
+        // Store invoice data for printing
+        setLastInvoiceData({
+          invoiceNumber: result.invoiceNumber,
+          totalAmount: result.totalAmount,
+          cartItems: cartItems,
+          isReturn: isReturnMode,
+          isPurchaseMode: false,
+          date: new Date(),
+          customer: selections.customer,
+          branch: selections.branch,
+          record: selections.record
+        })
+
+        // Show print confirmation modal
+        setShowPrintReceiptModal(true)
       }
 
       // Clear cart after successful invoice creation
@@ -704,6 +733,223 @@ export default function POSPage() {
       return hasRequiredForPurchase()
     } else {
       return hasRequiredForSale()
+    }
+  }
+
+  // Print Receipt Function
+  const printReceipt = (invoiceData?: any) => {
+    const dataToUse = invoiceData || lastInvoiceData
+    if (!dataToUse) {
+      alert('لا توجد بيانات فاتورة للطباعة')
+      return
+    }
+
+    // Create receipt content based on the image format
+    const receiptContent = `
+      <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="UTF-8">
+          <title>فاتورة رقم ${dataToUse.invoiceNumber}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+            
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            
+            body {
+              font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              font-size: 14px;
+              line-height: 1.4;
+              color: #000;
+              background: white;
+              max-width: 300px;
+              margin: 0 auto;
+              padding: 10px;
+            }
+            
+            .receipt-header {
+              text-align: center;
+              margin-bottom: 15px;
+            }
+            
+            .receipt-number {
+              font-size: 24px;
+              font-weight: 700;
+              margin-bottom: 8px;
+            }
+            
+            .receipt-date {
+              font-size: 12px;
+              margin-bottom: 3px;
+            }
+            
+            .receipt-address {
+              font-size: 11px;
+              margin-bottom: 3px;
+            }
+            
+            .receipt-phone {
+              font-size: 11px;
+            }
+            
+            .items-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+              border: 1px solid #000;
+            }
+            
+            .items-table th,
+            .items-table td {
+              border: 1px solid #000;
+              padding: 4px;
+              text-align: center;
+              font-size: 12px;
+              font-weight: 400;
+            }
+            
+            .items-table th {
+              background-color: #f5f5f5;
+              font-weight: 600;
+            }
+            
+            .item-name {
+              text-align: right !important;
+              padding-right: 6px !important;
+              max-width: 120px;
+              word-wrap: break-word;
+            }
+            
+            .total-row {
+              border-top: 2px solid #000;
+              font-weight: 700;
+            }
+            
+            .payment-section {
+              margin-top: 15px;
+              text-align: center;
+              font-size: 12px;
+            }
+            
+            .payment-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 10px 0;
+              border: 1px solid #000;
+            }
+            
+            .payment-table th,
+            .payment-table td {
+              border: 1px solid #000;
+              padding: 4px;
+              text-align: center;
+              font-size: 12px;
+            }
+            
+            .footer {
+              text-align: center;
+              margin-top: 15px;
+              font-size: 10px;
+              border-top: 1px solid #000;
+              padding-top: 5px;
+            }
+            
+            @media print {
+              body {
+                max-width: none;
+                margin: 0;
+                padding: 5px;
+              }
+              .no-print {
+                display: none;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-header">
+            <div class="receipt-number">${dataToUse.invoiceNumber}</div>
+            <div class="receipt-date">${new Date().toLocaleDateString('ar-EG')} - ${new Date().toLocaleDateString('en-US')}</div>
+            <div class="receipt-address">${selections.branch?.name || 'الفرع الرئيسي'}</div>
+            <div class="receipt-phone">${selections.branch?.phone || '01102862856'}</div>
+          </div>
+
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>قيمة</th>
+                <th>سعر</th>
+                <th>كمية</th>
+                <th class="item-name">الصنف</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${dataToUse.cartItems.map((item: any) => `
+                <tr>
+                  <td>${(item.price * item.quantity).toFixed(0)}</td>
+                  <td>${item.price.toFixed(0)}</td>
+                  <td>${item.quantity}</td>
+                  <td class="item-name">${item.product.name}</td>
+                </tr>
+              `).join('')}
+              <tr class="total-row">
+                <td>${dataToUse.totalAmount.toFixed(0)}</td>
+                <td>${dataToUse.cartItems.length}</td>
+                <td>= اجمالي =</td>
+                <td class="item-name">-</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="payment-section">
+            ألف وأربعمائة وخمسة وثمانون جنيها
+            
+            <table class="payment-table">
+              <tr>
+                <th>مدين</th>
+                <th>سابق</th>
+                <th>آجل</th>
+                <th>مدفوع</th>
+              </tr>
+              <tr>
+                <td>0</td>
+                <td>-135</td>
+                <td>135</td>
+                <td>1350</td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="footer">
+            ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-GB', {hour12: false})} by: ${selections.record?.name || 'kassem'}
+          </div>
+
+          <div class="no-print" style="text-align: center; margin-top: 20px;">
+            <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">طباعة</button>
+            <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 10px;">إغلاق</button>
+          </div>
+        </body>
+      </html>
+    `
+
+    // Open new window with receipt content
+    const printWindow = window.open('', '_blank', 'width=400,height=600,scrollbars=yes,resizable=yes')
+    if (printWindow) {
+      printWindow.document.write(receiptContent)
+      printWindow.document.close()
+      
+      // Auto-focus the print window
+      printWindow.focus()
+      
+      // Optional: Auto-print after a short delay
+      setTimeout(() => {
+        printWindow.print()
+      }, 500)
+    } else {
+      alert('يرجى السماح بالنوافذ المنبثقة لطباعة الفاتورة')
     }
   }
 
@@ -818,6 +1064,14 @@ export default function POSPage() {
               >
                 <HomeIcon className="h-5 w-5 mb-1" />
                 <span className="text-sm">عرض المجموعات</span>
+              </button>
+
+              <button 
+                onClick={() => setShowPrintReceiptModal(true)}
+                className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+              >
+                <PrinterIcon className="h-5 w-5 mb-1" />
+                <span className="text-sm">طباعة ريسيت</span>
               </button>
             </div>
 
@@ -1776,6 +2030,74 @@ export default function POSPage() {
         </>
       )}
 
+      {/* Print Receipt Confirmation Modal */}
+      {showPrintReceiptModal && (
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowPrintReceiptModal(false)} />
+          
+          {/* Modal */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-[#2B3544] rounded-2xl shadow-2xl border border-[#4A5568] w-full max-w-md">
+              
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-[#4A5568]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
+                    <PrinterIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white">طباعة الفاتورة</h2>
+                    <p className="text-gray-400 text-sm">تم إنشاء الفاتورة بنجاح</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-4">
+                  <p className="text-green-400 text-sm flex items-center gap-2 mb-2">
+                    <span className="text-green-400">✅</span>
+                    تم إنشاء {lastInvoiceData?.isReturn ? 'المرتجع' : 'الفاتورة'} بنجاح
+                  </p>
+                  <div className="text-white text-sm space-y-1">
+                    <p>رقم الفاتورة: <span className="font-bold">{lastInvoiceData?.invoiceNumber}</span></p>
+                    <p>الإجمالي: <span className="font-bold text-green-400">{lastInvoiceData?.totalAmount?.toFixed(2)} ريال</span></p>
+                    <p>عدد الأصناف: <span className="font-bold">{lastInvoiceData?.cartItems?.length}</span></p>
+                  </div>
+                </div>
+                
+                <p className="text-white font-medium text-center mb-4">
+                  هل تريد طباعة الفاتورة؟
+                </p>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-[#4A5568]">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowPrintReceiptModal(false)}
+                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-3 rounded-lg font-medium transition-colors"
+                  >
+                    لا، شكراً
+                  </button>
+                  <button
+                    onClick={() => {
+                      printReceipt(lastInvoiceData)
+                      setShowPrintReceiptModal(false)
+                    }}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <PrinterIcon className="h-5 w-5" />
+                    نعم، اطبع الفاتورة
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </>
+      )}
 
       <style jsx global>{`
         /* Enhanced scrollbar styles for table container */
