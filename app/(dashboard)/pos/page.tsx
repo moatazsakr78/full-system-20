@@ -776,10 +776,18 @@ export default function POSPage() {
               padding: 0 2px;
             }
             
-            .receipt-number {
+            .company-logo {
+              width: 60px;
+              height: auto;
+              margin: 0 auto 4px auto;
+              display: block;
+            }
+            
+            .company-name {
               font-size: 18px;
               font-weight: 700;
               margin-bottom: 4px;
+              color: #000;
             }
             
             .receipt-date {
@@ -925,7 +933,8 @@ export default function POSPage() {
         </head>
         <body>
           <div class="receipt-header">
-            <div class="receipt-number">${dataToUse.invoiceNumber}</div>
+            <img src="/assets/logo/El Farouk Group2.png" alt="El Farouk Group" class="company-logo" />
+            <div class="company-name">El Farouk Group</div>
             <div class="receipt-date">${new Date().toLocaleDateString('ar-EG')} - ${new Date().toLocaleDateString('en-US')}</div>
             <div class="receipt-address">${selections.branch?.name || 'الفرع الرئيسي'}</div>
             <div class="receipt-phone">${selections.branch?.phone || '01102862856'}</div>
