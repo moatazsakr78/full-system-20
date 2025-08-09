@@ -3,6 +3,111 @@
 import { supabase } from '../supabase/client'
 import { CartItem } from './createSalesInvoice'
 
+// Helper function to handle unspecified variant consolidation
+async function handleUnspecifiedVariant({
+  productId,
+  productName,
+  branchId,
+  quantity,
+  isReturn
+}: {
+  productId: string
+  productName: string
+  branchId: string
+  quantity: number
+  isReturn: boolean
+}) {
+  try {
+    // Step 1: Find ALL existing "غير محدد" variants for this product and branch
+    const { data: existingVariants, error: searchError } = await supabase
+      .from('product_variants')
+      .select('id, quantity')
+      .eq('product_id', productId)
+      .eq('branch_id', branchId)
+      .eq('name', 'غير محدد')
+      .eq('variant_type', 'color')
+
+    if (searchError) {
+      console.error(`Error searching variants for product ${productName}:`, searchError.message)
+      return
+    }
+
+    console.log(`Found ${existingVariants?.length || 0} existing غير محدد variants for ${productName}`)
+
+    if (!existingVariants || existingVariants.length === 0) {
+      // No existing variants - create new one (only if not a return)
+      if (!isReturn) {
+        const newVariant = {
+          product_id: productId,
+          name: 'غير محدد',
+          variant_type: 'color',
+          quantity: quantity,
+          branch_id: branchId,
+          value: JSON.stringify({ 
+            color: '#6B7280', 
+            description: 'كمية غير محددة اللون - وضع الشراء' 
+          })
+        }
+
+        const { error: insertError } = await supabase
+          .from('product_variants')
+          .insert(newVariant)
+
+        if (insertError) {
+          console.error(`Failed to create new غير محدد variant for ${productName}:`, insertError.message)
+        } else {
+          console.log(`✅ Created new غير محدد variant for ${productName} with quantity: ${quantity}`)
+        }
+      }
+    } else {
+      // Consolidate all existing variants into one
+      const totalExistingQuantity = existingVariants.reduce((sum, variant) => sum + (variant.quantity || 0), 0)
+      const quantityChange = isReturn ? -quantity : quantity
+      const finalQuantity = Math.max(0, totalExistingQuantity + quantityChange)
+
+      console.log(`Consolidating variants for ${productName}:`, {
+        existingVariants: existingVariants.length,
+        totalExistingQuantity,
+        quantityChange,
+        finalQuantity
+      })
+
+      // Keep the first variant and update its quantity
+      const primaryVariant = existingVariants[0]
+      const variantsToDelete = existingVariants.slice(1)
+
+      // Delete duplicate variants first
+      if (variantsToDelete.length > 0) {
+        const idsToDelete = variantsToDelete.map(v => v.id)
+        const { error: deleteError } = await supabase
+          .from('product_variants')
+          .delete()
+          .in('id', idsToDelete)
+
+        if (deleteError) {
+          console.error(`Failed to delete duplicate variants for ${productName}:`, deleteError.message)
+        } else {
+          console.log(`🗑️ Deleted ${variantsToDelete.length} duplicate variants for ${productName}`)
+        }
+      }
+
+      // Update the primary variant with the consolidated quantity
+      const { error: updateError } = await supabase
+        .from('product_variants')
+        .update({ quantity: finalQuantity })
+        .eq('id', primaryVariant.id)
+
+      if (updateError) {
+        console.error(`Failed to update primary variant for ${productName}:`, updateError.message)
+      } else {
+        console.log(`✅ Updated primary غير محدد variant for ${productName}: ${totalExistingQuantity} + ${quantityChange} = ${finalQuantity}`)
+      }
+    }
+  } catch (error: any) {
+    console.error(`Unexpected error handling variant for ${productName}:`, error.message)
+  }
+}
+
 export interface PurchaseInvoiceSelections {
   supplier: any
   warehouse: any
@@ -217,79 +322,14 @@ export async function createPurchaseInvoice({
         }
       }
 
-      // In purchase mode, we store quantities as "unspecified" variant
-      // Find ANY existing "غير محدد" variant for this product and location (regardless of duplicate entries)
-      const { data: existingVariants, error: variantGetError } = await supabase
-        .from('product_variants')
-        .select('id, quantity')
-        .eq('product_id', item.product.id)
-        .eq(branchId ? 'branch_id' : 'warehouse_id', locationId)
-        .eq('name', 'غير محدد')
-        .eq('variant_type', 'color')
-
-      if (variantGetError) {
-        console.warn(`Failed to get unspecified variants for product ${item.product.id}:`, variantGetError.message)
-        continue
-      }
-
-      if (existingVariants && existingVariants.length > 0) {
-        // If multiple "غير محدد" variants exist, merge them into the first one and delete the rest
-        const primaryVariant = existingVariants[0]
-        const totalQuantity = existingVariants.reduce((sum, variant) => sum + (variant.quantity || 0), 0) + item.quantity
-
-        // Update the primary variant with the combined quantity
-        const variantUpdateData: any = { quantity: totalQuantity }
-        if (branchId) {
-          variantUpdateData.branch_id = branchId
-        } else {
-          variantUpdateData.warehouse_id = warehouseId
-        }
-
-        const { error: variantUpdateError } = await supabase
-          .from('product_variants')
-          .update(variantUpdateData)
-          .eq('id', primaryVariant.id)
-
-        if (variantUpdateError) {
-          console.warn(`Failed to update primary unspecified variant for product ${item.product.id}:`, variantUpdateError.message)
-        } else {
-          // Delete duplicate variants if they exist
-          if (existingVariants.length > 1) {
-            const duplicateIds = existingVariants.slice(1).map(v => v.id)
-            const { error: deleteError } = await supabase
-              .from('product_variants')
-              .delete()
-              .in('id', duplicateIds)
-
-            if (deleteError) {
-              console.warn(`Failed to delete duplicate unspecified variants for product ${item.product.id}:`, deleteError.message)
-            }
-          }
-        }
-      } else {
-        // Create new unspecified variant
-        const variantInsertData: any = {
-          product_id: item.product.id,
-          name: 'غير محدد',
-          variant_type: 'color',
-          quantity: item.quantity,
-          value: JSON.stringify({ color: '#6B7280', description: 'كمية غير محددة اللون - وضع الشراء' })
-        }
-        
-        if (branchId) {
-          variantInsertData.branch_id = branchId
-        } else {
-          variantInsertData.warehouse_id = warehouseId
-        }
-
-        const { error: variantInsertError } = await supabase
-          .from('product_variants')
-          .insert(variantInsertData)
-
-        if (variantInsertError) {
-          console.warn(`Failed to create unspecified variant for product ${item.product.id}:`, variantInsertError.message)
-        }
-      }
+      // Handle "غير محدد" (unspecified) variant consolidation for purchase invoices
+      await handleUnspecifiedVariant({
+        productId: item.product.id,
+        productName: item.product.name,
+        branchId: locationId,
+        quantity: item.quantity,
+        isReturn
+      })
     }
 
     return {

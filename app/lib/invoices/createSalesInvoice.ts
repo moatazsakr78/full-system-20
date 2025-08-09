@@ -32,12 +32,27 @@ export async function createSalesInvoice({
   notes,
   isReturn = false
 }: CreateSalesInvoiceParams) {
-  if (!selections.customer || !selections.branch || !selections.record) {
-    throw new Error('يجب تحديد العميل والفرع والسجل قبل إنشاء الفاتورة')
+  if (!selections.branch || !selections.record) {
+    throw new Error('يجب تحديد الفرع والسجل قبل إنشاء الفاتورة')
   }
 
   if (!cartItems || cartItems.length === 0) {
     throw new Error('لا يمكن إنشاء فاتورة بدون منتجات')
+  }
+
+  // Use default customer if none selected
+  const DEFAULT_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001' // The default customer from database
+  const customerId = (selections.customer && selections.customer.id) ? selections.customer.id : DEFAULT_CUSTOMER_ID
+  
+  console.log('Customer selection debug:', {
+    hasCustomer: !!selections.customer,
+    customerId: customerId,
+    rawCustomer: selections.customer
+  })
+
+  // Validate that customerId is a valid UUID and not null/undefined
+  if (!customerId || typeof customerId !== 'string' || customerId.trim() === '') {
+    throw new Error(`خطأ في معرف العميل: ${customerId}`)
   }
 
   try {
@@ -70,7 +85,7 @@ export async function createSalesInvoice({
         profit: profit,
         payment_method: paymentMethod,
         branch_id: selections.branch.id,
-        customer_id: selections.customer.id,
+        customer_id: customerId,
         record_id: selections.record.id,
         notes: notes || null,
         time: timeString,
@@ -118,7 +133,7 @@ export async function createSalesInvoice({
           profit: profit,
           payment_method: paymentMethod,
           branch_id: selections.branch.id,
-          customer_id: selections.customer.id,
+          customer_id: customerId,
           record_id: MAIN_RECORD_ID, // Always add to main record
           notes: `نسخة من الفاتورة الأصلية: ${invoiceNumber}${notes ? ` - ${notes}` : ''}`,
           time: timeString,
