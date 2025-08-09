@@ -772,7 +772,7 @@ export default function POSPage() {
             
             .receipt-header {
               text-align: center;
-              margin-bottom: 8px;
+              margin-bottom: 3px;
               padding: 0 2px;
             }
             
@@ -792,18 +792,18 @@ export default function POSPage() {
             .company-name {
               font-size: 18px;
               font-weight: 700;
-              margin-bottom: 4px;
+              margin-bottom: 2px;
               color: #000;
             }
             
             .receipt-date {
               font-size: 11px;
-              margin-bottom: 2px;
+              margin-bottom: 1px;
             }
             
             .receipt-address {
               font-size: 10px;
-              margin-bottom: 2px;
+              margin-bottom: 1px;
             }
             
             .receipt-phone {
@@ -813,7 +813,7 @@ export default function POSPage() {
             .items-table {
               width: 100%;
               border-collapse: collapse;
-              margin: 5px 0;
+              margin: 3px 0;
               border: 1px solid #000;
               table-layout: fixed; /* Forces table to use full width */
             }
@@ -821,16 +821,16 @@ export default function POSPage() {
             .items-table th,
             .items-table td {
               border: 1px solid #000;
-              padding: 5px;
+              padding: 7px;
               text-align: center;
-              font-size: 12px;
+              font-size: 14px;
               font-weight: 400;
             }
             
             .items-table th {
               background-color: #f5f5f5;
               font-weight: 600;
-              font-size: 12px;
+              font-size: 14px;
             }
             
             /* Column width optimization for 80mm thermal paper */
@@ -860,7 +860,7 @@ export default function POSPage() {
               text-align: right !important;
               padding-right: 4px !important;
               padding-left: 2px !important;
-              font-size: 14px;
+              font-size: 15px;
               font-weight: bold;
               word-wrap: break-word;
               white-space: normal;
