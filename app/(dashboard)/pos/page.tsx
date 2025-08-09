@@ -860,7 +860,7 @@ export default function POSPage() {
               text-align: right !important;
               padding-right: 4px !important;
               padding-left: 2px !important;
-              font-size: 11px;
+              font-size: 14px;
               font-weight: bold;
               word-wrap: break-word;
               white-space: normal;
