@@ -65,7 +65,7 @@ export default function ProductManagementPage() {
         name: dbProduct.name || 'منتج بدون اسم',
         description: dbProduct.description || '',
         price: dbProduct.finalPrice || dbProduct.price || 0,
-        image: dbProduct.main_image_url || '/placeholder-product.jpg',
+        image: dbProduct.main_image_url || '/placeholder-product.svg',
         category: dbProduct.category?.name || 'عام',
         isHidden: dbProduct.is_hidden || false,
         isFeatured: dbProduct.is_featured || false,

@@ -1,0 +1,7 @@
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#f3f4f6"/>
+  <rect x="75" y="100" width="150" height="100" fill="#d1d5db" rx="8"/>
+  <circle cx="125" cy="125" r="15" fill="#9ca3af"/>
+  <polygon points="125,140 140,155 110,155" fill="#9ca3af"/>
+  <text x="150" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#6b7280">صورة المنتج</text>
+</svg>

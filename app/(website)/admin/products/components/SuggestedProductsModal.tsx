@@ -119,7 +119,10 @@ export default function SuggestedProductsModal({
                       alt={product.name}
                       className="w-16 h-16 object-cover rounded"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/placeholder-product.jpg';
+                        const target = e.target as HTMLImageElement;
+                        if (target.src !== '/placeholder-product.svg') {
+                          target.src = '/placeholder-product.svg';
+                        }
                       }}
                     />
                     <div className="flex-1 min-w-0">

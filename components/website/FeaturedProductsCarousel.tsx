@@ -79,9 +79,15 @@ export default function FeaturedProductsCarousel({
             >
               <div className="relative mb-4" onClick={() => router.push(`/product/${product.id}`)}>
                 <img 
-                  src={product.image || '/placeholder-product.jpg'} 
+                  src={product.image || '/placeholder-product.svg'} 
                   alt={product.name} 
                   className="w-full h-72 object-cover rounded-lg group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (target.src !== '/placeholder-product.svg') {
+                      target.src = '/placeholder-product.svg';
+                    }
+                  }}
                 />
                 {product.isOnSale && (
                   <span className="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">

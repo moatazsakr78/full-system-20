@@ -340,12 +340,14 @@ const CartPage = () => {
                           <div className="flex items-center space-x-4 space-x-reverse">
                             <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
                               <img 
-                                src={item.products?.main_image_url || '/placeholder-product.jpg'} 
+                                src={item.products?.main_image_url || '/placeholder-product.svg'} 
                                 alt={item.products?.name || 'منتج'}
                                 className="w-full h-full object-cover rounded"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
-                                  target.src = '/placeholder-product.jpg';
+                                  if (target.src !== '/placeholder-product.svg') {
+                                    target.src = '/placeholder-product.svg';
+                                  }
                                 }}
                               />
                             </div>

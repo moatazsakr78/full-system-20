@@ -85,11 +85,14 @@ export default function InteractiveProductCard({
         onMouseLeave={handleImageMouseLeave}
       >
         <img 
-          src={allImages[currentImageIndex] || product.image || '/placeholder-product.jpg'}
+          src={allImages[currentImageIndex] || product.image || '/placeholder-product.svg'}
           alt={product.name} 
           className={classes.imageClass}
           onError={(e) => {
-            (e.target as HTMLImageElement).src = '/placeholder-product.jpg';
+            const target = e.target as HTMLImageElement;
+            if (target.src !== '/placeholder-product.svg') {
+              target.src = '/placeholder-product.svg';
+            }
           }}
         />
         {product.isOnSale && (

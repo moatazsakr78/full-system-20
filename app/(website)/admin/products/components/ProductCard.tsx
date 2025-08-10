@@ -77,7 +77,10 @@ export default function ProductCard({
           alt={product.name} 
           className="w-full h-48 object-cover rounded-lg"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = '/placeholder-product.jpg';
+            const target = e.target as HTMLImageElement;
+            if (target.src !== '/placeholder-product.svg') {
+              target.src = '/placeholder-product.svg';
+            }
           }}
         />
         
