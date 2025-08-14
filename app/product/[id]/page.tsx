@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { detectDeviceClient, DeviceInfo } from '../../../lib/device-detection';
 import { useOptimisticCart } from '../../../lib/optimistic-ui';
-import { UserInfo, Product } from '../../../components/website/shared/types';
+import { UserInfo, Product, ProductColor } from '../../../components/website/shared/types';
 import { supabase } from '../../lib/supabase/client';
 
 interface DatabaseProduct {
@@ -59,7 +59,6 @@ interface DatabaseProduct {
 interface ProductDetail extends Product {
   gallery: string[];
   specifications: { [key: string]: string };
-  colors: { name: string; value: string; available: boolean }[];
   sizes: { name: string; available: boolean }[];
   detailedDescription: string;
 }
@@ -302,7 +301,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   );
 
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedColor, setSelectedColor] = useState<{ name: string; value: string; available: boolean } | null>(null);
+  const [selectedColor, setSelectedColor] = useState<ProductColor | null>(null);
+  const [currentGallery, setCurrentGallery] = useState<string[]>([]);
   const [selectedSize, setSelectedSize] = useState<{ name: string; available: boolean } | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [isCompactHeaderVisible, setIsCompactHeaderVisible] = useState(false);
@@ -335,6 +335,25 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         if (!product) {
           setError('المنتج غير موجود');
           return;
+        }
+
+        // Get color variants for this product
+        const { data: colorVariants } = await supabase
+          .from('product_variants')
+          .select('id, name, color_hex, color_name, image_url, quantity')
+          .eq('product_id', product.id)
+          .eq('variant_type', 'color') as { data: any[] | null };
+
+        // Parse product description if it's JSON
+        let actualDescription: string = product.description || "";
+        try {
+          if (product.description && product.description.startsWith('{')) {
+            const descriptionData = JSON.parse(product.description);
+            actualDescription = descriptionData.text || "";
+          }
+        } catch (e) {
+          // If parsing fails, use original description
+          actualDescription = product.description || "";
         }
 
         // Get sub-images for this product
@@ -385,8 +404,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         const productDetail: ProductDetail = {
           id: parseInt(product.id.split('-')[0], 16) % 1000, // Convert UUID to number for compatibility
           name: product.name,
-          description: product.description || '',
-          detailedDescription: product.description || 'لا يوجد وصف تفصيلي متاح حالياً.',
+          description: actualDescription,
+          detailedDescription: actualDescription || 'لا يوجد وصف تفصيلي متاح حالياً.',
           price: finalPrice,
           originalPrice: isDiscountActive ? product.price : undefined,
           image: product.main_image_url || '/placeholder-image.jpg',
@@ -404,18 +423,32 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
             'الحد الأدنى للمخزون': product.min_stock?.toString() || '0',
             'سعر الجملة': product.wholesale_price ? `${product.wholesale_price} ريال` : 'غير محدد'
           },
-          colors: [
-            { name: 'أساسي', value: '#3B82F6', available: true }
-          ],
+          colors: colorVariants?.map(variant => ({
+            id: variant.id,
+            name: variant.color_name || variant.name,
+            hex: variant.color_hex,
+            image_url: variant.image_url,
+            quantity: variant.quantity || 0
+          }))
+          .sort((a, b) => (b.quantity || 0) - (a.quantity || 0)) || [], // Sort by quantity descending
           sizes: [
             { name: 'قياس عادي', available: true }
           ]
         };
 
         setProductDetails(productDetail);
+        setCurrentGallery(gallery);
         
         // Set initial selections
-        setSelectedColor(productDetail.colors[0]);
+        if (productDetail.colors && productDetail.colors.length > 0) {
+          const firstColor = productDetail.colors[0];
+          setSelectedColor(firstColor);
+          // If first color has image, prioritize it in gallery
+          if (firstColor?.image_url) {
+            const newGallery = [firstColor.image_url, ...gallery.filter(img => img !== firstColor.image_url)];
+            setCurrentGallery(newGallery);
+          }
+        }
         setSelectedSize(productDetail.sizes[0]);
 
         // Fetch suggested products if available
@@ -684,7 +717,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
             {/* Main Image */}
             <div className="w-full max-w-3xl aspect-square bg-white rounded-lg overflow-hidden shadow-lg">
               <img 
-                src={productDetails.gallery[selectedImage]} 
+                src={currentGallery[selectedImage]} 
                 alt={productDetails.name}
                 className="w-full h-full object-cover"
               />
@@ -726,35 +759,45 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
             </div>
 
             {/* Colors */}
-            {productDetails.colors.length > 0 && (
+            {productDetails.colors && productDetails.colors.length > 0 && (
               <div>
                 <h3 className="font-semibold text-gray-800 mb-3">اللون المتاح:</h3>
                 <div className="flex gap-3">
-                  {productDetails.colors.map((color) => (
+                  {productDetails.colors?.map((color) => (
                     <button
-                      key={color.name}
-                      disabled={!color.available}
-                      onClick={() => setSelectedColor(color)}
+                      key={color.id}
+                      onClick={() => {
+                        // Toggle color selection - if same color is clicked, deselect it
+                        if (selectedColor?.id === color.id) {
+                          setSelectedColor(null);
+                          // Reset gallery to original when deselecting color
+                          setCurrentGallery(productDetails.gallery || []);
+                          setSelectedImage(0);
+                        } else {
+                          setSelectedColor(color);
+                          // Update gallery when color is selected
+                          if (color.image_url && productDetails.gallery) {
+                            const newGallery = [color.image_url, ...productDetails.gallery.filter(img => img !== color.image_url)];
+                            setCurrentGallery(newGallery);
+                            setSelectedImage(0); // Reset to first image
+                          } else {
+                            setCurrentGallery(productDetails.gallery || []);
+                          }
+                        }
+                      }}
                       className={`relative w-12 h-12 rounded-full border-2 transition-all ${
-                        selectedColor?.name === color.name
+                        selectedColor?.id === color.id
                           ? 'border-red-500 shadow-lg scale-110'
-                          : color.available
-                          ? 'border-gray-300 hover:border-red-300'
-                          : 'border-gray-200 opacity-50 cursor-not-allowed'
+                          : 'border-gray-300 hover:border-red-300'
                       }`}
-                      style={{ backgroundColor: color.value }}
+                      style={{ backgroundColor: color.hex }}
                       title={color.name}
                     >
-                      {selectedColor?.name === color.name && (
+                      {selectedColor?.id === color.id && (
                         <div className="absolute inset-0 flex items-center justify-center">
                           <svg className="w-6 h-6 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
-                        </div>
-                      )}
-                      {!color.available && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-8 h-0.5 bg-gray-500 rotate-45"></div>
                         </div>
                       )}
                     </button>
@@ -842,7 +885,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           {/* Product Thumbnails Gallery */}
           <div className="lg:col-span-2 space-y-3">
             <div className="h-full min-h-[600px] max-h-[800px] overflow-y-auto scrollbar-hide space-y-3 mr-5">
-              {productDetails.gallery.map((image, index) => (
+              {currentGallery.map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}

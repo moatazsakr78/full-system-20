@@ -8,9 +8,10 @@ interface AddToCartModalProps {
   onClose: () => void
   product: any
   onAddToCart: (product: any, quantity: number, selectedColor?: string) => void
+  isTransferMode?: boolean
 }
 
-export default function AddToCartModal({ isOpen, onClose, product, onAddToCart }: AddToCartModalProps) {
+export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, isTransferMode = false }: AddToCartModalProps) {
   const [quantity, setQuantity] = useState(1)
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
   const [isEditingQuantity, setIsEditingQuantity] = useState(false)
@@ -84,10 +85,12 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart }
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-[#4A5568]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isTransferMode ? 'bg-orange-600' : 'bg-blue-600'}`}>
                 <ShoppingCartIcon className="h-5 w-5 text-white" />
               </div>
-              <h2 className="text-lg font-bold text-white">إضافة للسلة</h2>
+              <h2 className="text-lg font-bold text-white">
+                {isTransferMode ? 'إضافة للنقل' : 'إضافة للسلة'}
+              </h2>
             </div>
             <button
               onClick={onClose}
@@ -117,7 +120,12 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart }
               </div>
               <div className="flex-1">
                 <h3 className="text-white font-medium text-sm">{product.name}</h3>
-                <p className="text-blue-400 font-bold text-lg">{(product.price || 0).toFixed(2)} ريال</p>
+                {!isTransferMode && (
+                  <p className="text-blue-400 font-bold text-lg">{(product.price || 0).toFixed(2)} ريال</p>
+                )}
+                {isTransferMode && (
+                  <p className="text-orange-400 font-bold text-sm">وضع النقل</p>
+                )}
               </div>
             </div>
 
@@ -192,18 +200,24 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart }
 
           {/* Footer */}
           <div className="p-6 border-t border-[#4A5568] space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">المجموع</span>
-              <span className="text-white font-bold text-xl">
-                {((product.price || 0) * quantity).toFixed(2)} ريال
-              </span>
-            </div>
+            {!isTransferMode && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">المجموع</span>
+                <span className="text-white font-bold text-xl">
+                  {((product.price || 0) * quantity).toFixed(2)} ريال
+                </span>
+              </div>
+            )}
             <button
               onClick={handleAddToCart}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+              className={`w-full py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-white ${
+                isTransferMode 
+                  ? 'bg-orange-600 hover:bg-orange-700' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
             >
               <ShoppingCartIcon className="h-5 w-5" />
-              إضافة للسلة
+              {isTransferMode ? 'إضافة للنقل' : 'إضافة للسلة'}
             </button>
           </div>
 

@@ -2,6 +2,7 @@ import { supabase } from '@/app/lib/supabase/client';
 import { CartItemData, CartItemInsert, CartSession, CartCache } from './cart-utils';
 
 export class CartService {
+  static supabase = supabase;
   
   // Fetch cart items from Supabase with product details
   static async getCartItems(sessionId: string): Promise<CartItemData[]> {
@@ -17,6 +18,7 @@ export class CartService {
         .select(`
           *,
           products!cart_items_product_id_fkey(
+            id,
             name,
             product_code,
             main_image_url
@@ -52,6 +54,14 @@ export class CartService {
     selectedSize?: string
   ): Promise<CartItemData | null> {
     try {
+      console.log('🏪 CartService.addToCart called with:', {
+        sessionId,
+        productId,
+        quantity,
+        price,
+        selectedColor,
+        selectedSize
+      });
       // Check if item already exists in cart (handle null values properly)
       const { data: existingItems } = await supabase
         .from('cart_items')
@@ -70,7 +80,8 @@ export class CartService {
       
       if (existingItem) {
         // Update quantity if item exists
-        return this.updateCartItemQuantity(existingItem.id, existingItem.quantity + quantity);
+        const updateResult = await this.updateCartItemQuantity(existingItem.id, existingItem.quantity + quantity);
+        return updateResult;
       } else {
         // Insert new item
         const { data, error } = await supabase
@@ -86,6 +97,7 @@ export class CartService {
           .select(`
             *,
             products!cart_items_product_id_fkey(
+              id,
               name,
               product_code,
               main_image_url
@@ -94,9 +106,19 @@ export class CartService {
           .single();
         
         if (error) {
-          console.error('Error adding to cart:', error);
+          console.error('❌ Error adding to cart:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            sessionId,
+            productId,
+            quantity,
+            price
+          });
           return null;
         }
+        
         
         // Clear cache to force refresh
         CartCache.clear(`cart_${sessionId}`);
@@ -124,6 +146,7 @@ export class CartService {
         .select(`
           *,
           products!cart_items_product_id_fkey(
+            id,
             name,
             product_code,
             main_image_url
@@ -135,6 +158,7 @@ export class CartService {
         console.error('Error updating cart item:', error);
         return null;
       }
+      
       
       // Clear cache for all sessions (since we don't know which session this item belongs to)
       CartCache.clear();

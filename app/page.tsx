@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { detectDeviceClient, DeviceInfo } from '../lib/device-detection';
 import DesktopHome from '../components/website/DesktopHome';
 import TabletHome from '../components/website/TabletHome';
@@ -10,6 +11,7 @@ import { useAuth } from '../lib/useAuth';
 import { UserInfo } from '../components/website/shared/types';
 
 export default function HomePage() {
+  const router = useRouter();
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
     type: 'desktop',
     userAgent: '',
@@ -25,7 +27,7 @@ export default function HomePage() {
     cart: []
   });
 
-  const { cart, addToCart, removeFromCart, updateQuantity, clearCart, getCartItemsCount } = useRealCart();
+  const { cart, addToCart, removeFromCart, updateQuantity, clearCart, getCartItemsCount, refreshCart } = useRealCart();
   const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
@@ -35,6 +37,37 @@ export default function HomePage() {
     const detected = detectDeviceClient();
     setDeviceInfo(detected);
   }, []);
+
+  // Separate effect for cart refresh
+  useEffect(() => {
+    if (isClient) {
+      console.log('🏠 HomePage: Component mounted, refreshing cart...');
+      refreshCart();
+    }
+  }, [isClient, refreshCart]);
+
+  // Add effect to refresh cart when component mounts or becomes visible
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('🏠 HomePage: Window focused, refreshing cart...');
+      refreshCart();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🏠 HomePage: Page became visible, refreshing cart...');
+        refreshCart();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshCart]);
 
   const handleCartUpdate = (newCart: any[]) => {
     // Real cart is managed by useRealCart hook with Supabase
@@ -52,12 +85,17 @@ export default function HomePage() {
     category: ''
   }));
 
+  // Calculate cart count from real cart data
+  const realCartCount = getCartItemsCount();
+  console.log('🏠 HomePage: realCartCount =', realCartCount, 'cart.length =', cart.length);
+
   const updatedUserInfo = {
     ...userInfo,
     id: isAuthenticated ? user?.id || '1' : '1',
     name: isAuthenticated ? user?.name || 'عميل مسجل' : 'عميل تجريبي',
     email: isAuthenticated ? user?.email || 'user@example.com' : 'customer@example.com',
-    cart: compatibleCart // Compatible cart data format
+    cart: compatibleCart, // Compatible cart data format
+    cartCount: realCartCount // Real cart count for display
   };
 
   // Show loading screen during hydration to prevent mismatch
@@ -81,16 +119,32 @@ export default function HomePage() {
           onCartUpdate={handleCartUpdate}
           onAddToCart={async (product: any) => {
             try {
-              console.log('Manual UI: Adding product to cart:', product.name);
-              const success = await addToCart(String(product.id), 1, product.price);
+              console.log('🛒 Mobile: Adding product to cart:', product.name, 'Selected color:', product.selectedColor?.name);
+              const selectedColorName = product.selectedColor?.name || undefined;
+              const success = await addToCart(String(product.id), 1, product.price, selectedColorName);
               if (success) {
-                console.log('Manual UI: Product added successfully');
+                console.log('✅ Mobile: Product added successfully');
+                // Show success toast notification
+                const toast = document.createElement('div');
+                toast.innerHTML = `
+                  <div style="position: fixed; top: 20px; right: 20px; background: #10B981; color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span>✅</span>
+                      <span>تم إضافة ${product.name}${product.selectedColor ? ` (${product.selectedColor.name})` : ''} للسلة بنجاح</span>
+                    </div>
+                  </div>
+                `;
+                document.body.appendChild(toast.firstElementChild!);
+                setTimeout(() => {
+                  const toastEl = document.querySelector('[style*="position: fixed"]');
+                  if (toastEl) toastEl.remove();
+                }, 3000);
               } else {
-                console.error('Manual UI: Failed to add product to cart');
+                console.error('❌ Mobile: Failed to add product to cart');
                 alert('فشل في إضافة المنتج للسلة. يرجى المحاولة مرة أخرى.');
               }
             } catch (error) {
-              console.error('Manual UI: Error adding product to cart:', error);
+              console.error('❌ Mobile: Error adding product to cart:', error);
               alert('حدث خطأ أثناء إضافة المنتج للسلة.');
             }
           }}
@@ -113,16 +167,32 @@ export default function HomePage() {
           onCartUpdate={handleCartUpdate}
           onAddToCart={async (product: any) => {
             try {
-              console.log('Manual UI: Adding product to cart:', product.name);
-              const success = await addToCart(String(product.id), 1, product.price);
+              console.log('🛒 Tablet: Adding product to cart:', product.name, 'Selected color:', product.selectedColor?.name);
+              const selectedColorName = product.selectedColor?.name || undefined;
+              const success = await addToCart(String(product.id), 1, product.price, selectedColorName);
               if (success) {
-                console.log('Manual UI: Product added successfully');
+                console.log('✅ Tablet: Product added successfully');
+                // Show success toast notification
+                const toast = document.createElement('div');
+                toast.innerHTML = `
+                  <div style="position: fixed; top: 20px; right: 20px; background: #10B981; color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span>✅</span>
+                      <span>تم إضافة ${product.name}${product.selectedColor ? ` (${product.selectedColor.name})` : ''} للسلة بنجاح</span>
+                    </div>
+                  </div>
+                `;
+                document.body.appendChild(toast.firstElementChild!);
+                setTimeout(() => {
+                  const toastEl = document.querySelector('[style*="position: fixed"]');
+                  if (toastEl) toastEl.remove();
+                }, 3000);
               } else {
-                console.error('Manual UI: Failed to add product to cart');
+                console.error('❌ Tablet: Failed to add product to cart');
                 alert('فشل في إضافة المنتج للسلة. يرجى المحاولة مرة أخرى.');
               }
             } catch (error) {
-              console.error('Manual UI: Error adding product to cart:', error);
+              console.error('❌ Tablet: Error adding product to cart:', error);
               alert('حدث خطأ أثناء إضافة المنتج للسلة.');
             }
           }}
@@ -146,16 +216,32 @@ export default function HomePage() {
           onCartUpdate={handleCartUpdate}
           onAddToCart={async (product: any) => {
             try {
-              console.log('Manual UI: Adding product to cart:', product.name);
-              const success = await addToCart(String(product.id), 1, product.price);
+              console.log('🛒 Desktop: Adding product to cart:', product.name, 'Selected color:', product.selectedColor?.name);
+              const selectedColorName = product.selectedColor?.name || undefined;
+              const success = await addToCart(String(product.id), 1, product.price, selectedColorName);
               if (success) {
-                console.log('Manual UI: Product added successfully');
+                console.log('✅ Desktop: Product added successfully');
+                // Show success toast notification
+                const toast = document.createElement('div');
+                toast.innerHTML = `
+                  <div style="position: fixed; top: 20px; right: 20px; background: #10B981; color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span>✅</span>
+                      <span>تم إضافة ${product.name}${product.selectedColor ? ` (${product.selectedColor.name})` : ''} للسلة بنجاح</span>
+                    </div>
+                  </div>
+                `;
+                document.body.appendChild(toast.firstElementChild!);
+                setTimeout(() => {
+                  const toastEl = document.querySelector('[style*="position: fixed"]');
+                  if (toastEl) toastEl.remove();
+                }, 3000);
               } else {
-                console.error('Manual UI: Failed to add product to cart');
+                console.error('❌ Desktop: Failed to add product to cart');
                 alert('فشل في إضافة المنتج للسلة. يرجى المحاولة مرة أخرى.');
               }
             } catch (error) {
-              console.error('Manual UI: Error adding product to cart:', error);
+              console.error('❌ Desktop: Error adding product to cart:', error);
               alert('حدث خطأ أثناء إضافة المنتج للسلة.');
             }
           }}

@@ -56,6 +56,7 @@ export default function TabletHome({
             originalPrice: dbProduct.isDiscounted ? dbProduct.price : undefined,
             image: dbProduct.main_image_url || undefined,
             images: dbProduct.allImages || [],
+            colors: dbProduct.colors || [],
             category: dbProduct.category?.name || 'عام',
             brand: 'El Farouk Group',
             stock: dbProduct.totalQuantity || 0,
@@ -183,7 +184,7 @@ export default function TabletHome({
                   (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
                 }}
               >
-                <span className="text-sm">السلة ({userInfo.cart?.length || 0})</span>
+                <span className="text-sm">السلة ({userInfo.cartCount || 0})</span>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
                 </svg>

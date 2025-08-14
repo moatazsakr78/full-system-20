@@ -24,23 +24,6 @@ export function useRealCart(): RealCartHook {
   const subscriptionRef = useRef<any>(null);
   const isMountedRef = useRef(true);
   
-  // Initialize session ID
-  useEffect(() => {
-    sessionIdRef.current = CartSession.getSessionId();
-    console.log('🔍 useRealCart initialized with session ID:', sessionIdRef.current);
-    console.log('📊 Session info:', CartSession.getSessionInfo());
-    
-    refreshCart();
-    setupRealtimeSubscription();
-    
-    return () => {
-      isMountedRef.current = false;
-      if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe();
-      }
-    };
-  }, []);
-  
   const refreshCart = useCallback(async () => {
     if (!sessionIdRef.current || !isMountedRef.current) return;
     
@@ -48,8 +31,14 @@ export function useRealCart(): RealCartHook {
       setIsLoading(true);
       setError(null);
       console.log('🔄 Refreshing cart for session:', sessionIdRef.current);
+      
+      // Clear cache before fetching to ensure fresh data
+      const { CartCache } = await import('./cart-utils');
+      CartCache.clear(`cart_${sessionIdRef.current}`);
+      
       const items = await CartService.getCartItems(sessionIdRef.current);
       console.log('📦 Cart items loaded:', items.length, 'items');
+      console.log('🔢 Cart count:', items.reduce((count, item) => count + item.quantity, 0));
       
       if (isMountedRef.current) {
         setCart(items);
@@ -84,6 +73,52 @@ export function useRealCart(): RealCartHook {
       }
     );
   }, [refreshCart]);
+
+  // Initialize session ID
+  useEffect(() => {
+    sessionIdRef.current = CartSession.getSessionId();
+    console.log('🔍 useRealCart initialized with session ID:', sessionIdRef.current);
+    console.log('📊 Session info:', CartSession.getSessionInfo());
+    
+    refreshCart();
+    setupRealtimeSubscription();
+    
+    return () => {
+      isMountedRef.current = false;
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+      }
+    };
+  }, [refreshCart, setupRealtimeSubscription]);
+
+  // Handle page visibility changes and focus to refresh cart when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && isMountedRef.current) {
+        console.log('🔄 Page became visible, refreshing cart...');
+        refreshCart();
+        // Re-setup subscription if needed
+        if (!subscriptionRef.current) {
+          setupRealtimeSubscription();
+        }
+      }
+    };
+    
+    const handleFocus = () => {
+      if (isMountedRef.current) {
+        console.log('🔄 Window focused, refreshing cart...');
+        refreshCart();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refreshCart, setupRealtimeSubscription]);
   
   const addToCart = useCallback(async (
     productId: string,
@@ -95,10 +130,20 @@ export function useRealCart(): RealCartHook {
     try {
       setError(null);
       
+      console.log('🛒 useRealCart.addToCart called with:', {
+        productId,
+        quantity,
+        price,
+        selectedColor,
+        selectedSize,
+        sessionId: sessionIdRef.current
+      });
+      
       // Ensure session ID is available
       if (!sessionIdRef.current) {
-        console.warn('Session ID not ready, regenerating...');
+        console.warn('⚠️ Session ID not ready, regenerating...');
         sessionIdRef.current = CartSession.getSessionId();
+        console.log('🆔 New session ID generated:', sessionIdRef.current);
       }
       
       // Optimistic UI update - check if item exists and update accordingly
@@ -143,11 +188,17 @@ export function useRealCart(): RealCartHook {
         selectedSize
       );
       
-      if (result) {
+      if (result !== null) {
         // Real-time subscription will update with correct data
+        console.log('✅ Successfully added to cart:', result);
         return true;
       } else {
-        console.error('Failed to add to cart - no result returned');
+        console.error('❌ Failed to add to cart - no result returned for:', {
+          productId,
+          quantity,
+          price,
+          sessionId: sessionIdRef.current
+        });
         // Revert optimistic update
         refreshCart();
         return false;
@@ -251,7 +302,9 @@ export function useRealCart(): RealCartHook {
   }, [cart]);
   
   const getCartItemsCount = useCallback((): number => {
-    return cart.reduce((count, item) => count + item.quantity, 0);
+    const count = cart.reduce((count, item) => count + item.quantity, 0);
+    console.log('🔢 getCartItemsCount called, returning:', count, 'from cart:', cart.length, 'items');
+    return count;
   }, [cart]);
   
   return {

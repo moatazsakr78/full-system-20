@@ -8,6 +8,7 @@ import AddBranchModal from '../../components/AddBranchModal'
 import AddStorageModal from '../../components/AddStorageModal'
 import ManagementModal from '../../components/ManagementModal'
 import CategoriesTreeView from '../../components/CategoriesTreeView'
+import ColumnsControlModal from '../../components/ColumnsControlModal'
 import { useProducts } from '../../lib/hooks/useProducts'
 import {
   ArrowPathIcon,
@@ -59,6 +60,8 @@ export default function InventoryPage() {
   const [showProductModal, setShowProductModal] = useState(false)
   const [modalProduct, setModalProduct] = useState<any>(null)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [showColumnsModal, setShowColumnsModal] = useState(false)
+  const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
 
   // Get products and branches data using the same hook as products page
   const { products, branches, isLoading, error, fetchProducts } = useProducts()
@@ -309,6 +312,27 @@ export default function InventoryPage() {
     activityColumn
   ]
 
+  // Get all columns for columns control modal
+  const getAllColumns = () => {
+    return tableColumns.map(col => ({
+      id: col.id,
+      header: col.header,
+      visible: visibleColumns[col.id] !== false
+    }))
+  }
+
+  // Handle columns visibility change
+  const handleColumnsChange = (updatedColumns: any[]) => {
+    const newVisibleColumns: {[key: string]: boolean} = {}
+    updatedColumns.forEach(col => {
+      newVisibleColumns[col.id] = col.visible
+    })
+    setVisibleColumns(newVisibleColumns)
+  }
+
+  // Filter visible columns
+  const visibleTableColumns = tableColumns.filter(col => visibleColumns[col.id] !== false)
+
   // Refresh products data
   const handleRefresh = () => {
     fetchProducts()
@@ -443,9 +467,12 @@ export default function InventoryPage() {
               <span className="text-sm">تقرير الجرد</span>
             </button>
 
-            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+            <button 
+              onClick={() => setShowColumnsModal(true)}
+              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+            >
               <TableCellsIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">أعمدة</span>
+              <span className="text-sm">الأعمدة</span>
             </button>
           </div>
         </div>
@@ -541,7 +568,7 @@ export default function InventoryPage() {
               ) : viewMode === 'table' ? (
                 <ResizableTable
                   className="h-full w-full"
-                  columns={tableColumns}
+                  columns={visibleTableColumns}
                   data={filteredProducts}
                   selectedRowId={selectedProduct?.id || null}
                   onRowClick={(item, index) => {
@@ -1005,6 +1032,14 @@ export default function InventoryPage() {
           display: none;
         }
       `}</style>
+
+      {/* Columns Control Modal */}
+      <ColumnsControlModal
+        isOpen={showColumnsModal}
+        onClose={() => setShowColumnsModal(false)}
+        columns={getAllColumns()}
+        onColumnsChange={handleColumnsChange}
+      />
     </div>
   )
 }

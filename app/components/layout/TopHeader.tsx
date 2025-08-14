@@ -30,12 +30,13 @@ export default function TopHeader({ onMenuClick, isMenuOpen = false }: TopHeader
     };
   }, []);
   
-  // Hide header on website pages (root, individual product pages, cart page, auth pages, and admin product management pages)
+  // Hide header on website pages (root, individual product pages, cart page, auth pages, admin product management pages, and shipping pages)
   if (pathname === '/' || 
       (pathname?.startsWith('/product') && pathname !== '/products') || 
       pathname === '/cart' ||
       pathname?.startsWith('/auth/') ||
-      pathname?.startsWith('/admin/products')) {
+      pathname?.startsWith('/admin/products') ||
+      pathname?.startsWith('/shipping')) {
     return null;
   }
 

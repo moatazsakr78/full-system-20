@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { ArrowRightIcon } from '@heroicons/react/24/outline'
+import { ArrowRightIcon, LockClosedIcon } from '@heroicons/react/24/outline'
 import { supabase } from '../lib/supabase/client'
 import { ShapeManagement } from './products/ShapeManagement'
 import { useShapes } from '../lib/hooks/useShapes'
 import { uploadProductImage, PRODUCT_STORAGE_BUCKETS, getProductImageUrl } from '../lib/supabase/storage'
 import { Product } from '../lib/hooks/useProducts'
+import { checkProductPurchaseHistory, PurchaseHistoryCheck } from '../lib/utils/purchase-cost-management'
 
 interface Branch {
   id: string
@@ -65,6 +66,8 @@ interface ProductColor {
   id: string
   name: string
   color: string
+  image?: string // Add image field to preserve color images
+  barcode?: string // Add barcode field for individual color barcodes
 }
 
 interface Category {
@@ -127,6 +130,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
     barcode: '',
     image: null as File | null
   })
+  const [variantFormImageUrl, setVariantFormImageUrl] = useState<string | null>(null)
   const [editingVariant, setEditingVariant] = useState<LocationVariant | null>(null)
   
   // Image management states
@@ -138,6 +142,14 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
   
   // Edit mode detection
   const isEditMode = Boolean(editProduct)
+  
+  // Purchase history state
+  const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistoryCheck>({
+    hasPurchaseHistory: false,
+    canEditCost: true,
+    lastPurchaseDate: null,
+    totalPurchases: 0
+  })
   
   const [formData, setFormData] = useState({
     name: '',
@@ -203,15 +215,39 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
         console.log('🎨 Loading standalone colors from description:', savedColors)
         console.log('🎨 First color details:', savedColors[0])
         
-        // Validate and fix color data structure
-        const validatedColors = savedColors.map((color: any) => ({
-          id: color.id || Date.now().toString(),
-          name: color.name || 'لون غير محدد',
-          color: color.color || '#000000'
-        }))
+        // Try to get additional images from video_url field
+        let additionalImages: string[] = []
+        try {
+          if (editProduct.video_url) {
+            additionalImages = JSON.parse(editProduct.video_url)
+          }
+        } catch (e) {
+          console.warn('Failed to parse video_url as JSON:', e)
+        }
         
-        console.log('🎨 Validated colors:', validatedColors)
+        // Validate and fix color data structure - PRESERVE IMAGES and try to assign from video_url
+        const validatedColors = savedColors.map((color: any, index: number) => {
+          let colorImage = color.image || undefined
+          let colorBarcode = color.barcode || undefined
+          
+          // If no image for this color, try to assign from additional images
+          if (!colorImage && additionalImages.length > index) {
+            colorImage = additionalImages[index]
+            console.log(`🖼️ Assigned image ${index} to color ${color.name}:`, colorImage)
+          }
+          
+          return {
+            id: color.id || `color-${Date.now()}-${index}`,
+            name: color.name || 'لون غير محدد',
+            color: color.color || '#000000',
+            image: colorImage,
+            barcode: colorBarcode
+          }
+        })
+        
+        console.log('🖼️ Validated colors with images:', validatedColors)
         setProductColors(validatedColors)
+        console.log('🎨 LOAD: Set productColors from description:', validatedColors)
       } else {
         console.log('🎨 No standalone colors found in description')
         
@@ -231,19 +267,26 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
           Object.values(editProduct.variantsData).forEach((variants: any) => {
             if (Array.isArray(variants)) {
               variants.forEach((variant: any) => {
-                if (variant.variant_type === 'color' && variant.name) {
-                  let colorValue = '#6B7280' // Default gray
+                if (variant.variant_type === 'color' && variant.name && variant.name !== 'غير محدد') {
+                  let colorValue = '#6B7280' // Default color
+                  let imageUrl: string | undefined = variant.image_url // Get image from dedicated field
+                  let barcodeValue: string | undefined = variant.barcode // Get barcode from variant
                   
-                  // Try to get color from variant value JSON
+                  // Try to get color and image from variant value JSON
                   try {
                     if (variant.value && variant.value.startsWith('{')) {
                       const valueData = JSON.parse(variant.value)
-                      if (valueData.color) {
-                        colorValue = valueData.color
-                      }
+                      if (valueData.color) colorValue = valueData.color
+                      if (valueData.image && !imageUrl) imageUrl = valueData.image
+                      if (valueData.barcode && !barcodeValue) barcodeValue = valueData.barcode
                     }
                   } catch (e) {
-                    // If parsing fails, keep default
+                    console.warn('Failed to parse variant value JSON:', e)
+                  }
+                  
+                  // If still no color, try color_hex field
+                  if (colorValue === '#6B7280' && variant.color_hex) {
+                    colorValue = variant.color_hex
                   }
                   
                   // Add to map to avoid duplicates
@@ -251,7 +294,15 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                     colorMap.set(variant.name, {
                       id: `variant-${variant.name}-${Date.now()}`,
                       name: variant.name,
-                      color: colorValue
+                      color: colorValue,
+                      image: imageUrl,
+                      barcode: barcodeValue // Include barcode in extracted color data
+                    })
+                    
+                    console.log(`🖼️ Extracted color ${variant.name}:`, {
+                      color: colorValue,
+                      image: imageUrl,
+                      barcode: barcodeValue
                     })
                   }
                 }
@@ -263,10 +314,11 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
         }
         
         if (extractedColors.length > 0) {
-          console.log('🎨 Extracted colors from variants:', extractedColors)
+          console.log('🎨 LOAD: Extracted colors from variants:', extractedColors)
           setProductColors(extractedColors)
+          console.log('🎨 LOAD: Set productColors from variants:', extractedColors)
         } else {
-          console.log('🎨 No colors found in variants either')
+          console.log('🎨 LOAD: No colors found anywhere, setting empty array')
           setProductColors([])
         }
       }
@@ -281,16 +333,27 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
       // Load existing images immediately (doesn't depend on branches/warehouses)
       loadExistingImages()
       
+      // Check purchase history for cost editing permissions
+      checkProductPurchasePermissions()
+      
       // If branches/warehouses are already loaded, load variants immediately
       if (branches.length > 0 || warehouses.length > 0) {
         loadExistingInventoryData()
-        loadExistingVariantsData()
+        // Load variants after a small delay to ensure productColors are set
+        setTimeout(() => loadExistingVariantsData(), 100)
       }
       
       // Inventory and variants data will be loaded when branches/warehouses are available
     } else if (!editProduct && isOpen) {
       // Clear form for new product
       handleClearFields()
+      // Reset purchase history for new product
+      setPurchaseHistory({
+        hasPurchaseHistory: false,
+        canEditCost: true,
+        lastPurchaseDate: null,
+        totalPurchases: 0
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editProduct, isOpen, branches, warehouses])
@@ -333,6 +396,26 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
       setWarehouses(data || [])
     } catch (error) {
       console.error('Error fetching warehouses:', error)
+    }
+  }
+
+  // Check purchase history permissions
+  const checkProductPurchasePermissions = async () => {
+    if (!editProduct?.id) return
+    
+    try {
+      const historyCheck = await checkProductPurchaseHistory(editProduct.id)
+      setPurchaseHistory(historyCheck)
+      console.log('📊 Purchase history check:', historyCheck)
+    } catch (error) {
+      console.error('Error checking purchase permissions:', error)
+      setPurchaseHistory({
+        hasPurchaseHistory: false,
+        canEditCost: true,
+        lastPurchaseDate: null,
+        totalPurchases: 0,
+        message: 'حدث خطأ في التحقق من الصلاحيات'
+      })
     }
   }
 
@@ -388,7 +471,8 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
       if (isEditMode && editProduct) {
         // Load existing data in edit mode
         loadExistingInventoryData()
-        loadExistingVariantsData()
+        // Load variants after a small delay to ensure productColors are set
+        setTimeout(() => loadExistingVariantsData(), 100)
       } else if (!isEditMode) {
         // Initialize empty thresholds for new product only when NOT in edit mode
         initializeLocationThresholds()
@@ -475,36 +559,58 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
       variants.forEach(variant => {
         console.log(`🎨 Processing variant:`, variant)
         
-        // Parse the value field - it might be JSON with barcode and image
-        let barcode = variant.value || ''
+        // Get barcode from dedicated barcode field
+        let barcode = variant.barcode || ''
         let variantImage: string | undefined = undefined
         
-        try {
-          if (variant.value && variant.value.startsWith('{')) {
-            const valueData = JSON.parse(variant.value)
-            barcode = valueData.barcode || variant.value
-            variantImage = valueData.image
-            console.log(`📄 Parsed JSON value data:`, valueData)
-          } else {
-            console.log(`📄 Using simple barcode value:`, barcode)
-          }
-        } catch (e) {
-          // If parsing fails, use the raw value as barcode
-          console.log(`⚠️ Failed to parse value as JSON, using raw value:`, barcode)
+        // First try to get image from the dedicated image_url field
+        if (variant.image_url) {
+          variantImage = variant.image_url
+          console.log(`🖼️ Found image in image_url field:`, variantImage)
         }
+        
+        console.log(`📄 Using barcode from barcode field:`, barcode)
 
-        // For colors, create/find the color in our local state
+        // For colors, try to find the color in productColors first, then create if needed
         let elementId = variant.id
         if (variant.variant_type === 'color') {
-          let existingColor = colors.find(c => c.name === variant.name)
+          // First try to find in existing productColors
+          let existingColor = productColors.find(c => c.name === variant.name)
+          
           if (!existingColor) {
+            // Try to find in colors array being built
+            existingColor = colors.find(c => c.name === variant.name)
+          }
+          
+          if (!existingColor) {
+            // Extract color info from variant data
+            let colorHex = '#6B7280' // Default color
+            let colorImage: string | undefined = variantImage
+            
+            // Try to get color from color_hex field
+            if (variant.color_hex) {
+              colorHex = variant.color_hex
+            }
+            
+            // Try to get color and image from variant value JSON
+            try {
+              if ((variant as any).value && (variant as any).value.startsWith('{')) {
+                const valueData = JSON.parse((variant as any).value)
+                if (valueData.color) colorHex = valueData.color
+                if (valueData.image && !colorImage) colorImage = valueData.image
+              }
+            } catch (e) {
+              console.warn('Failed to parse variant value JSON:', e)
+            }
+            
             existingColor = {
               id: `color_${variant.name}_${Date.now()}`,
               name: variant.name,
-              color: '#000000' // Default color since it's not stored in the variant
+              color: colorHex,
+              image: colorImage
             }
             colors.push(existingColor)
-            console.log(`🎨 Created new color:`, existingColor)
+            console.log(`🎨 Created new color from variant:`, existingColor)
           }
           elementId = existingColor.id
         } else if (variant.variant_type === 'shape') {
@@ -538,12 +644,60 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
     console.log(`✅ Setting ${existingVariants.length} location variants:`, existingVariants)
     setLocationVariants(existingVariants)
     
-    // Don't override standalone colors with variant colors
-    if (colors.length > 0 && productColors.length === 0) {
-      console.log(`🎨 Setting ${colors.length} product colors:`, colors)
-      setProductColors(colors)
-    } else {
-      console.log(`🎨 Keeping existing product colors (${productColors.length} colors)`)
+    // Merge variant colors with existing standalone colors
+    if (colors.length > 0) {
+      // If we have no existing productColors, use all variant colors
+      if (productColors.length === 0) {
+        console.log(`🎨 Setting ${colors.length} product colors from variants:`, colors)
+        setProductColors(colors)
+      } else {
+        // Merge new colors from variants with existing colors
+        const mergedColors: ProductColor[] = [...productColors]
+        
+        colors.forEach(variantColor => {
+          // Check if color exists in productColors
+          const existingColorIndex = mergedColors.findIndex(pc => pc.name === variantColor.name)
+          
+          if (existingColorIndex === -1) {
+            // Color doesn't exist, add it
+            mergedColors.push(variantColor)
+            console.log(`🎨 Added variant color to product colors:`, variantColor)
+          } else {
+            // Color exists, but update with variant data if it has more info
+            const existingColor = mergedColors[existingColorIndex]
+            let shouldUpdate = false
+            
+            // Update color hex if variant has a better value
+            if (variantColor.color !== '#6B7280' && existingColor.color === '#000000') {
+              existingColor.color = variantColor.color
+              shouldUpdate = true
+            }
+            
+            // Update image if variant has one and existing doesn't
+            if (variantColor.image && !existingColor.image) {
+              existingColor.image = variantColor.image
+              shouldUpdate = true
+            }
+            
+            // Update barcode if variant has one and existing doesn't
+            if (variantColor.barcode && !existingColor.barcode) {
+              existingColor.barcode = variantColor.barcode
+              shouldUpdate = true
+            }
+            
+            if (shouldUpdate) {
+              console.log(`🎨 Updated existing color with variant data:`, existingColor)
+            }
+          }
+        })
+        
+        if (mergedColors.length > productColors.length) {
+          console.log(`🎨 Updated product colors with ${mergedColors.length - productColors.length} new variant colors`)
+          setProductColors(mergedColors)
+        } else {
+          console.log(`🎨 Keeping existing product colors (${productColors.length} colors)`)
+        }
+      }
     }
   }
 
@@ -824,6 +978,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
     if (selectedLocation?.id === location.id) {
       setSelectedLocation(null)
       setEditingVariant(null)
+      setVariantFormImageUrl(null)
       setVariantForm({
         elementType: 'color',
         elementId: '',
@@ -841,6 +996,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
       totalQuantity: totalQuantity
     })
     setEditingVariant(null)
+    setVariantFormImageUrl(null)
     setVariantForm({
       elementType: 'color',
       elementId: '',
@@ -920,15 +1076,37 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
     }
   }
 
-  const getUsedQuantity = () => {
+  // Helper function to identify if a variant is a purchase variant (should be hidden from UI)
+  // This protects sensitive purchase data from accidental modification/deletion
+  const isPurchaseVariant = (variant: any) => {
+    if (!variant.elementName) return false
+    
+    const elementName = variant.elementName.toLowerCase()
+    
+    // Check for purchase-related keywords and patterns
+    return (
+      elementName.includes('جديد') ||           // New items from purchase
+      elementName.includes('شراء') ||          // Purchase-related
+      elementName.includes('غير محدد') ||      // Unspecified items (usually from purchase)
+      elementName.length > 50 ||              // Very long descriptions are likely purchase descriptions
+      elementName.includes('description') ||   // Purchase descriptions
+      elementName.includes('color') ||         // Color specifications from purchase
+      elementName.includes('#') ||             // Color codes from purchase
+      elementName.includes('اللون') ||         // Arabic color references
+      elementName.includes('لون') ||           // Color references
+      /^\d+\s*-\s*/.test(elementName)         // Starts with numbers (quantity formats)
+    )
+  }
+
+  const getUsedQuantity = (excludeVariantId?: string) => {
     if (!selectedLocation) return 0
     return locationVariants
-      .filter(v => v.locationId === selectedLocation.id)
+      .filter(v => v.locationId === selectedLocation.id && v.id !== excludeVariantId)
       .reduce((sum, v) => sum + v.quantity, 0)
   }
 
-  const getRemainingQuantity = () => {
-    return selectedLocation ? selectedLocation.totalQuantity - getUsedQuantity() : 0
+  const getRemainingQuantity = (excludeVariantId?: string) => {
+    return selectedLocation ? selectedLocation.totalQuantity - getUsedQuantity(excludeVariantId) : 0
   }
 
   const handleVariantSubmit = () => {
@@ -937,7 +1115,8 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
     const element = getAvailableElements().find(e => e.id === variantForm.elementId)
     if (!element) return
 
-    const remainingQuantity = getRemainingQuantity()
+    // Calculate remaining quantity, excluding the current editing variant if any
+    const remainingQuantity = getRemainingQuantity(editingVariant?.id)
     if (variantForm.quantity > remainingQuantity) {
       alert(`الكمية المتاحة هي ${remainingQuantity} قطعة فقط`)
       return
@@ -952,7 +1131,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
       elementName: element.name,
       quantity: variantForm.quantity,
       barcode: variantForm.barcode,
-      image: variantForm.image ? URL.createObjectURL(variantForm.image) : undefined
+      image: variantForm.image ? URL.createObjectURL(variantForm.image) : variantFormImageUrl || undefined
     }
 
     if (editingVariant) {
@@ -975,6 +1154,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
       barcode: generateBarcode(),
       image: null
     })
+    setVariantFormImageUrl(null)
     setEditingVariant(null)
   }
 
@@ -987,6 +1167,25 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
       barcode: variant.barcode,
       image: null // We can't restore file objects, so leave null
     })
+    
+    // Set the image URL if available
+    setVariantFormImageUrl(variant.image || null)
+    
+    // Auto-select the location for this variant if not already selected
+    if (!selectedLocation || selectedLocation.id !== variant.locationId) {
+      const location = [...branches, ...warehouses].find(loc => loc.id === variant.locationId)
+      if (location) {
+        const locationType = branches.find(b => b.id === variant.locationId) ? 'branch' : 'warehouse'
+        const totalQuantity = locationThresholds.find(t => t.locationId === variant.locationId)?.quantity || 0
+        
+        setSelectedLocation({
+          id: location.id,
+          name: location.name,
+          type: locationType as 'branch' | 'warehouse',
+          totalQuantity: totalQuantity
+        })
+      }
+    }
   }
 
   const handleVariantDelete = (variantId: string) => {
@@ -1055,10 +1254,118 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
       }
 
       // Store standalone colors in description field as JSON
+      // CRITICAL FIX: Always preserve existing colors during edit mode
+      let colorsToSave = productColors
+      if (isEditMode && editProduct) {
+        console.log('🎨 SAVE: Edit mode detected, preserving existing colors')
+        console.log('🎨 SAVE: Current productColors in interface:', productColors)
+        
+        let existingColors: any[] = []
+        
+        // Try to get existing colors from description field first
+        if (editProduct.description) {
+          try {
+            if (editProduct.description.startsWith('{')) {
+              const existingDescriptionData = JSON.parse(editProduct.description)
+              if (existingDescriptionData.colors && Array.isArray(existingDescriptionData.colors)) {
+                existingColors = existingDescriptionData.colors
+                console.log('🎨 SAVE: Found existing colors in description:', existingColors)
+              }
+            }
+          } catch (e) {
+            console.warn('Failed to parse description colors:', e)
+          }
+        }
+        
+        // If no colors in description, try to get them from variants data
+        if (existingColors.length === 0 && editProduct.variantsData) {
+          console.log('🎨 SAVE: No colors in description, checking variants data')
+          const colorMap = new Map<string, any>()
+          
+          Object.values(editProduct.variantsData).forEach((variants: any) => {
+            if (Array.isArray(variants)) {
+              variants.forEach((variant: any) => {
+                if (variant.variant_type === 'color' && variant.name) {
+                  let colorValue = '#6B7280'
+                  let imageUrl: string | undefined
+                  
+                  try {
+                    if (variant.value && variant.value.startsWith('{')) {
+                      const valueData = JSON.parse(variant.value)
+                      if (valueData.color) colorValue = valueData.color
+                      if (valueData.image) imageUrl = valueData.image
+                    }
+                  } catch (e) {
+                    // ignore
+                  }
+                  
+                  if (!imageUrl && variant.image_url) {
+                    imageUrl = variant.image_url
+                  }
+                  
+                  if (!colorMap.has(variant.name)) {
+                    colorMap.set(variant.name, {
+                      id: `existing-${variant.name}-${Date.now()}`,
+                      name: variant.name,
+                      color: colorValue,
+                      image: imageUrl
+                    })
+                  }
+                }
+              })
+            }
+          })
+          
+          existingColors = Array.from(colorMap.values())
+          console.log('🎨 SAVE: Extracted colors from variants:', existingColors)
+        }
+        
+        // Now merge existing colors with current interface colors
+        if (existingColors.length > 0) {
+          const colorMap = new Map<string, any>()
+          
+          // Add all existing colors first
+          existingColors.forEach((color: any) => {
+            colorMap.set(color.name, {
+              id: color.id || `preserved-${color.name}-${Date.now()}`,
+              name: color.name,
+              color: color.color || '#6B7280',
+              image: color.image
+            })
+          })
+          
+          // Add/update with current interface colors (new or modified colors)
+          productColors.forEach((color: any) => {
+            const existing = colorMap.get(color.name)
+            colorMap.set(color.name, {
+              id: color.id || `new-${color.name}-${Date.now()}`,
+              name: color.name,
+              color: color.color,
+              image: color.image || (existing ? existing.image : undefined)
+            })
+          })
+          
+          colorsToSave = Array.from(colorMap.values())
+          console.log('🎨 SAVE: Final merged colors:', colorsToSave)
+        } else if (productColors.length > 0) {
+          // No existing colors found, just save current interface colors
+          colorsToSave = productColors
+          console.log('🎨 SAVE: No existing colors, saving interface colors:', colorsToSave)
+        }
+      } else {
+        // New product mode: just use the colors from the interface
+        colorsToSave = productColors
+        console.log('🎨 SAVE: New product mode, using interface colors:', colorsToSave)
+      }
+
       let descriptionData: any = {
         text: formData.description.trim() || '',
-        colors: productColors.length > 0 ? productColors : undefined
+        colors: colorsToSave.length > 0 ? colorsToSave : []
       }
+      
+      console.log('🎨 Final description data being saved:', descriptionData)
+      
+      console.log('🎨 Final colors being saved:', colorsToSave)
 
       // Prepare product data
       const productData: Partial<Product> = {
@@ -1147,7 +1454,16 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
             
             // For variant images, we need to upload them first
             let editVariantValue = variant.barcode
-            if (variant.image) {
+            let editVariantImageUrl = null
+            
+            // Check if image is existing (not a blob URL) and preserve it
+            if (variant.image && !variant.image.startsWith('blob:')) {
+              editVariantImageUrl = variant.image
+              editVariantValue = JSON.stringify({
+                barcode: variant.barcode,
+                image: variant.image
+              })
+            } else if (variant.image) {
               try {
                 // Upload the variant image
                 const imageFile = variant.image.startsWith('blob:') 
@@ -1162,6 +1478,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                   
                   if (!imageError && imageData?.path) {
                     const imageUrl = getProductImageUrl('VARIANT_PRODUCTS', imageData.path)
+                    editVariantImageUrl = imageUrl
                     // Store barcode and image URL as JSON in value field
                     editVariantValue = JSON.stringify({
                       barcode: variant.barcode,
@@ -1179,8 +1496,11 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
               branch_id: variant.locationId, // Use branch_id for all locations
               variant_type: variant.elementType,
               name: variant.elementName,
-              value: editVariantValue, // Barcode or JSON with barcode + image
-              quantity: variant.quantity
+              barcode: variant.barcode, // Store barcode directly in barcode field
+              quantity: variant.quantity,
+              image_url: editVariantImageUrl, // Store image URL in dedicated field
+              color_hex: variant.elementType === 'color' ? (productColors.find(c => c.id === variant.elementId)?.color || null) : null,
+              color_name: variant.elementType === 'color' ? variant.elementName : null
             }
             
             return supabase.from('product_variants').insert(editVariantData)
@@ -1255,7 +1575,16 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
             
             // For variant images, we need to upload them first
             let variantValue = variant.barcode
-            if (variant.image) {
+            let variantImageUrl = null
+            
+            // Check if image is existing (not a blob URL) and preserve it
+            if (variant.image && !variant.image.startsWith('blob:')) {
+              variantImageUrl = variant.image
+              variantValue = JSON.stringify({
+                barcode: variant.barcode,
+                image: variant.image
+              })
+            } else if (variant.image) {
               try {
                 // Upload the variant image
                 const imageFile = variant.image.startsWith('blob:') 
@@ -1270,6 +1599,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                   
                   if (!imageError && imageData?.path) {
                     const imageUrl = getProductImageUrl('VARIANT_PRODUCTS', imageData.path)
+                    variantImageUrl = imageUrl
                     // Store barcode and image URL as JSON in value field
                     variantValue = JSON.stringify({
                       barcode: variant.barcode,
@@ -1288,8 +1618,11 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
               branch_id: variant.locationId, // Use branch_id for all locations
               variant_type: variant.elementType,
               name: variant.elementName,
-              value: variantValue, // Barcode or JSON with barcode + image
-              quantity: variant.quantity
+              barcode: variant.barcode, // Store barcode directly in barcode field
+              quantity: variant.quantity,
+              image_url: variantImageUrl, // Store image URL in dedicated field
+              color_hex: variant.elementType === 'color' ? (productColors.find(c => c.id === variant.elementId)?.color || null) : null,
+              color_name: variant.elementType === 'color' ? variant.elementName : null
             }
             
             console.log('💾 Saving variant data:', variantData)
@@ -1537,16 +1870,38 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
           <div className="space-y-4">
             {/* Purchase Price */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2 text-right">
-                سعر الشراء *
-              </label>
-              <input
-                type="number"
-                value={formData.purchasePrice}
-                onChange={(e) => handleInputChange('purchasePrice', e.target.value)}
-                placeholder=""
-                className="w-full px-3 py-2 bg-[#2B3441] border border-[#4A5568] rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              />
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-white text-sm font-medium text-right">
+                  سعر الشراء *
+                </label>
+                {!purchaseHistory.canEditCost && (
+                  <div className="flex items-center gap-2">
+                    <LockClosedIcon className="h-4 w-4 text-yellow-400" />
+                    <span className="text-xs text-yellow-400">محسوب تلقائياً</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="relative">
+                <input
+                  type="number"
+                  value={formData.purchasePrice}
+                  onChange={(e) => handleInputChange('purchasePrice', e.target.value)}
+                  placeholder=""
+                  disabled={!purchaseHistory.canEditCost}
+                  className={`w-full px-3 py-2 border rounded text-right text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                    purchaseHistory.canEditCost
+                      ? 'bg-[#2B3441] border-[#4A5568] text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2]'
+                      : 'bg-gray-600/30 border-gray-600/50 text-gray-300 cursor-not-allowed'
+                  }`}
+                />
+                {!purchaseHistory.canEditCost && (
+                  <div className="absolute left-2 top-1/2 transform -translate-y-1/2">
+                    <LockClosedIcon className="h-4 w-4 text-gray-400" />
+                  </div>
+                )}
+              </div>
+              
             </div>
 
             {/* Sale Price */}
@@ -1789,8 +2144,9 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                               </button>
                             </div>
                             <span>{color.name}</span>
+                            {/* Always show color swatch instead of image */}
                             <div 
-                              className="w-4 h-4 rounded-full border border-white/20"
+                              className="w-6 h-6 rounded-full border border-white/20"
                               style={{ backgroundColor: color.color || '#000000' }}
                               title={`Color: ${color.color}`}
                             />
@@ -1900,9 +2256,9 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                           <p className="text-gray-300 text-xs">
                             الكمية الإجمالية: {selectedLocation.totalQuantity} قطعة
                           </p>
-                          {getRemainingQuantity() < selectedLocation.totalQuantity && (
+                          {getRemainingQuantity(editingVariant?.id) < selectedLocation.totalQuantity && (
                             <p className="text-green-400 text-xs mt-1">
-                              متبقي {getRemainingQuantity()} قطعة
+                              متبقي {getRemainingQuantity(editingVariant?.id)} قطعة
                             </p>
                           )}
                         </div>
@@ -1960,7 +2316,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                               onChange={(e) => setVariantForm(prev => ({ ...prev, quantity: parseInt(e.target.value) || 0 }))}
                               placeholder="0"
                               min="0"
-                              max={getRemainingQuantity() + (editingVariant?.quantity || 0)}
+                              max={getRemainingQuantity(editingVariant?.id)}
                               className="w-full px-2 py-1.5 bg-[#2B3441] border border-[#4A5568] rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                           </div>
@@ -2030,19 +2386,22 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                                   className="hidden"
                                 />
                               </label>
-                              {variantForm.image && (
+                              {(variantForm.image || variantFormImageUrl) && (
                                 <div className="mt-2 flex flex-col items-center gap-1">
                                   <img 
-                                    src={URL.createObjectURL(variantForm.image)} 
+                                    src={variantForm.image ? URL.createObjectURL(variantForm.image) : variantFormImageUrl!} 
                                     alt="معاينة الصورة"
                                     className="w-12 h-12 object-cover rounded border border-gray-600"
                                   />
                                   <p className="text-green-400 text-xs">
-                                    {variantForm.image.name}
+                                    {variantForm.image ? variantForm.image.name : 'صورة موجودة'}
                                   </p>
                                   <button
                                     type="button"
-                                    onClick={() => setVariantForm(prev => ({ ...prev, image: null }))}
+                                    onClick={() => {
+                                      setVariantForm(prev => ({ ...prev, image: null }))
+                                      setVariantFormImageUrl(null)
+                                    }}
                                     className="text-red-400 hover:text-red-300 text-xs"
                                   >
                                     إزالة الصورة
@@ -2054,27 +2413,58 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                         </div>
 
                         {/* Submit Button */}
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-2">
+                          {editingVariant && (
+                            <button
+                              onClick={() => {
+                                setEditingVariant(null)
+                                setVariantFormImageUrl(null)
+                                setVariantForm({
+                                  elementType: 'color',
+                                  elementId: '',
+                                  quantity: 0,
+                                  barcode: generateBarcode(),
+                                  image: null
+                                })
+                              }}
+                              className="px-3 py-1.5 rounded transition-colors text-xs bg-gray-600 hover:bg-gray-700 text-white"
+                            >
+                              إلغاء
+                            </button>
+                          )}
                           <button
                             onClick={handleVariantSubmit}
                             disabled={!variantForm.elementId || variantForm.quantity <= 0}
                             className={`px-3 py-1.5 rounded transition-colors text-xs ${
                               !variantForm.elementId || variantForm.quantity <= 0
                                 ? 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
-                                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                : editingVariant 
+                                  ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
                             }`}
                           >
-                            + إدراج
+                            {editingVariant ? '🔄 تحديث' : '+ إدراج'}
                           </button>
                         </div>
 
-                        {/* Added Variants Display */}
-                        {locationVariants.filter(v => v.locationId === selectedLocation.id).length > 0 && (
+                        {/* Added Variants Display - Hide purchase variants for security */}
+                        {(() => {
+                          const allVariants = locationVariants.filter(v => v.locationId === selectedLocation.id)
+                          const visibleVariants = allVariants.filter(v => !isPurchaseVariant(v))
+                          const hiddenVariants = allVariants.filter(v => isPurchaseVariant(v))
+                          
+                          // Log for debugging
+                          if (hiddenVariants.length > 0) {
+                            console.log(`🔒 Hidden ${hiddenVariants.length} purchase variants from UI:`, hiddenVariants.map(v => v.elementName))
+                          }
+                          
+                          return visibleVariants.length > 0
+                        })() && (
                           <div className="pt-3 border-t border-[#4A5568] pb-4">
                             <h5 className="text-white font-medium mb-2 text-right text-xs">الأشكال المضافة:</h5>
                             <div className="space-y-2">
                               {locationVariants
-                                .filter(v => v.locationId === selectedLocation.id)
+                                .filter(v => v.locationId === selectedLocation.id && !isPurchaseVariant(v))
                                 .map((variant) => (
                                   <div key={variant.id} className="bg-[#2B3441] rounded p-2 flex items-center justify-between">
                                     <div className="flex items-center gap-1">

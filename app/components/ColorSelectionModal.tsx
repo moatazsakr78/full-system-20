@@ -11,9 +11,15 @@ interface ColorSelectionModalProps {
   hasRequiredForCart?: boolean
   selectedBranchId?: string
   isPurchaseMode?: boolean
+  isTransferMode?: boolean
+  transferFromLocation?: {
+    id: number
+    name: string
+    type: 'branch' | 'warehouse'
+  }
 }
 
-export default function ColorSelectionModal({ isOpen, onClose, product, onAddToCart, hasRequiredForCart = true, selectedBranchId, isPurchaseMode = false }: ColorSelectionModalProps) {
+export default function ColorSelectionModal({ isOpen, onClose, product, onAddToCart, hasRequiredForCart = true, selectedBranchId, isPurchaseMode = false, isTransferMode = false, transferFromLocation }: ColorSelectionModalProps) {
   const [selections, setSelections] = useState<{[key: string]: number}>({})
   const [totalQuantity, setTotalQuantity] = useState(1)
   const [isEditingQuantity, setIsEditingQuantity] = useState(false)
@@ -37,42 +43,187 @@ export default function ColorSelectionModal({ isOpen, onClose, product, onAddToC
 
   if (!isOpen || !product) return null
 
-  // Get real color variants from the selected branch only
+  // Get the appropriate branch ID based on the mode
+  const getEffectiveBranchId = () => {
+    if (isTransferMode && transferFromLocation) {
+      // In transfer mode, use the transferFromLocation's ID (but only if it's a branch)
+      // For warehouses, we don't have variant data, so we'll show no colors
+      return transferFromLocation.type === 'branch' ? transferFromLocation.id.toString() : null
+    }
+    // In normal mode, use the selected branch ID
+    return selectedBranchId
+  }
+
+  const effectiveBranchId = getEffectiveBranchId()
+
+  // Get real color variants from the appropriate branch
   // In purchase mode, we don't show colors as they are irrelevant
   const getProductColors = () => {
     // In purchase mode, always return empty array to disable color selection
     if (isPurchaseMode) {
       return []
     }
-    const colors: any[] = []
     
-    // Get color variants from selected branch only
-    if (product.variantsData && selectedBranchId && product.variantsData[selectedBranchId]) {
-      product.variantsData[selectedBranchId].forEach((variant: any) => {
-        if (variant.variant_type === 'color') {
-          // Check if color already exists in our list
-          const existingColor = colors.find(c => c.name === variant.name)
-          if (!existingColor) {
-              // Try to get color from product colors table
-              let colorValue = '#6B7280' // Default gray
-              
-              if (product.productColors) {
-                const productColor = product.productColors.find((c: any) => c.name === variant.name)
-                if (productColor?.color) {
-                  colorValue = productColor.color
-                }
-              }
-              
-              // Try to parse color from variant value if it's JSON
+    // If no effective branch ID (e.g., warehouse in transfer mode), but we have colors in description, still show them
+    if (!effectiveBranchId && !product.description) {
+      return []
+    }
+    
+    const colors: any[] = []
+    const unspecifiedVariants: any[] = [] // Collect all "غير محدد" variants
+    const specifiedColors: any[] = [] // Collect all specified colors
+    
+    // First, try to get colors from description field (legacy format)
+    if (product.description) {
+      try {
+        const descriptionData = JSON.parse(product.description)
+        if (descriptionData.colors && Array.isArray(descriptionData.colors)) {
+          console.log('🎨 Found colors in description field:', descriptionData.colors)
+          
+          // Get total available quantity for this branch
+          let totalBranchQuantity = 0
+          if (product.inventoryData && effectiveBranchId && product.inventoryData[effectiveBranchId]) {
+            totalBranchQuantity = product.inventoryData[effectiveBranchId]?.quantity || 0
+          } else if (!effectiveBranchId && product.inventoryData) {
+            // If no specific branch selected, try to get total from any available branch
+            const firstBranchData = Object.values(product.inventoryData)[0]
+            if (firstBranchData && typeof firstBranchData === 'object' && 'quantity' in firstBranchData) {
+              totalBranchQuantity = (firstBranchData as any).quantity || 0
+            }
+          }
+          
+          // Distribute quantity equally among colors, or use total if only one color
+          const quantityPerColor = descriptionData.colors.length > 0 
+            ? Math.floor(totalBranchQuantity / descriptionData.colors.length) 
+            : totalBranchQuantity
+          
+          descriptionData.colors.forEach((color: any, index: number) => {
+            // Try to find matching image from video_url field (additional images)
+            let colorImage = color.image || null
+            
+            if (!colorImage && product.video_url) {
               try {
-                if (variant.value && variant.value.startsWith('{')) {
-                  const valueData = JSON.parse(variant.value)
-                  if (valueData.color) {
-                    colorValue = valueData.color
+                const additionalImages = JSON.parse(product.video_url)
+                if (Array.isArray(additionalImages) && additionalImages[index]) {
+                  colorImage = additionalImages[index]
+                  console.log(`🖼️ Assigned image ${index} to color ${color.name}:`, colorImage)
+                }
+              } catch (e) {
+                // ignore parsing errors
+              }
+            }
+            
+            // Fallback: Try to find image by color name in additional images
+            if (!colorImage && product.video_url) {
+              try {
+                const additionalImages = JSON.parse(product.video_url)
+                if (Array.isArray(additionalImages)) {
+                  const colorNameLower = color.name.toLowerCase()
+                  const matchingImage = additionalImages.find((imgUrl: string) => {
+                    const imgLower = imgUrl.toLowerCase()
+                    return (
+                      imgLower.includes(colorNameLower) ||
+                      (colorNameLower === 'أسود' && (imgLower.includes('black') || imgLower.includes('000000'))) ||
+                      (colorNameLower === 'أحمر' && (imgLower.includes('red') || imgLower.includes('ff0000'))) ||
+                      (colorNameLower === 'أزرق' && (imgLower.includes('blue') || imgLower.includes('0000ff'))) ||
+                      (colorNameLower === 'أخضر' && (imgLower.includes('green') || imgLower.includes('00ff00'))) ||
+                      (colorNameLower === 'أصفر' && (imgLower.includes('yellow') || imgLower.includes('ffff00'))) ||
+                      (colorNameLower === 'أبيض' && (imgLower.includes('white') || imgLower.includes('ffffff'))) ||
+                      (colorNameLower === 'بني' && imgLower.includes('brown')) ||
+                      (colorNameLower === 'رمادي' && (imgLower.includes('gray') || imgLower.includes('grey'))) ||
+                      (colorNameLower === 'وردي' && (imgLower.includes('pink') || imgLower.includes('rose'))) ||
+                      (colorNameLower === 'بنفسجي' && (imgLower.includes('purple') || imgLower.includes('violet'))) ||
+                      (colorNameLower === 'برتقالي' && imgLower.includes('orange')) ||
+                      (colorNameLower === 'جملي' && (imgLower.includes('camel') || imgLower.includes('beige'))) ||
+                      (colorNameLower === 'اخضر' && (imgLower.includes('green') || imgLower.includes('00ff00'))) ||
+                      (colorNameLower === 'بينك' && (imgLower.includes('pink') || imgLower.includes('rose')))
+                    )
+                  })
+                  if (matchingImage) {
+                    colorImage = matchingImage
+                    console.log(`🎯 Found matching image for ${color.name}:`, colorImage)
                   }
                 }
               } catch (e) {
-                // If parsing fails, use default or existing color
+                // ignore parsing errors
+              }
+            }
+            
+            specifiedColors.push({
+              name: color.name,
+              color: color.color || '#6B7280',
+              availableQuantity: quantityPerColor, // Use calculated quantity
+              image: colorImage
+            })
+          })
+        }
+      } catch (e) {
+        console.warn('Failed to parse description colors:', e)
+      }
+    }
+    
+    // Get color variants from appropriate branch only (new format)
+    if (product.variantsData && effectiveBranchId && product.variantsData[effectiveBranchId]) {
+      product.variantsData[effectiveBranchId].forEach((variant: any) => {
+        if (variant.variant_type === 'color') {
+          if (variant.name === 'غير محدد') {
+            // Collect all "غير محدد" variants to consolidate later
+            unspecifiedVariants.push(variant)
+          } else {
+            // Check if this specified color already exists in our list (from description or variants)
+            const existingColor = specifiedColors.find(c => c.name === variant.name)
+            if (!existingColor) {
+                // Default color
+                let colorValue = '#6B7280' // Default gray
+                
+                // Strategy 1: Try to parse color from variant value first if it's JSON
+                try {
+                  if (variant.value && variant.value.startsWith('{')) {
+                    const valueData = JSON.parse(variant.value)
+                    if (valueData.color) {
+                      colorValue = valueData.color
+                    }
+                  }
+                } catch (e) {
+                  // If parsing fails, continue to next strategy
+                }
+                
+                // Strategy 2: Try to get color from product colors table if not found above
+                if (colorValue === '#6B7280' && product.productColors) {
+                  const productColor = product.productColors.find((c: any) => c.name === variant.name)
+                  if (productColor?.color) {
+                    colorValue = productColor.color
+                  }
+                }
+                
+                // Strategy 3: Try color mapping based on Arabic color names
+                if (colorValue === '#6B7280') {
+                  const colorMapping: { [key: string]: string } = {
+                    'أسود': '#000000',
+                    'أبيض': '#FFFFFF', 
+                    'أحمر': '#FF0000',
+                    'أزرق': '#0000FF',
+                    'أخضر': '#008000',
+                    'أصفر': '#FFFF00',
+                    'برتقالي': '#FFA500',
+                    'بنفسجي': '#800080',
+                    'وردي': '#FFC0CB',
+                    'بني': '#A52A2A',
+                    'رمادي': '#808080',
+                    'فضي': '#C0C0C0',
+                    'ذهبي': '#FFD700',
+                    'كاشمير': '#D2B48C',
+                    'كحلي': '#000080',
+                  'زهري': '#FF69B4',
+                  'بيج': '#F5F5DC',
+                  'خمري': '#800000',
+                  'نيلي': '#4B0082'
+                }
+                
+                const mappedColor = colorMapping[variant.name]
+                if (mappedColor) {
+                  colorValue = mappedColor
+                }
               }
 
               // Extract image from multiple sources
@@ -91,16 +242,120 @@ export default function ColorSelectionModal({ isOpen, onClose, product, onAddToC
                   // If parsing fails, use null
                 }
               }
+              
+              // Enhanced: Try to find matching image in product.allImages by color name or hex
+              if (!imageUrl && product.allImages && product.allImages.length > 0) {
+                const colorNameLower = variant.name.toLowerCase()
+                const colorHex = colorValue.toLowerCase().replace('#', '')
+                
+                const matchingImage = product.allImages.find((img: string) => {
+                  const imgLower = img.toLowerCase()
+                  return (
+                    // Direct name match
+                    imgLower.includes(colorNameLower) ||
+                    // Hex color match
+                    imgLower.includes(colorHex) ||
+                    // Common color name translations
+                    (colorNameLower === 'أسود' && (imgLower.includes('black') || imgLower.includes('000000'))) ||
+                    (colorNameLower === 'أحمر' && (imgLower.includes('red') || imgLower.includes('ff0000'))) ||
+                    (colorNameLower === 'أزرق' && (imgLower.includes('blue') || imgLower.includes('0000ff'))) ||
+                    (colorNameLower === 'أخضر' && (imgLower.includes('green') || imgLower.includes('00ff00'))) ||
+                    (colorNameLower === 'أصفر' && (imgLower.includes('yellow') || imgLower.includes('ffff00'))) ||
+                    (colorNameLower === 'أبيض' && (imgLower.includes('white') || imgLower.includes('ffffff'))) ||
+                    (colorNameLower === 'بني' && imgLower.includes('brown')) ||
+                    (colorNameLower === 'رمادي' && (imgLower.includes('gray') || imgLower.includes('grey'))) ||
+                    (colorNameLower === 'وردي' && (imgLower.includes('pink') || imgLower.includes('rose'))) ||
+                    (colorNameLower === 'بنفسجي' && (imgLower.includes('purple') || imgLower.includes('violet'))) ||
+                    (colorNameLower === 'برتقالي' && imgLower.includes('orange'))
+                  )
+                })
+                
+                if (matchingImage) {
+                  imageUrl = matchingImage
+                }
+              }
+              
+              // Final fallback: Check productColors array for image data
+              if (!imageUrl && product.productColors) {
+                const productColor = product.productColors.find((c: any) => c.name === variant.name)
+                if (productColor?.image) {
+                  imageUrl = productColor.image
+                }
+              }
 
-              colors.push({
-                name: variant.name,
-                color: colorValue,
-                availableQuantity: variant.quantity || 0,
-                image: imageUrl
-              })
+                specifiedColors.push({
+                  name: variant.name,
+                  color: colorValue,
+                  availableQuantity: variant.quantity || 0,
+                  image: imageUrl
+                })
+              }
             }
           }
         })
+    }
+    
+    // Add all specified colors to the final colors array
+    colors.push(...specifiedColors)
+    
+    // Calculate total unspecified quantity (like in products table)
+    if (unspecifiedVariants.length > 0 || effectiveBranchId || (specifiedColors.length > 0 && product.description)) {
+      // Get total inventory for this branch
+      let branchInventoryQuantity = 0
+      if (product.inventoryData && effectiveBranchId && product.inventoryData[effectiveBranchId]) {
+        branchInventoryQuantity = product.inventoryData[effectiveBranchId]?.quantity || 0
+      } else if (!effectiveBranchId && product.inventoryData) {
+        // If no specific branch selected, try to get total from any available branch
+        const firstBranchData = Object.values(product.inventoryData)[0]
+        if (firstBranchData && typeof firstBranchData === 'object' && 'quantity' in firstBranchData) {
+          branchInventoryQuantity = (firstBranchData as any).quantity || 0
+        }
+      }
+      
+      // Get assigned quantities from all color variants (specified + unspecified)
+      let branchAssignedQuantity = 0
+      
+      // For products with colors in description, consider the total assigned to description colors
+      if (product.description) {
+        try {
+          const descriptionData = JSON.parse(product.description)
+          if (descriptionData.colors && Array.isArray(descriptionData.colors) && descriptionData.colors.length > 0) {
+            // Calculate total quantity assigned to description colors
+            const quantityPerColor = Math.floor(branchInventoryQuantity / descriptionData.colors.length)
+            branchAssignedQuantity = quantityPerColor * descriptionData.colors.length
+          }
+        } catch (e) {
+          // ignore parsing errors
+        }
+      }
+      
+      // Add quantities from actual variant records
+      if (product.variantsData && effectiveBranchId && product.variantsData[effectiveBranchId]) {
+        product.variantsData[effectiveBranchId].forEach((variant: any) => {
+          if (variant.variant_type === 'color') {
+            branchAssignedQuantity += variant.quantity || 0
+          }
+        })
+      }
+      
+      // Calculate unassigned quantity
+      const unassignedQuantity = branchInventoryQuantity - branchAssignedQuantity
+      
+      // Sum all unspecified variants quantities
+      const totalUnspecifiedVariantsQuantity = unspecifiedVariants.reduce((sum, v) => sum + v.quantity, 0)
+      
+      // Total unspecified quantity (matching products table logic)
+      const totalUnspecifiedQuantity = totalUnspecifiedVariantsQuantity + unassignedQuantity
+      
+      // Only add "غير محدد الكلي" if there's any quantity available and we have some colors specified
+      if (totalUnspecifiedQuantity > 0 && specifiedColors.length > 0) {
+        colors.push({
+          name: 'غير محدد الكلي',
+          color: '#6B7280', // Gray color for unspecified
+          availableQuantity: totalUnspecifiedQuantity,
+          image: null
+        })
+      }
     }
     
     return colors
@@ -131,20 +386,38 @@ export default function ColorSelectionModal({ isOpen, onClose, product, onAddToC
   }
 
   const selectedQuantity = Object.values(selections).reduce((sum, qty) => sum + qty, 0)
-  const totalPrice = totalQuantity * (isPurchaseMode ? purchasePrice : (product.price || 0))
+  const totalPrice = isTransferMode ? 0 : totalQuantity * (isPurchaseMode ? purchasePrice : (product.price || 0))
 
-  // Calculate validation logic for selected branch only
-  const getValidationInfo = (selectedBranchId?: string) => {
+  // Calculate validation logic for appropriate branch
+  const getValidationInfo = (branchId?: string) => {
     if (colors.length === 0) {
       // No colors available, allow any quantity
       return { isValid: true, message: '', unassignedNeeded: 0, unassignedAvailable: 0 }
     }
 
-    // If no branch is selected, we cannot validate properly
-    if (!selectedBranchId) {
+    // If no branch is selected and we have colors from description, allow it (for new products)
+    if (!branchId && product.description) {
+      try {
+        const descriptionData = JSON.parse(product.description)
+        if (descriptionData.colors && Array.isArray(descriptionData.colors) && descriptionData.colors.length > 0) {
+          // For products with colors in description but no specific branch, validation is less strict
+          return { isValid: true, message: '', unassignedNeeded: 0, unassignedAvailable: 999 }
+        }
+      } catch (e) {
+        // ignore parsing errors
+      }
+    }
+
+    // If no branch is selected and no colors in description, we cannot validate properly
+    if (!branchId) {
+      const errorMessage = isTransferMode 
+        ? (transferFromLocation?.type === 'warehouse' 
+           ? 'المخازن لا تدعم تحديد الألوان' 
+           : 'يجب تحديد الفرع المصدر أولاً')
+        : 'يجب تحديد الفرع أولاً'
       return {
         isValid: false,
-        message: 'يجب تحديد الفرع أولاً',
+        message: errorMessage,
         unassignedNeeded: 0,
         unassignedAvailable: 0
       }
@@ -154,14 +427,14 @@ export default function ColorSelectionModal({ isOpen, onClose, product, onAddToC
     let branchInventoryQuantity = 0
     let branchAssignedQuantity = 0
 
-    // Get inventory for selected branch only
-    if (product.inventoryData && product.inventoryData[selectedBranchId]) {
-      branchInventoryQuantity = product.inventoryData[selectedBranchId]?.quantity || 0
+    // Get inventory for appropriate branch only
+    if (product.inventoryData && product.inventoryData[branchId]) {
+      branchInventoryQuantity = product.inventoryData[branchId]?.quantity || 0
     }
 
-    // Get assigned color quantities for selected branch only
-    if (product.variantsData && product.variantsData[selectedBranchId]) {
-      product.variantsData[selectedBranchId].forEach((variant: any) => {
+    // Get assigned color quantities for appropriate branch only
+    if (product.variantsData && product.variantsData[branchId]) {
+      product.variantsData[branchId].forEach((variant: any) => {
         if (variant.variant_type === 'color') {
           branchAssignedQuantity += variant.quantity || 0
         }
@@ -199,7 +472,7 @@ export default function ColorSelectionModal({ isOpen, onClose, product, onAddToC
     }
   }
 
-  const validationInfo = getValidationInfo(selectedBranchId)
+  const validationInfo = getValidationInfo(effectiveBranchId || undefined)
 
   const handleAddToCart = () => {
     if (totalQuantity > 0 && validationInfo.isValid) {
@@ -348,8 +621,13 @@ export default function ColorSelectionModal({ isOpen, onClose, product, onAddToC
               </div>
               <div>
                 <h2 className="text-lg font-bold text-white">{product.name}</h2>
-                <p className="text-blue-400 text-sm">
-                  {isPurchaseMode ? 'وضع الشراء' : `${(product.price || 0).toFixed(2)} ريال`}
+                <p className={`text-sm ${isTransferMode ? 'text-orange-400' : 'text-blue-400'}`}>
+                  {isTransferMode 
+                    ? `وضع النقل - من: ${transferFromLocation?.name || 'غير محدد'}` 
+                    : isPurchaseMode 
+                      ? 'وضع الشراء' 
+                      : `${(product.price || 0).toFixed(2)} ريال`
+                  }
                 </p>
               </div>
             </div>
@@ -427,9 +705,12 @@ export default function ColorSelectionModal({ isOpen, onClose, product, onAddToC
                 </div>
               </div>
               
-              <div className="text-center mt-3">
-                <span className="text-blue-400 font-bold text-lg">{totalPrice.toFixed(2)} ريال</span>
-              </div>
+              {/* Hide price in transfer mode */}
+              {!isTransferMode && (
+                <div className="text-center mt-3">
+                  <span className="text-blue-400 font-bold text-lg">{totalPrice.toFixed(2)} ريال</span>
+                </div>
+              )}
             </div>
 
             {/* Purchase Price Input - Only shown in purchase mode */}
@@ -496,21 +777,30 @@ export default function ColorSelectionModal({ isOpen, onClose, product, onAddToC
                     {/* Color Display */}
                     <div className="flex items-center gap-3 mb-3">
                       {/* Color Image */}
-                      <div className="w-12 h-12 bg-[#2B3544] rounded-lg flex items-center justify-center overflow-hidden border border-[#4A5568] flex-shrink-0">
-                        {color.image ? (
+                      <div className="w-12 h-12 bg-[#2B3544] rounded-lg flex items-center justify-center overflow-hidden border border-[#4A5568] flex-shrink-0 relative">
+                        {color.image && color.image.trim() !== '' ? (
                           <img
                             src={color.image}
                             alt={color.name}
                             className="w-full h-full object-cover"
                             onError={(e) => {
+                              console.error(`Failed to load image for ${color.name}:`, color.image)
                               const target = e.target as HTMLImageElement
                               target.style.display = 'none'
                               target.nextElementSibling?.classList.remove('hidden')
                             }}
                           />
                         ) : null}
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${color.image ? 'hidden' : ''}`} style={{ backgroundColor: color.color }}>
-                          <span className="text-xs" style={{ color: color.color === '#FFFFFF' || color.color === '#ffffff' ? '#000000' : '#FFFFFF' }}>🎨</span>
+                        <div className={`w-full h-full rounded-lg flex items-center justify-center ${color.image && color.image.trim() !== '' ? 'hidden' : ''}`} 
+                             style={{ backgroundColor: color.color }}>
+                          {/* Show color swatch with better visibility for unspecified colors */}
+                          {(color.name === 'غير محدد' || color.name === 'غير محدد الكلي') ? (
+                            <span className="text-white text-lg font-bold">؟</span>
+                          ) : (
+                            <div className="w-8 h-8 rounded-full border-2 border-white shadow-lg"
+                                 style={{ backgroundColor: color.color }}>
+                            </div>
+                          )}
                         </div>
                       </div>
                       
@@ -576,6 +866,10 @@ export default function ColorSelectionModal({ isOpen, onClose, product, onAddToC
                 <p className="text-gray-400">
                   {isPurchaseMode 
                     ? 'في وضع الشراء، يتم تخزين الكمية كـ "غير محدد" بدون تحديد ألوان' 
+                    : isTransferMode
+                    ? (transferFromLocation?.type === 'warehouse' 
+                       ? `المخازن لا تحتوي على تحديد ألوان - سيتم النقل من "${transferFromLocation?.name || 'غير محدد'}" كـ "غير محدد"`
+                       : `لا توجد ألوان محددة في "${transferFromLocation?.name || 'غير محدد'}" - سيتم النقل كـ "غير محدد"`)
                     : 'لا توجد ألوان متاحة لهذا المنتج'
                   }
                 </p>
@@ -599,17 +893,21 @@ export default function ColorSelectionModal({ isOpen, onClose, product, onAddToC
                 className={`flex-1 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
                   totalQuantity === 0 || !validationInfo.isValid
                     ? 'bg-gray-600 cursor-not-allowed opacity-50'
-                    : isPurchaseMode 
-                      ? 'bg-green-600 hover:bg-green-700'
-                      : 'bg-blue-600 hover:bg-blue-700'
+                    : isTransferMode 
+                      ? 'bg-orange-600 hover:bg-orange-700'
+                      : isPurchaseMode 
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : 'bg-blue-600 hover:bg-blue-700'
                 } text-white`}
               >
                 <ShoppingCartIcon className="h-5 w-5" />
                 {!validationInfo.isValid 
                   ? 'غير متاح للإضافة' 
-                  : isPurchaseMode 
-                    ? `إضافة للشراء (${totalQuantity})`
-                    : `إضافة للسلة (${totalQuantity})`
+                  : isTransferMode 
+                    ? `إضافة للنقل (${totalQuantity})`
+                    : isPurchaseMode 
+                      ? `إضافة للشراء (${totalQuantity})`
+                      : `إضافة للسلة (${totalQuantity})`
                 }
               </button>
             </div>

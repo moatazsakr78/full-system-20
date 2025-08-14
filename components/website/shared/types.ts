@@ -4,6 +4,7 @@ export interface UserInfo {
   email?: string;
   phone?: string;
   cart?: CartItem[];
+  cartCount?: number;
   preferences?: UserPreferences;
 }
 
@@ -24,6 +25,14 @@ export interface UserPreferences {
   theme?: 'dark' | 'light';
 }
 
+export interface ProductColor {
+  id: string;
+  name: string;
+  hex: string;
+  image_url?: string;
+  quantity?: number;
+}
+
 export interface Product {
   id: string | number;
   name: string;
@@ -32,6 +41,8 @@ export interface Product {
   originalPrice?: number;
   image?: string;
   images?: string[];
+  colors?: ProductColor[];
+  selectedColor?: ProductColor | null;
   category?: string;
   brand?: string;
   stock?: number;

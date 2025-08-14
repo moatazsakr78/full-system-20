@@ -55,7 +55,10 @@
       "Bash(dir /s *.cache)",
       "Bash(node:*)",
       "Bash(npm uninstall:*)",
-      "Bash(npx supabase sql:*)"
+      "Bash(npx supabase sql:*)",
+      "Bash(psql:*)",
+      "Bash(del example-usage.js)",
+      "Bash(npx playwright:*)"
     ],
     "deny": []
   }

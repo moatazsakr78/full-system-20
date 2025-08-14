@@ -60,6 +60,7 @@ export default function DesktopHome({
             originalPrice: dbProduct.isDiscounted ? dbProduct.price : undefined,
             image: dbProduct.main_image_url || undefined,
             images: dbProduct.allImages || [],
+            colors: dbProduct.colors || [],
             category: dbProduct.category?.name || 'عام',
             brand: 'El Farouk Group',
             stock: dbProduct.totalQuantity || 0,
@@ -239,9 +240,9 @@ export default function DesktopHome({
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
                   </svg>
-                  {(userInfo.cart?.length || 0) > 0 && (
+                  {(userInfo.cartCount || 0) > 0 && (
                     <span className="absolute -top-1 -right-1 bg-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" style={{color: '#5D1F1F'}}>
-                      {userInfo.cart?.length || 0}
+                      {userInfo.cartCount || 0}
                     </span>
                   )}
                 </button>
@@ -329,7 +330,7 @@ export default function DesktopHome({
                   (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
                 }}
               >
-                <span>السلة ({userInfo.cart?.length || 0})</span>
+                <span>السلة ({userInfo.cartCount || 0})</span>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
                 </svg>

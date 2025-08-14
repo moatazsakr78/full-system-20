@@ -10,6 +10,7 @@ import {
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase/client'
+import { ensureTransferRecordExists, linkTransferInvoicesToRecord } from '../../lib/utils/transfer-record-manager'
 import Sidebar from '../../components/layout/Sidebar'
 import TopHeader from '../../components/layout/TopHeader'
 import RecordDetailsModal from '../../components/RecordDetailsModal'
@@ -60,9 +61,13 @@ export default function RecordsPage() {
   }
 
   const handleDeleteRecord = async (record: any) => {
-    // Prevent deletion of primary record
+    // Prevent deletion of primary record or transfer record
     if (record.is_primary) {
-      alert('لا يمكن حذف السجل الرئيسي')
+      if (record.name === 'سجل النقل') {
+        alert('لا يمكن حذف سجل النقل الافتراضي')
+      } else {
+        alert('لا يمكن حذف السجل الرئيسي')
+      }
       return
     }
 
@@ -87,8 +92,15 @@ export default function RecordsPage() {
     }
   }
 
+
   const fetchRecords = async () => {
     try {
+      // Ensure transfer record exists first
+      await ensureTransferRecordExists()
+      
+      // Link any orphaned transfer invoices to the transfer record
+      await linkTransferInvoicesToRecord()
+
       const { data, error } = await supabase
         .from('records')
         .select('*')
@@ -265,13 +277,23 @@ export default function RecordsPage() {
                 <td className="p-3 text-white font-medium">{index + 1}</td>
                 <td className="p-3">
                   <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 ${record.is_primary ? 'bg-purple-600' : 'bg-blue-600'} rounded flex items-center justify-center text-white text-sm`}>
-                      📋
+                    <div className={`w-8 h-8 ${
+                      record.name === 'سجل النقل' 
+                        ? 'bg-green-600' 
+                        : record.is_primary 
+                          ? 'bg-purple-600' 
+                          : 'bg-blue-600'
+                    } rounded flex items-center justify-center text-white text-sm`}>
+                      {record.name === 'سجل النقل' ? '🔄' : '📋'}
                     </div>
                     <span className="text-white font-medium">{record.name}</span>
                     {record.is_primary && (
-                      <span className="px-2 py-1 bg-purple-900 text-purple-300 rounded-full text-xs mr-2">
-                        رئيسي
+                      <span className={`px-2 py-1 rounded-full text-xs mr-2 ${
+                        record.name === 'سجل النقل'
+                          ? 'bg-green-900 text-green-300'
+                          : 'bg-purple-900 text-purple-300'
+                      }`}>
+                        {record.name === 'سجل النقل' ? 'نقل' : 'رئيسي'}
                       </span>
                     )}
                   </div>

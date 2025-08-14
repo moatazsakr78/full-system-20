@@ -9,6 +9,7 @@ import AddCustomerModal from '../../components/AddCustomerModal'
 import EditCustomerModal from '../../components/EditCustomerModal'
 import CustomerGroupSidebar from '../../components/CustomerGroupSidebar'
 import CustomerDetailsModal from '../../components/CustomerDetailsModal'
+import ColumnsControlModal from '../../components/ColumnsControlModal'
 import { useCustomerGroups, CustomerGroup } from '../../lib/hooks/useCustomerGroups'
 import { useCustomers, Customer, DEFAULT_CUSTOMER_ID } from '../../lib/hooks/useCustomers'
 import {
@@ -239,11 +240,34 @@ export default function CustomersPage() {
   const [editGroup, setEditGroup] = useState<any | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showColumnsModal, setShowColumnsModal] = useState(false)
+  const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
   const [isDeleting, setIsDeleting] = useState(false)
   
   // Use the real-time hooks for customer groups and customers
   const { groups, isLoading: groupsLoading, error: groupsError, toggleGroup } = useCustomerGroups()
   const { customers, isLoading: customersLoading, error: customersError, isDefaultCustomer } = useCustomers()
+
+  // Get all columns for columns control modal
+  const getAllColumns = () => {
+    return tableColumns.map(col => ({
+      id: col.id,
+      header: col.header,
+      visible: visibleColumns[col.id] !== false
+    }))
+  }
+
+  // Handle columns visibility change
+  const handleColumnsChange = (updatedColumns: any[]) => {
+    const newVisibleColumns: {[key: string]: boolean} = {}
+    updatedColumns.forEach(col => {
+      newVisibleColumns[col.id] = col.visible
+    })
+    setVisibleColumns(newVisibleColumns)
+  }
+
+  // Filter visible columns
+  const visibleTableColumns = tableColumns.filter(col => visibleColumns[col.id] !== false)
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
@@ -577,9 +601,12 @@ export default function CustomersPage() {
               <span className="text-sm">ترتيب</span>
             </button>
 
-            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+            <button 
+              onClick={() => setShowColumnsModal(true)}
+              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+            >
               <TableCellsIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">إدارة الأعمدة</span>
+              <span className="text-sm">الأعمدة</span>
             </button>
           </div>
         </div>
@@ -676,7 +703,7 @@ export default function CustomersPage() {
               ) : (
                 <ResizableTable
                   className="h-full w-full"
-                  columns={tableColumns}
+                  columns={visibleTableColumns}
                   data={filteredCustomers}
                   selectedRowId={selectedCustomer?.id || null}
                   onRowClick={(customer, index) => {
@@ -834,6 +861,14 @@ export default function CustomersPage() {
           background: #9CA3AF;
         }
       `}</style>
+
+      {/* Columns Control Modal */}
+      <ColumnsControlModal
+        isOpen={showColumnsModal}
+        onClose={() => setShowColumnsModal(false)}
+        columns={getAllColumns()}
+        onColumnsChange={handleColumnsChange}
+      />
     </div>
   )
 }

@@ -15,7 +15,8 @@ import {
   ShieldCheckIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
-  XMarkIcon
+  XMarkIcon,
+  MapIcon
 } from '@heroicons/react/24/outline'
 
 const sidebarItems = [
@@ -29,6 +30,7 @@ const sidebarItems = [
   { href: '/reports', label: 'التقارير', icon: ChartBarIcon },
   { href: '/permissions', label: 'الصلاحيات', icon: ShieldCheckIcon },
   { href: '/settings', label: 'الإعدادات', icon: Cog6ToothIcon },
+  { href: '/shipping', label: 'تفاصيل الشحن', icon: MapIcon },
 ]
 
 interface SidebarProps {

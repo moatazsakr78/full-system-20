@@ -77,11 +77,14 @@ import AddToCartModal from '../../components/AddToCartModal'
 import ColorSelectionModal from '../../components/ColorSelectionModal'
 import SupplierSelectionModal from '../../components/SupplierSelectionModal'
 import WarehouseSelectionModal from '../../components/WarehouseSelectionModal'
+import TransferLocationModal from '../../components/TransferLocationModal'
 import QuickAddProductModal from '../../components/QuickAddProductModal'
+import ColumnsControlModal from '../../components/ColumnsControlModal'
 import { useProducts, Product } from '../../lib/hooks/useProducts'
 import { usePersistentSelections } from '../../lib/hooks/usePersistentSelections'
 import { createSalesInvoice, CartItem } from '../../lib/invoices/createSalesInvoice'
 import { createPurchaseInvoice } from '../../lib/invoices/createPurchaseInvoice'
+import { createTransferInvoice } from '../../lib/invoices/createTransferInvoice'
 import {
   MagnifyingGlassIcon,
   Squares2X2Icon,
@@ -129,11 +132,19 @@ export default function POSPage() {
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false)
   const [isWarehouseModalOpen, setIsWarehouseModalOpen] = useState(false)
   const [showQuickAddProductModal, setShowQuickAddProductModal] = useState(false)
+  const [showColumnsModal, setShowColumnsModal] = useState(false)
+  const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null)
   const [selectedWarehouse, setSelectedWarehouse] = useState<any>(null)
   
   // Returns State - simple toggle
   const [isReturnMode, setIsReturnMode] = useState(false)
+  
+  // Transfer Mode States
+  const [isTransferMode, setIsTransferMode] = useState(false)
+  const [transferFromLocation, setTransferFromLocation] = useState<any>(null)
+  const [transferToLocation, setTransferToLocation] = useState<any>(null)
+  const [isTransferLocationModalOpen, setIsTransferLocationModalOpen] = useState(false)
   
   // Print Receipt States
   const [showPrintReceiptModal, setShowPrintReceiptModal] = useState(false)
@@ -306,9 +317,25 @@ export default function POSPage() {
         const colorVariants = variants.filter(v => v.variant_type === 'color')
         const shapeVariants = variants.filter(v => v.variant_type === 'shape')
         
+        // If no color variants from variants table, try to get colors from description
+        let descriptionColors: any[] = []
+        if (colorVariants.length === 0 && item.productColors && item.productColors.length > 0) {
+          descriptionColors = item.productColors.map((color, index) => ({
+            name: color.name,
+            quantity: Math.floor((item.inventoryData?.[branch.id]?.quantity || 0) / (item.productColors?.length || 1)),
+            variant_type: 'color',
+            color: color.color
+          }))
+        }
+        
         // Helper function to get variant color
         const getVariantColor = (variant: any) => {
           if (variant.variant_type === 'color') {
+            // If variant has color property (from description), use it directly
+            if (variant.color) {
+              return variant.color
+            }
+            
             // Try to find the color from product colors
             const productColor = item.productColors?.find(c => c.name === variant.name)
             if (productColor?.color) {
@@ -347,12 +374,17 @@ export default function POSPage() {
 
         // Calculate unassigned quantity
         const totalInventoryQuantity = item.inventoryData?.[branch.id]?.quantity || 0
-        const assignedQuantity = [...colorVariants, ...shapeVariants].reduce((sum, variant) => sum + variant.quantity, 0)
+        
+        // Combine all variants (from database and description)
+        const allColorVariants = [...colorVariants, ...descriptionColors]
+        const allVariants = [...allColorVariants, ...shapeVariants]
+        
+        const assignedQuantity = allVariants.reduce((sum, variant) => sum + variant.quantity, 0)
         const unassignedQuantity = totalInventoryQuantity - assignedQuantity
 
         return (
           <div className="flex flex-wrap gap-1">
-            {[...colorVariants, ...shapeVariants].map((variant, index) => {
+            {allVariants.map((variant, index) => {
               const bgColor = getVariantColor(variant)
               const textColor = getTextColor(bgColor)
               
@@ -398,6 +430,27 @@ export default function POSPage() {
 
     return [...baseColumns, ...branchColumns, ...minStockColumns, ...variantColumns, activityColumn]
   }, [branches])
+
+  // Get all columns for columns control modal
+  const getAllColumns = () => {
+    return dynamicTableColumns.map(col => ({
+      id: col.id,
+      header: col.header,
+      visible: visibleColumns[col.id] !== false
+    }))
+  }
+
+  // Handle columns visibility change
+  const handleColumnsChange = (updatedColumns: any[]) => {
+    const newVisibleColumns: {[key: string]: boolean} = {}
+    updatedColumns.forEach(col => {
+      newVisibleColumns[col.id] = col.visible
+    })
+    setVisibleColumns(newVisibleColumns)
+  }
+
+  // Filter visible columns
+  const visibleTableColumns = dynamicTableColumns.filter(col => visibleColumns[col.id] !== false)
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
@@ -490,44 +543,120 @@ export default function POSPage() {
     (product.barcode && product.barcode.includes(searchQuery))
   )
 
-  // Cart functions
+  // Cart functions - COMPLETELY REWRITTEN
   const handleAddToCart = (product: any, quantity: number, selectedColor?: string) => {
-    const cartItem = {
-      id: `${product.id}-${selectedColor || 'default'}-${Date.now()}`,
-      product,
-      quantity,
-      color: selectedColor,
-      price: product.price || 0,
-      total: (product.price || 0) * quantity
-    }
-    setCartItems(prev => [...prev, cartItem])
+    console.log('Adding to cart:', { productId: product.id, quantity, selectedColor })
+    
+    setCartItems(prev => {
+      const existingItemIndex = prev.findIndex(item => item.product.id === product.id)
+      
+      if (existingItemIndex >= 0) {
+        // Product already exists in cart
+        const newCartItems = [...prev]
+        const existingItem = { ...newCartItems[existingItemIndex] }
+        
+        if (selectedColor) {
+          // Initialize selectedColors if it doesn't exist
+          if (!existingItem.selectedColors) {
+            existingItem.selectedColors = {}
+          } else {
+            // Create a copy to avoid mutation
+            existingItem.selectedColors = { ...existingItem.selectedColors }
+          }
+          
+          // Add the color quantity
+          existingItem.selectedColors[selectedColor] = (existingItem.selectedColors[selectedColor] || 0) + quantity
+          
+          // Recalculate total quantity from all colors
+          existingItem.quantity = Object.values(existingItem.selectedColors).reduce((total: number, colorQty) => total + (colorQty as number), 0)
+        } else {
+          // No color, just add to total quantity
+          existingItem.quantity += quantity
+        }
+        
+        // Update total price
+        existingItem.total = existingItem.price * existingItem.quantity
+        
+        newCartItems[existingItemIndex] = existingItem
+        return newCartItems
+      } else {
+        // New product - create new cart item
+        const newCartItem = {
+          id: product.id.toString(),
+          product: product,
+          quantity: quantity,
+          selectedColors: selectedColor ? { [selectedColor]: quantity } : null,
+          price: product.price || 0,
+          total: (product.price || 0) * quantity,
+          color: selectedColor || null
+        }
+        
+        return [...prev, newCartItem]
+      }
+    })
   }
 
   const handleColorSelection = (selections: {[key: string]: number}, totalQuantity: number, purchasePrice?: number) => {
-    // Create a single cart item with total quantity and selected colors
-    const selectedColors: {[key: string]: number} = {}
+    console.log('Color selection:', { selections, totalQuantity, productId: modalProduct?.id })
     
-    // If colors were selected, add them to the selectedColors object
-    Object.entries(selections).forEach(([color, quantity]) => {
-      if (quantity > 0) {
-        selectedColors[color] = quantity
-      }
-    })
-
-    // Determine price based on mode
-    const itemPrice = isPurchaseMode && purchasePrice !== undefined ? purchasePrice : (modalProduct.price || 0)
-
-    // Create a single cart item
-    const cartItem = {
-      id: `${modalProduct.id}-${Date.now()}`,
-      product: modalProduct,
-      quantity: totalQuantity,
-      selectedColors: Object.keys(selectedColors).length > 0 ? selectedColors : null,
-      price: itemPrice,
-      total: itemPrice * totalQuantity
+    if (!modalProduct) return
+    
+    // Create the product with correct price
+    const productWithPrice = {
+      ...modalProduct,
+      price: isPurchaseMode && purchasePrice !== undefined ? purchasePrice : (modalProduct.price || 0)
     }
-
-    setCartItems(prev => [...prev, cartItem])
+    
+    // Find if this product already exists in cart
+    const existingItemIndex = cartItems.findIndex(item => item.product.id === modalProduct.id)
+    
+    if (existingItemIndex >= 0) {
+      // Product exists - update it directly
+      setCartItems(prev => {
+        const newCartItems = [...prev]
+        const existingItem = { ...newCartItems[existingItemIndex] }
+        
+        // Initialize or copy selectedColors
+        if (!existingItem.selectedColors) {
+          existingItem.selectedColors = {}
+        } else {
+          existingItem.selectedColors = { ...existingItem.selectedColors }
+        }
+        
+        // Add each color selection
+        Object.entries(selections).forEach(([color, quantity]) => {
+          if (quantity > 0) {
+            existingItem.selectedColors![color] = (existingItem.selectedColors![color] || 0) + quantity
+          }
+        })
+        
+        // Recalculate total quantity from all colors
+        existingItem.quantity = Object.values(existingItem.selectedColors).reduce((total: number, colorQty) => total + (colorQty as number), 0)
+        existingItem.total = existingItem.price * existingItem.quantity
+        
+        newCartItems[existingItemIndex] = existingItem
+        return newCartItems
+      })
+    } else {
+      // New product - create new cart item
+      const selectedColors: {[key: string]: number} = {}
+      Object.entries(selections).forEach(([color, quantity]) => {
+        if (quantity > 0) {
+          selectedColors[color] = quantity
+        }
+      })
+      
+      const newCartItem = {
+        id: productWithPrice.id.toString(),
+        product: productWithPrice,
+        quantity: totalQuantity,
+        selectedColors: Object.keys(selectedColors).length > 0 ? selectedColors : null,
+        price: productWithPrice.price || 0,
+        total: (productWithPrice.price || 0) * totalQuantity
+      }
+      
+      setCartItems(prev => [...prev, newCartItem])
+    }
   }
 
   const handleProductClick = (product: any) => {
@@ -537,6 +666,14 @@ export default function POSPage() {
         alert('يجب تحديد المورد والمخزن والسجل أولاً قبل إضافة المنتجات للسلة')
         return
       }
+    } else if (isTransferMode) {
+      if (!transferFromLocation || !transferToLocation) {
+        alert('يجب تحديد مصدر ووجهة النقل أولاً')
+        return
+      }
+      // Handle transfer mode product selection
+      handleTransferProductClick(product)
+      return
     } else {
       if (!hasRequiredForCart()) {
         alert('يجب تحديد الفرع أولاً قبل إضافة المنتجات للسلة')
@@ -567,7 +704,16 @@ export default function POSPage() {
   // Handle invoice creation
   const handleCreateInvoice = async () => {
     // Validate based on current mode
-    if (isPurchaseMode) {
+    if (isTransferMode) {
+      if (!transferFromLocation || !transferToLocation) {
+        alert('يجب تحديد مصدر ووجهة النقل قبل تأكيد النقل')
+        return
+      }
+      if (!selections.record) {
+        alert('يجب تحديد السجل أولاً قبل إنشاء فاتورة النقل')
+        return
+      }
+    } else if (isPurchaseMode) {
       if (!hasRequiredForPurchase()) {
         alert('يجب تحديد السجل والمورد والمخزن قبل تأكيد الطلب')
         return
@@ -580,9 +726,11 @@ export default function POSPage() {
     }
 
     if (cartItems.length === 0) {
-      const emptyCartMessage = isReturnMode 
-        ? (isPurchaseMode ? 'لا يمكن إنشاء مرتجع شراء بدون منتجات' : 'لا يمكن إنشاء مرتجع بيع بدون منتجات')
-        : (isPurchaseMode ? 'لا يمكن إنشاء فاتورة شراء بدون منتجات' : 'لا يمكن إنشاء فاتورة بدون منتجات')
+      const emptyCartMessage = isTransferMode
+        ? 'لا يمكن إنشاء فاتورة نقل بدون منتجات'
+        : isReturnMode 
+          ? (isPurchaseMode ? 'لا يمكن إنشاء مرتجع شراء بدون منتجات' : 'لا يمكن إنشاء مرتجع بيع بدون منتجات')
+          : (isPurchaseMode ? 'لا يمكن إنشاء فاتورة شراء بدون منتجات' : 'لا يمكن إنشاء فاتورة بدون منتجات')
       alert(emptyCartMessage)
       return
     }
@@ -590,7 +738,35 @@ export default function POSPage() {
     setIsProcessingInvoice(true)
 
     try {
-      if (isPurchaseMode) {
+      if (isTransferMode) {
+        // Handle transfer invoice creation
+        const transferInvoice = await createTransferInvoice({
+          cartItems: cartItems,
+          transferFromLocation,
+          transferToLocation,
+          record: selections.record
+        })
+
+        // Store transfer invoice data for printing (with orange theme)
+        setLastInvoiceData({
+          invoiceNumber: transferInvoice.invoiceNumber,
+          totalAmount: 0, // No amount in transfer
+          cartItems: cartItems,
+          isTransfer: true,
+          date: new Date(),
+          fromLocation: transferFromLocation,
+          toLocation: transferToLocation,
+          transferType: 'transfer'
+        })
+
+        // Show print confirmation modal
+        setShowPrintReceiptModal(true)
+        
+        // Clear cart and exit transfer mode
+        clearCart()
+        exitTransferMode()
+        
+      } else if (isPurchaseMode) {
         // Handle purchase invoice creation (or return)
         const result = await createPurchaseInvoice({
           cartItems: cartItems as CartItem[],
@@ -695,6 +871,48 @@ export default function POSPage() {
     clearCart()
   }
 
+  // Transfer Mode Functions
+  const handleTransferModeToggle = () => {
+    // Clear existing modes and cart when starting transfer mode
+    setIsPurchaseMode(false)
+    setIsReturnMode(false)
+    clearCart()
+    
+    // Reset transfer locations
+    setTransferFromLocation(null)
+    setTransferToLocation(null)
+    
+    // Open transfer location selection modal
+    setIsTransferLocationModalOpen(true)
+  }
+
+  const handleTransferLocationConfirm = (fromLocation: any, toLocation: any) => {
+    setTransferFromLocation(fromLocation)
+    setTransferToLocation(toLocation)
+    setIsTransferMode(true)
+    setIsTransferLocationModalOpen(false)
+  }
+
+  const exitTransferMode = () => {
+    setIsTransferMode(false)
+    setTransferFromLocation(null)
+    setTransferToLocation(null)
+    clearCart()
+  }
+
+  const handleTransferProductClick = async (product: any) => {
+    setModalProduct(product)
+    
+    console.log('نقل المنتج:', product)
+    console.log('من:', transferFromLocation)
+    console.log('إلى:', transferToLocation)
+    
+    // Always use ColorSelectionModal for consistency in transfer mode
+    // This modal will handle products with or without colors properly
+    setShowColorSelectionModal(true)
+  }
+
+
   const toggleSupplierModal = () => {
     setIsSupplierModalOpen(!isSupplierModalOpen)
   }
@@ -709,17 +927,8 @@ export default function POSPage() {
   }
 
   const handleQuickAddToCart = (productData: any) => {
-    // Create cart item from the quick add product data
-    const cartItem: CartItem = {
-      id: `${productData.id}-${Date.now()}`,
-      product: productData,
-      quantity: productData.quantity,
-      selectedColors: null, // No color selection in purchase mode
-      price: productData.price,
-      total: productData.price * productData.quantity
-    }
-    
-    setCartItems(prev => [...prev, cartItem])
+    // Use the main handleAddToCart function to ensure consistent grouping
+    handleAddToCart(productData, productData.quantity)
   }
 
   // Check if all required selections are made for purchase mode
@@ -729,7 +938,9 @@ export default function POSPage() {
 
   // Check if all required selections are made (works for both modes)
   const hasAllRequiredSelections = () => {
-    if (isPurchaseMode) {
+    if (isTransferMode) {
+      return transferFromLocation && transferToLocation && selections.record
+    } else if (isPurchaseMode) {
       return hasRequiredForPurchase()
     } else {
       return hasRequiredForSale()
@@ -1124,7 +1335,10 @@ export default function POSPage() {
               <div className="h-8 w-px bg-gray-600 mx-2"></div>
 
               {/* Other Action Buttons */}
-              <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+              <button 
+                onClick={() => setShowColumnsModal(true)}
+                className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+              >
                 <TableCellsIcon className="h-5 w-5 mb-1" />
                 <span className="text-sm">الأعمدة</span>
               </button>
@@ -1137,7 +1351,14 @@ export default function POSPage() {
                 <span className="text-sm">التاريخ</span>
               </button>
 
-              <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+              <button 
+                onClick={handleTransferModeToggle}
+                className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] transition-all ${
+                  isTransferMode
+                    ? 'text-orange-400 hover:text-orange-300'
+                    : 'text-gray-300 hover:text-white'
+                }`}
+              >
                 <ArrowsRightLeftIcon className="h-5 w-5 mb-1" />
                 <span className="text-sm">نقل البضاعة</span>
               </button>
@@ -1193,6 +1414,20 @@ export default function POSPage() {
                   >
                     <XMarkIcon className="h-5 w-5 mb-1" />
                     <span className="text-sm">إنهاء الوضع</span>
+                  </button>
+                </div>
+              ) : isTransferMode ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-orange-400 text-sm font-medium">وضع النقل مفعل</span>
+                  <div className="text-xs text-gray-300">
+                    من: {transferFromLocation?.name} → إلى: {transferToLocation?.name}
+                  </div>
+                  <button 
+                    onClick={exitTransferMode}
+                    className="flex flex-col items-center p-2 text-red-400 hover:text-red-300 cursor-pointer min-w-[80px] transition-all"
+                  >
+                    <XMarkIcon className="h-5 w-5 mb-1" />
+                    <span className="text-sm">إنهاء النقل</span>
                   </button>
                 </div>
               ) : (
@@ -1318,7 +1553,7 @@ export default function POSPage() {
           ) : viewMode === 'table' ? (
             <ResizableTable
               className="h-full w-full"
-              columns={dynamicTableColumns}
+              columns={visibleTableColumns}
               data={filteredProducts}
               selectedRowId={selectedProduct?.id || null}
               onRowClick={(product, index) => {
@@ -1534,40 +1769,64 @@ export default function POSPage() {
                       )}
                       
                       <div className="flex justify-between">
-                        <span className="text-gray-400">الكمية الإجمالية:</span>
+                        <span className="text-gray-400">{isTransferMode ? 'الكمية:' : 'الكمية الإجمالية:'}</span>
                         <EditableField
                           value={item.quantity}
                           type="number"
                           onUpdate={(newQuantity) => {
-                            setCartItems(prev => prev.map(cartItem => 
-                              cartItem.id === item.id 
-                                ? { ...cartItem, quantity: newQuantity, total: cartItem.price * newQuantity }
-                                : cartItem
-                            ))
+                            setCartItems(prev => prev.map(cartItem => {
+                              if (cartItem.id === item.id) {
+                                // Calculate the ratio of change for proportional color updates
+                                const ratio = newQuantity / cartItem.quantity;
+                                let updatedColors: {[key: string]: number} | null = null;
+                                
+                                // If we have selected colors, update them proportionally
+                                if (cartItem.selectedColors) {
+                                  updatedColors = {};
+                                  Object.entries(cartItem.selectedColors).forEach(([color, quantity]: [string, any]) => {
+                                    updatedColors![color] = Math.max(1, Math.round(quantity * ratio));
+                                  });
+                                }
+                                
+                                return { 
+                                  ...cartItem, 
+                                  quantity: newQuantity, 
+                                  selectedColors: updatedColors,
+                                  total: isTransferMode ? 0 : cartItem.price * newQuantity 
+                                }
+                              }
+                              return cartItem
+                            }))
                           }}
                           className="text-white font-medium text-right bg-transparent border-none outline-none w-16 hover:bg-gray-600/20 rounded px-1"
                         />
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">سعر الوحدة:</span>
-                        <EditableField
-                          value={item.price}
-                          type="number" 
-                          step="0.01"
-                          onUpdate={(newPrice) => {
-                            setCartItems(prev => prev.map(cartItem => 
-                              cartItem.id === item.id 
-                                ? { ...cartItem, price: newPrice, total: cartItem.quantity * newPrice }
-                                : cartItem
-                            ))
-                          }}
-                          className="text-blue-400 font-medium text-right bg-transparent border-none outline-none w-16 hover:bg-gray-600/20 rounded px-1"
-                        />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">الإجمالي:</span>
-                        <span className="text-green-400 font-medium">{item.total.toFixed(2)} ريال</span>
-                      </div>
+                      
+                      {/* Hide price and total in transfer mode */}
+                      {!isTransferMode && (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">سعر الوحدة:</span>
+                            <EditableField
+                              value={item.price}
+                              type="number" 
+                              step="0.01"
+                              onUpdate={(newPrice) => {
+                                setCartItems(prev => prev.map(cartItem => 
+                                  cartItem.id === item.id 
+                                    ? { ...cartItem, price: newPrice, total: cartItem.quantity * newPrice }
+                                    : cartItem
+                                ))
+                              }}
+                              className="text-blue-400 font-medium text-right bg-transparent border-none outline-none w-16 hover:bg-gray-600/20 rounded px-1"
+                            />
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">الإجمالي:</span>
+                            <span className="text-green-400 font-medium">{item.total.toFixed(2)} ريال</span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1579,10 +1838,28 @@ export default function POSPage() {
         {/* Cart Footer */}
         <div className="p-4 border-t border-gray-600 bg-[#2B3544]">
           <div className="space-y-3 mb-4">
-            <div className="flex justify-between font-semibold text-lg">
-              <span className="text-white">الإجمالي:</span>
-              <span className="text-green-400 font-bold">{cartTotal.toFixed(2)} ريال</span>
-            </div>
+            {/* Show total only in non-transfer modes */}
+            {!isTransferMode && (
+              <div className="flex justify-between font-semibold text-lg">
+                <span className="text-white">الإجمالي:</span>
+                <span className="text-green-400 font-bold">{cartTotal.toFixed(2)} ريال</span>
+              </div>
+            )}
+            
+            {/* Transfer mode summary */}
+            {isTransferMode && (
+              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-orange-400 font-medium">وضع النقل</span>
+                  <span className="text-white font-bold">
+                    {cartItems.reduce((sum, item) => sum + item.quantity, 0)} قطعة
+                  </span>
+                </div>
+                <div className="text-xs text-gray-300">
+                  من: {transferFromLocation?.name} → إلى: {transferToLocation?.name}
+                </div>
+              </div>
+            )}
             
             {/* Selection Status */}
             {!hasAllRequiredSelections() && (
@@ -1619,22 +1896,28 @@ export default function POSPage() {
           <button 
             disabled={cartItems.length === 0 || !hasAllRequiredSelections() || isProcessingInvoice}
             className={`w-full py-3 rounded-lg font-semibold transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed text-white ${
-              isReturnMode 
-                ? (isPurchaseMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700')
-                : 'bg-green-600 hover:bg-green-700'
+              isTransferMode
+                ? 'bg-orange-600 hover:bg-orange-700'
+                : isReturnMode 
+                  ? (isPurchaseMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700')
+                  : 'bg-green-600 hover:bg-green-700'
             }`}
             onClick={handleCreateInvoice}
           >
             {isProcessingInvoice 
-              ? (isReturnMode 
-                  ? (isPurchaseMode ? 'جاري معالجة مرتجع الشراء...' : 'جاري معالجة مرتجع البيع...') 
-                  : (isPurchaseMode ? 'جاري إنشاء فاتورة الشراء...' : 'جاري إنشاء الفاتورة...')
+              ? (isTransferMode
+                  ? 'جاري إنشاء فاتورة النقل...'
+                  : isReturnMode 
+                    ? (isPurchaseMode ? 'جاري معالجة مرتجع الشراء...' : 'جاري معالجة مرتجع البيع...') 
+                    : (isPurchaseMode ? 'جاري إنشاء فاتورة الشراء...' : 'جاري إنشاء الفاتورة...')
                 ) 
               : !hasAllRequiredSelections() 
                 ? 'يجب إكمال التحديدات' 
-                : isReturnMode
-                  ? (isPurchaseMode ? `مرتجع شراء (${cartItems.length})` : `مرتجع بيع (${cartItems.length})`)
-                  : (isPurchaseMode ? `تأكيد الشراء (${cartItems.length})` : `تأكيد الطلب (${cartItems.length})`)
+                : isTransferMode
+                  ? `تأكيد النقل (${cartItems.length})`
+                  : isReturnMode
+                    ? (isPurchaseMode ? `مرتجع شراء (${cartItems.length})` : `مرتجع بيع (${cartItems.length})`)
+                    : (isPurchaseMode ? `تأكيد الشراء (${cartItems.length})` : `تأكيد الطلب (${cartItems.length})`)
             }
           </button>
         </div>
@@ -1675,17 +1958,14 @@ export default function POSPage() {
           setModalProduct(null)
         }}
         product={modalProduct}
+        isTransferMode={isTransferMode}
         onAddToCart={(product, quantity, selectedColor) => {
-          // For simple add to cart (no multiple colors), use the original format
-          const cartItem = {
-            id: `${product.id}-${Date.now()}`,
-            product,
-            quantity,
-            selectedColors: selectedColor ? { [selectedColor]: quantity } : null,
-            price: product.price || 0,
-            total: (product.price || 0) * quantity
+          // Use the main handleAddToCart function to ensure consistent grouping
+          const productWithCorrectPrice = {
+            ...product,
+            price: isTransferMode ? 0 : (product.price || 0)
           }
-          setCartItems(prev => [...prev, cartItem])
+          handleAddToCart(productWithCorrectPrice, quantity, selectedColor)
         }}
       />
 
@@ -1701,6 +1981,8 @@ export default function POSPage() {
         hasRequiredForCart={hasRequiredForCart()}
         selectedBranchId={selections.branch?.id}
         isPurchaseMode={isPurchaseMode}
+        isTransferMode={isTransferMode}
+        transferFromLocation={transferFromLocation}
       />
 
       {/* Supplier Selection Modal */}
@@ -1717,6 +1999,13 @@ export default function POSPage() {
         onClose={() => setIsWarehouseModalOpen(false)}
         onSelect={setSelectedWarehouse}
         selectedWarehouse={selectedWarehouse}
+      />
+
+      {/* Transfer Location Selection Modal */}
+      <TransferLocationModal
+        isOpen={isTransferLocationModalOpen}
+        onClose={() => setIsTransferLocationModalOpen(false)}
+        onConfirm={handleTransferLocationConfirm}
       />
 
       {/* Quick Add Product Modal */}
@@ -2183,6 +2472,7 @@ export default function POSPage() {
         </>
       )}
 
+
       <style jsx global>{`
         /* Enhanced scrollbar styles for table container */
         .custom-scrollbar {
@@ -2244,6 +2534,14 @@ export default function POSPage() {
           display: none;
         }
       `}</style>
+
+      {/* Columns Control Modal */}
+      <ColumnsControlModal
+        isOpen={showColumnsModal}
+        onClose={() => setShowColumnsModal(false)}
+        columns={getAllColumns()}
+        onColumnsChange={handleColumnsChange}
+      />
     </div>
   )
 }

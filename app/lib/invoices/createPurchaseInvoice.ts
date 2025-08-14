@@ -2,6 +2,7 @@
 
 import { supabase } from '../supabase/client'
 import { CartItem } from './createSalesInvoice'
+import { updateProductCostAfterPurchase } from '../utils/purchase-cost-management'
 
 export interface PurchaseInvoiceSelections {
   supplier: any
@@ -292,12 +293,38 @@ export async function createPurchaseInvoice({
       }
     }
 
+    // Update product costs using weighted average cost method
+    console.log('🔄 Updating product costs after purchase...')
+    for (const item of cartItems) {
+      try {
+        const costUpdate = await updateProductCostAfterPurchase(
+          item.product.id,
+          item.quantity,
+          item.price
+        )
+        
+        if (costUpdate) {
+          console.log(`💰 Updated cost for product ${item.product.id}:`, {
+            oldCost: 'calculated from previous data',
+            newCost: costUpdate.newAverageCost,
+            quantity: item.quantity,
+            unitPrice: item.price
+          })
+        } else {
+          console.warn(`⚠️  Failed to update cost for product ${item.product.id}`)
+        }
+      } catch (costError: any) {
+        console.error(`❌ Error updating cost for product ${item.product.id}:`, costError.message)
+        // Don't fail the entire invoice creation if cost update fails
+      }
+    }
+
     return {
       success: true,
       invoiceId: purchaseData.id,
       invoiceNumber: invoiceNumber,
       totalAmount: totalAmount,
-      message: 'تم إنشاء فاتورة الشراء بنجاح'
+      message: 'تم إنشاء فاتورة الشراء وتحديث تكاليف المنتجات بنجاح'
     }
 
   } catch (error: any) {

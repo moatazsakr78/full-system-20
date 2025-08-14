@@ -825,7 +825,12 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       accessor: 'invoice_type', 
       width: 120,
       render: (value: string, item: any) => {
-        const getInvoiceTypeText = (invoiceType: string, transactionType: string) => {
+        const getInvoiceTypeText = (invoiceType: string, transactionType: string, notes: string) => {
+          // Check if this is a transfer invoice by looking for [TRANSFER] prefix in notes
+          if (notes && notes.startsWith('[TRANSFER]')) {
+            return 'نقل'
+          }
+          
           if (transactionType === 'purchase') {
             switch (invoiceType) {
               case 'Purchase Invoice': return 'فاتورة شراء'
@@ -842,7 +847,12 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
           }
         }
         
-        const getInvoiceTypeColor = (invoiceType: string, transactionType: string) => {
+        const getInvoiceTypeColor = (invoiceType: string, transactionType: string, notes: string) => {
+          // Check if this is a transfer invoice by looking for [TRANSFER] prefix in notes
+          if (notes && notes.startsWith('[TRANSFER]')) {
+            return 'bg-orange-600/20 text-orange-400 border border-orange-600'
+          }
+          
           if (transactionType === 'purchase') {
             switch (invoiceType) {
               case 'Purchase Invoice': return 'bg-blue-600/20 text-blue-400 border border-blue-600'
@@ -860,8 +870,8 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
         }
         
         return (
-          <span className={`px-2 py-1 rounded text-xs font-medium ${getInvoiceTypeColor(value, item.transactionType)}`}>
-            {getInvoiceTypeText(value, item.transactionType)}
+          <span className={`px-2 py-1 rounded text-xs font-medium ${getInvoiceTypeColor(value, item.transactionType, item.notes)}`}>
+            {getInvoiceTypeText(value, item.transactionType, item.notes)}
           </span>
         )
       }
@@ -871,7 +881,13 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       header: 'ملاحظات', 
       accessor: 'notes', 
       width: 150,
-      render: (value: string) => <span className="text-gray-400">{value || '-'}</span>
+      render: (value: string) => {
+        // Clean up transfer notes by removing [TRANSFER] prefix
+        const cleanNotes = value && value.startsWith('[TRANSFER]') 
+          ? value.replace('[TRANSFER] ', '') 
+          : value
+        return <span className="text-gray-400">{cleanNotes || '-'}</span>
+      }
     }
   ]
 

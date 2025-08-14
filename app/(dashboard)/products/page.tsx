@@ -8,6 +8,9 @@ import TopHeader from '../../components/layout/TopHeader'
 import CategorySidebar from '../../components/CategorySidebar'
 import ProductSidebar from '../../components/ProductSidebar'
 import CategoriesTreeView from '../../components/CategoriesTreeView'
+import ColorAssignmentModal from '../../components/ColorAssignmentModal'
+import ColorChangeModal from '../../components/ColorChangeModal'
+import ColumnsControlModal from '../../components/ColumnsControlModal'
 import { useBranches, Branch, ProductVariant } from '../../lib/hooks/useBranches'
 import { useProducts, Product } from '../../lib/hooks/useProducts'
 import {
@@ -67,10 +70,31 @@ export default function ProductsPage() {
   const [showProductModal, setShowProductModal] = useState(false)
   const [modalProduct, setModalProduct] = useState<Product | null>(null)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [showColorAssignmentModal, setShowColorAssignmentModal] = useState(false)
+  const [showColorChangeModal, setShowColorChangeModal] = useState(false)
+  const [showColumnsModal, setShowColumnsModal] = useState(false)
+  const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
 
   // Get products and branches data
   const { products, branches, isLoading, error, fetchProducts, createProduct, updateProduct, deleteProduct } = useProducts()
   const { fetchBranchInventory, fetchProductVariants } = useBranches()
+
+  // Initialize visible columns state
+  useEffect(() => {
+    const allColumns = ['index', 'name', 'group', 'totalQuantity', 'buyPrice', 'sellPrice', 'wholeSalePrice', 'sellPrice1', 'sellPrice2', 'sellPrice3', 'sellPrice4', 'location', 'barcode', 'activity']
+    
+    // Add branch columns
+    branches.forEach(branch => {
+      allColumns.push(`branch_${branch.id}`, `min_stock_${branch.id}`, `variants_${branch.id}`)
+    })
+    
+    const initialVisible: {[key: string]: boolean} = {}
+    allColumns.forEach(colId => {
+      initialVisible[colId] = true // Initially all columns are visible
+    })
+    
+    setVisibleColumns(initialVisible)
+  }, [branches])
 
   // Generate dynamic table columns based on branches
   const dynamicTableColumns = useMemo(() => {
@@ -264,9 +288,15 @@ export default function ProductsPage() {
         const assignedQuantity = [...colorVariants, ...shapeVariants].reduce((sum, variant) => sum + variant.quantity, 0)
         const unassignedQuantity = totalInventoryQuantity - assignedQuantity
 
+        // Group variants and consolidate unspecified ones
+        const specifiedVariants = [...colorVariants, ...shapeVariants].filter(v => v.name !== 'غير محدد')
+        const unspecifiedVariants = [...colorVariants, ...shapeVariants].filter(v => v.name === 'غير محدد')
+        const totalUnspecifiedQuantity = unspecifiedVariants.reduce((sum, v) => sum + v.quantity, 0) + unassignedQuantity
+
         return (
           <div className="flex flex-wrap gap-1">
-            {[...colorVariants, ...shapeVariants].map((variant, index) => {
+            {/* Show specified variants (colors, shapes with names) */}
+            {specifiedVariants.map((variant, index) => {
               const bgColor = getVariantColor(variant)
               const textColor = getTextColor(bgColor)
               
@@ -285,12 +315,12 @@ export default function ProductsPage() {
               )
             })}
             
-            {/* Show unassigned quantity if any */}
-            {unassignedQuantity > 0 && (
+            {/* Show consolidated unspecified quantity if any */}
+            {totalUnspecifiedQuantity > 0 && (
               <span
                 className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white bg-gray-600 border border-gray-600"
               >
-                غير محدد ({unassignedQuantity})
+                غير محدد الكلي ({totalUnspecifiedQuantity})
               </span>
             )}
           </div>
@@ -310,8 +340,11 @@ export default function ProductsPage() {
       )
     }
 
-    return [...baseColumns, ...branchColumns, ...minStockColumns, ...variantColumns, activityColumn]
-  }, [branches, products])
+    const allColumns = [...baseColumns, ...branchColumns, ...minStockColumns, ...variantColumns, activityColumn]
+    
+    // Filter columns based on visibility
+    return allColumns.filter(col => visibleColumns[col.id] !== false)
+  }, [branches, products, visibleColumns])
 
   // Refresh products data
   const handleRefresh = () => {
@@ -465,6 +498,50 @@ export default function ProductsPage() {
     setShowDeleteProductConfirm(false)
   }
 
+  // Handle columns modal
+  const handleColumnsChange = (updatedColumns: {id: string, header: string, visible: boolean}[]) => {
+    const newVisibleColumns: {[key: string]: boolean} = {}
+    updatedColumns.forEach(col => {
+      newVisibleColumns[col.id] = col.visible
+    })
+    setVisibleColumns(newVisibleColumns)
+  }
+
+  // Prepare columns data for modal
+  const getAllColumns = useMemo(() => {
+    const baseColumns = [
+      { id: 'index', header: '#' },
+      { id: 'name', header: 'اسم المنتج' },
+      { id: 'group', header: 'المجموعة' },
+      { id: 'totalQuantity', header: 'كمية كلية' },
+      { id: 'buyPrice', header: 'سعر الشراء' },
+      { id: 'sellPrice', header: 'سعر البيع' },
+      { id: 'wholeSalePrice', header: 'سعر الجملة' },
+      { id: 'sellPrice1', header: 'سعر 1' },
+      { id: 'sellPrice2', header: 'سعر 2' },
+      { id: 'sellPrice3', header: 'سعر 3' },
+      { id: 'sellPrice4', header: 'سعر 4' },
+      { id: 'location', header: 'الموقع' },
+      { id: 'barcode', header: 'الباركود' },
+      { id: 'activity', header: 'نشيط' }
+    ]
+
+    // Add branch columns
+    const branchColumns = branches.map(branch => ([
+      { id: `branch_${branch.id}`, header: branch.name },
+      { id: `min_stock_${branch.id}`, header: `منخفض - ${branch.name}` },
+      { id: `variants_${branch.id}`, header: `الأشكال والألوان - ${branch.name}` }
+    ])).flat()
+
+    const allColumns = [...baseColumns, ...branchColumns]
+    
+    return allColumns.map(col => ({
+      id: col.id,
+      header: col.header,
+      visible: visibleColumns[col.id] !== false
+    }))
+  }, [branches, visibleColumns])
+
 
   // Fetch categories for CategorySidebar usage - ADMIN SYSTEM: Show ALL categories
   const fetchCategories = async () => {
@@ -613,10 +690,40 @@ export default function ProductsPage() {
               <span className="text-sm">تصدير</span>
             </button>
 
-            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+            <button 
+              onClick={() => setShowColumnsModal(true)}
+              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+            >
               <TableCellsIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">إدارة الأعمدة</span>
+              <span className="text-sm">الأعمدة</span>
             </button>
+
+            <button 
+              onClick={() => selectedProduct && setShowColorAssignmentModal(true)}
+              className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] ${
+                selectedProduct
+                  ? 'text-gray-300 hover:text-white' 
+                  : 'text-gray-500 cursor-not-allowed'
+              }`}
+              disabled={!selectedProduct}
+            >
+              <TagIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">تحديد اللون</span>
+            </button>
+
+            <button 
+              onClick={() => selectedProduct && setShowColorChangeModal(true)}
+              className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] ${
+                selectedProduct
+                  ? 'text-orange-300 hover:text-orange-100' 
+                  : 'text-gray-500 cursor-not-allowed'
+              }`}
+              disabled={!selectedProduct}
+            >
+              <ArrowPathIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">تغيير اللون</span>
+            </button>
+
           </div>
         </div>
 
@@ -1310,6 +1417,43 @@ export default function ProductsPage() {
           </div>
         </>
       )}
+
+      {/* Color Assignment Modal */}
+      {showColorAssignmentModal && selectedProduct && (
+        <ColorAssignmentModal 
+          product={selectedProduct}
+          branches={branches}
+          isOpen={showColorAssignmentModal}
+          onClose={() => setShowColorAssignmentModal(false)}
+          onAssignmentComplete={() => {
+            fetchProducts() // Refresh products after assignment
+            setShowColorAssignmentModal(false)
+          }}
+        />
+      )}
+
+      {/* Color Change Modal */}
+      {showColorChangeModal && selectedProduct && (
+        <ColorChangeModal 
+          product={selectedProduct}
+          branches={branches}
+          isOpen={showColorChangeModal}
+          onClose={() => setShowColorChangeModal(false)}
+          onColorChangeComplete={() => {
+            fetchProducts() // Refresh products after color change
+            setShowColorChangeModal(false)
+          }}
+        />
+      )}
+
+      {/* Columns Control Modal */}
+      <ColumnsControlModal
+        isOpen={showColumnsModal}
+        onClose={() => setShowColumnsModal(false)}
+        columns={getAllColumns}
+        onColumnsChange={handleColumnsChange}
+      />
+
 
       {/* Remove scrollbars globally */}
       <style jsx global>{`

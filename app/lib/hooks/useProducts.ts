@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../supabase/client'
+import { ProductColor } from '../../../components/website/shared/types'
 
 export interface Product {
   id: string
@@ -63,6 +64,7 @@ export interface Product {
   finalPrice?: number // Price after discount
   isDiscounted?: boolean
   discountLabel?: string
+  colors?: ProductColor[] // Color variants
 }
 
 export interface ProductVariant {
@@ -72,8 +74,10 @@ export interface ProductVariant {
   variant_type: 'color' | 'shape'
   name: string
   quantity: number
-  value?: string | null // Can contain JSON with barcode, color, and image data
-  image_url?: string | null
+  barcode?: string | null // Barcode stored in dedicated field
+  image_url?: string | null // Image URL in dedicated field
+  color_hex?: string | null // Color hex value for color variants
+  color_name?: string | null // Color name for color variants
   created_at?: string | null
   updated_at?: string | null
 }
@@ -186,6 +190,21 @@ export function useProducts() {
               const descriptionData = JSON.parse(product.description)
               productColors = descriptionData.colors || []
               actualDescription = descriptionData.text || ""
+              
+              // Try to assign images from video_url to colors
+              if (productColors.length > 0 && product.video_url) {
+                try {
+                  const additionalImages = JSON.parse(product.video_url)
+                  if (Array.isArray(additionalImages)) {
+                    productColors = productColors.map((color: any, index: number) => ({
+                      ...color,
+                      image: color.image || (additionalImages[index] || undefined)
+                    }))
+                  }
+                } catch (imageParseError) {
+                  // Ignore image parsing errors
+                }
+              }
             }
           } catch (e) {
             // If parsing fails, use original description and empty colors array
@@ -258,24 +277,9 @@ export function useProducts() {
                 variant_type: variant.variant_type as 'color' | 'shape'
               })
               
-              // Extract images from variant value JSON and image_url
+              // Extract images from image_url field
               if (variant.image_url) {
                 allProductImages.push(variant.image_url)
-              }
-              
-              // Parse variant value for additional images
-              try {
-                if (variant.value && variant.value.startsWith('{')) {
-                  const variantData = JSON.parse(variant.value)
-                  if (variantData.image) {
-                    allProductImages.push(variantData.image)
-                  }
-                  if (variantData.images && Array.isArray(variantData.images)) {
-                    allProductImages.push(...variantData.images)
-                  }
-                }
-              } catch (e) {
-                // Ignore parsing errors
               }
             }
           })
@@ -324,6 +328,18 @@ export function useProducts() {
             }
           }
 
+          // Extract color variants for website format and sort by quantity (highest first)
+          const colorVariants = variantsData
+            .filter((variant: any) => variant.variant_type === 'color' && variant.color_hex && variant.color_name)
+            .map((variant: any) => ({
+              id: variant.id,
+              name: variant.color_name,
+              hex: variant.color_hex,
+              image_url: variant.image_url,
+              quantity: variant.quantity || 0
+            }))
+            .sort((a: any, b: any) => b.quantity - a.quantity); // Sort by quantity descending
+
           return {
             ...product,
             description: actualDescription, // Use parsed description text only
@@ -331,6 +347,7 @@ export function useProducts() {
             inventoryData: inventoryByBranch,
             variantsData: variantsByLocation,
             productColors: productColors, // Add parsed colors
+            colors: colorVariants, // Add formatted colors for website
             allImages: uniqueImages, // Add all product images including sub_image
             finalPrice: finalPrice,
             isDiscounted: isDiscountActive,
@@ -370,8 +387,16 @@ export function useProducts() {
           product_code: productData.product_code,
           main_image_url: productData.main_image_url,
           sub_image_url: productData.sub_image_url,
+          video_url: productData.video_url, // MISSING: This stores additional images
           barcodes: productData.barcodes || [],
           unit: productData.unit || 'قطعة',
+          stock: productData.stock,
+          min_stock: productData.min_stock,
+          max_stock: productData.max_stock,
+          location: productData.location,
+          warehouse: productData.warehouse,
+          branch: productData.branch,
+          tax_price: productData.tax_price,
           rating: productData.rating || 0,
           rating_count: productData.rating_count || 0,
           discount_percentage: productData.discount_percentage || 0,
@@ -556,6 +581,21 @@ export function useProducts() {
                   const descriptionData = JSON.parse(newProduct.description)
                   productColors = descriptionData.colors || []
                   actualDescription = descriptionData.text || ""
+                  
+                  // Try to assign images from video_url to colors
+                  if (productColors.length > 0 && newProduct.video_url) {
+                    try {
+                      const additionalImages = JSON.parse(newProduct.video_url)
+                      if (Array.isArray(additionalImages)) {
+                        productColors = productColors.map((color: any, index: number) => ({
+                          ...color,
+                          image: color.image || (additionalImages[index] || undefined)
+                        }))
+                      }
+                    } catch (imageParseError) {
+                      // Ignore image parsing errors
+                    }
+                  }
                 }
               } catch (e) {
                 // If parsing fails, use original description and empty colors array
@@ -601,6 +641,21 @@ export function useProducts() {
                   const descriptionData = JSON.parse(updatedProduct.description)
                   productColors = descriptionData.colors || []
                   actualDescription = descriptionData.text || ""
+                  
+                  // Try to assign images from video_url to colors
+                  if (productColors.length > 0 && updatedProduct.video_url) {
+                    try {
+                      const additionalImages = JSON.parse(updatedProduct.video_url)
+                      if (Array.isArray(additionalImages)) {
+                        productColors = productColors.map((color: any, index: number) => ({
+                          ...color,
+                          image: color.image || (additionalImages[index] || undefined)
+                        }))
+                      }
+                    } catch (imageParseError) {
+                      // Ignore image parsing errors
+                    }
+                  }
                 }
               } catch (e) {
                 // If parsing fails, use original description and empty colors array

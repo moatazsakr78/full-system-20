@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Product } from './shared/types';
+import { Product, ProductColor } from './shared/types';
 
 interface InteractiveProductCardProps {
   product: Product;
@@ -17,6 +17,7 @@ export default function InteractiveProductCard({
 }: InteractiveProductCardProps) {
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [selectedColor, setSelectedColor] = useState<ProductColor | null>(null);
   const imageRef = useRef<HTMLDivElement>(null);
   
   // Create array of all available images (main image + additional images)
@@ -26,20 +27,35 @@ export default function InteractiveProductCard({
       ? [product.image]
       : [];
 
+  // Get current display image - prioritize selected color images, then regular images
+  const getCurrentDisplayImage = () => {
+    if (selectedColor && selectedColor.image_url) {
+      // If a color is selected and has images, create array with color image first, then regular images
+      const colorImages = [selectedColor.image_url, ...allImages.filter(img => img !== selectedColor.image_url)];
+      return colorImages[currentImageIndex] || selectedColor.image_url;
+    }
+    return allImages[currentImageIndex] || product.image || '/placeholder-product.svg';
+  };
+
   // Handle mouse movement over the image to cycle through images
   const handleImageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (allImages.length <= 1) return;
-    
     const imageContainer = imageRef.current;
     if (!imageContainer) return;
+
+    // Get available images array based on selected color
+    const availableImages = selectedColor && selectedColor.image_url
+      ? [selectedColor.image_url, ...allImages.filter(img => img !== selectedColor.image_url)]
+      : allImages;
+    
+    if (availableImages.length <= 1) return;
 
     const rect = imageContainer.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const containerWidth = rect.width;
     
     // Calculate which image to show based on mouse position
-    const imageIndex = Math.floor((mouseX / containerWidth) * allImages.length);
-    const clampedIndex = Math.max(0, Math.min(imageIndex, allImages.length - 1));
+    const imageIndex = Math.floor((mouseX / containerWidth) * availableImages.length);
+    const clampedIndex = Math.max(0, Math.min(imageIndex, availableImages.length - 1));
     
     setCurrentImageIndex(clampedIndex);
   };
@@ -47,6 +63,18 @@ export default function InteractiveProductCard({
   // Reset to first image when mouse leaves
   const handleImageMouseLeave = () => {
     setCurrentImageIndex(0);
+  };
+
+  // Handle color selection with toggle functionality
+  const handleColorSelect = (color: ProductColor, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigation to product page
+    // Toggle color selection - if same color is clicked, deselect it
+    if (selectedColor?.id === color.id) {
+      setSelectedColor(null);
+    } else {
+      setSelectedColor(color);
+    }
+    setCurrentImageIndex(0); // Reset image index when color changes
   };
 
   // Get responsive classes based on device type
@@ -76,7 +104,7 @@ export default function InteractiveProductCard({
   const classes = getResponsiveClasses();
 
   return (
-    <div className={classes.containerClass}>
+    <div className={`${classes.containerClass} flex flex-col`}>
       <div 
         ref={imageRef}
         className="relative mb-4" 
@@ -85,7 +113,7 @@ export default function InteractiveProductCard({
         onMouseLeave={handleImageMouseLeave}
       >
         <img 
-          src={allImages[currentImageIndex] || product.image || '/placeholder-product.svg'}
+          src={getCurrentDisplayImage()}
           alt={product.name} 
           className={classes.imageClass}
           onError={(e) => {
@@ -103,21 +131,51 @@ export default function InteractiveProductCard({
         
       </div>
       
-      <div onClick={() => router.push(`/product/${product.id}`)}>
+      <div onClick={() => router.push(`/product/${product.id}`)} className="flex flex-col">
         <h4 className={classes.titleClass}>{product.name}</h4>
-        <div className="h-10 mb-3">
+        {/* Description with dynamic height based on colors availability */}
+        <div 
+          className="mb-1"
+          style={{ 
+            height: product.colors && product.colors.length > 0 ? '2.5rem' : '3.75rem' 
+          }}
+        >
           <p className={`text-sm overflow-hidden ${
             deviceType === 'desktop' ? 'text-gray-600' : 'text-gray-300'
           }`} style={{
             display: '-webkit-box',
-            WebkitLineClamp: 2,
+            WebkitLineClamp: product.colors && product.colors.length > 0 ? 2 : 3,
             WebkitBoxOrient: 'vertical',
             lineHeight: '1.25rem',
-            maxHeight: '2.5rem'
+            maxHeight: product.colors && product.colors.length > 0 ? '2.5rem' : '3.75rem'
           }}>
             {product.description}
           </p>
         </div>
+        
+        {/* Color Options - Show container for colors, or empty space for alignment */}
+        {product.colors && product.colors.length > 0 ? (
+          <div className="h-8 mb-1 flex items-center">
+            <div className="flex flex-wrap gap-2">
+              {product.colors.map((color) => (
+                <button
+                  key={color.id}
+                  onClick={(e) => handleColorSelect(color, e)}
+                  className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
+                    selectedColor?.id === color.id 
+                      ? 'border-gray-800 scale-110 shadow-md' 
+                      : 'border-gray-300 hover:border-gray-500'
+                  }`}
+                  style={{ backgroundColor: color.hex }}
+                  title={color.name}
+                />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="h-2 mb-1"></div>
+        )}
+        
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             {product.originalPrice && (
@@ -147,7 +205,12 @@ export default function InteractiveProductCard({
       <button 
         onClick={async (e) => {
           e.stopPropagation();
-          await onAddToCart(product);
+          // If no color is selected and colors are available, select the highest quantity color
+          const productToAdd = { 
+            ...product, 
+            selectedColor: selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : null)
+          };
+          await onAddToCart(productToAdd);
         }}
         className={`w-full mt-3 rounded-lg font-medium transition-colors text-white ${
           deviceType === 'mobile' 

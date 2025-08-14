@@ -9,7 +9,8 @@ import {
   UsersIcon,
   CubeIcon,
   ShieldCheckIcon,
-  BuildingStorefrontIcon
+  BuildingStorefrontIcon,
+  MapIcon
 } from '@heroicons/react/24/outline';
 import { useUserProfile } from '@/lib/hooks/useUserProfile';
 
@@ -169,30 +170,29 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
                     <p className="text-xs text-gray-600">إعدادات وإدارة المتجر العامة</p>
                   </div>
                 </button>
+
+                {/* Shipping Details - NEW BUTTON */}
+                <button
+                  onClick={() => {
+                    window.location.href = '/shipping';
+                    onClose();
+                  }}
+                  className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                >
+                  <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                    <MapIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 text-right">
+                    <h3 className="font-semibold text-base text-black">تفاصيل الشحن</h3>
+                    <p className="text-xs text-gray-600">إدارة شركات الشحن وأسعار المحافظات</p>
+                  </div>
+                </button>
               </>
             )}
 
             {/* Regular user buttons (hidden for admins) */}
             {!loading && !isAdmin && (
               <>
-                {/* Orders List */}
-                <button
-                  onClick={() => {
-                    // Handle Orders List navigation
-                    alert('سيتم إضافة صفحة قائمة الطلبات قريباً');
-                    onClose();
-                  }}
-                  className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
-                >
-                  <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
-                    <ClipboardDocumentListIcon className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="flex-1 text-right">
-                    <h3 className="font-semibold text-base text-black">قائمة الطلبات</h3>
-                    <p className="text-xs text-gray-600">عرض وإدارة جميع الطلبات</p>
-                  </div>
-                </button>
-
                 {/* Profile */}
                 <button
                   onClick={() => {
@@ -226,6 +226,24 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
                   <div className="flex-1 text-right">
                     <h3 className="font-semibold text-base text-black">المفضلة</h3>
                     <p className="text-xs text-gray-600">المنتجات والعناصر المفضلة لديك</p>
+                  </div>
+                </button>
+
+                {/* Orders List - New Button Below Favorites */}
+                <button
+                  onClick={() => {
+                    // Navigate to orders page
+                    window.location.href = '/orders';
+                    onClose();
+                  }}
+                  className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                >
+                  <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                    <ClipboardDocumentListIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 text-right">
+                    <h3 className="font-semibold text-base text-black">قائمة الطلبات</h3>
+                    <p className="text-xs text-gray-600">عرض وإدارة جميع الطلبات</p>
                   </div>
                 </button>
               </>
