@@ -232,8 +232,8 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
                 {/* Orders List - New Button Below Favorites */}
                 <button
                   onClick={() => {
-                    // Navigate to orders page
-                    window.location.href = '/orders';
+                    // Navigate to my-orders page
+                    window.location.href = '/my-orders';
                     onClose();
                   }}
                   className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"

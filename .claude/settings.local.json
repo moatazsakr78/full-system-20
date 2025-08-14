@@ -58,7 +58,9 @@
       "Bash(npx supabase sql:*)",
       "Bash(psql:*)",
       "Bash(del example-usage.js)",
-      "Bash(npx playwright:*)"
+      "Bash(npx playwright:*)",
+      "Bash(mv:*)",
+      "Bash(move \"C:\\Users\\pc\\Desktop\\pos-sys7\\app\\(website)\\orders\\page.tsx\" \"C:\\Users\\pc\\Desktop\\pos-sys7\\app\\(website)\\my-orders\\page.tsx\")"
     ],
     "deny": []
   }
