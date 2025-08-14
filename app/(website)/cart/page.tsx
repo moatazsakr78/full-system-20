@@ -377,6 +377,73 @@ const CartPage = () => {
     }
   };
   
+  // Save order to database
+  const saveOrderToDatabase = async (orderData: any) => {
+    try {
+      const { supabase } = await import('../../lib/supabase/client');
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Generate order number
+      const orderNumber = 'ORD-' + Date.now().toString().slice(-8);
+      
+      // Generate a session identifier for non-registered users
+      let userSession = null;
+      if (!user?.id) {
+        // For non-registered users, create a session identifier
+        userSession = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      }
+      
+      // Insert order into orders table
+      const { data: orderResult, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          order_number: orderNumber,
+          customer_id: user?.id || null,
+          user_session: userSession,
+          customer_name: orderData.customer.name,
+          customer_phone: orderData.customer.phone,
+          customer_address: orderData.customer.address,
+          total_amount: orderData.total,
+          status: 'pending',
+          notes: `الشحن: ${orderData.delivery_method === 'delivery' ? 'توصيل' : 'استلام من المتجر'}${orderData.shipping_details ? ` - ${orderData.shipping_details.company_name} - ${orderData.shipping_details.governorate_name}${orderData.shipping_details.area_name ? ` - ${orderData.shipping_details.area_name}` : ''}` : ''}`
+        })
+        .select('id')
+        .single();
+
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+        throw orderError;
+      }
+
+      // Insert order items
+      const orderItems = orderData.items.map((item: CartItemData) => ({
+        order_id: orderResult.id,
+        product_id: item.product_id, // Use product_id instead of item.id
+        quantity: item.quantity,
+        unit_price: item.price
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) {
+        console.error('Error creating order items:', itemsError);
+        // If order items failed, delete the order to keep data consistent
+        await supabase.from('orders').delete().eq('id', orderResult.id);
+        throw itemsError;
+      }
+
+      console.log('Order saved successfully with ID:', orderResult.id);
+      
+    } catch (error) {
+      console.error('Error saving order to database:', error);
+      throw error;
+    }
+  };
+
   const handleConfirmOrder = async () => {
     try {
       if (cartItems.length === 0) {
@@ -454,6 +521,10 @@ const CartPage = () => {
       };
       
       console.log('Order confirmed:', orderData);
+      
+      // Save order to database
+      await saveOrderToDatabase(orderData);
+      
       alert('تم تأكيد الطلب بنجاح! سيتم التواصل معك قريباً.');
       
       // Clear cart after confirmation

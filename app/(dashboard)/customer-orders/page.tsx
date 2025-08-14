@@ -1,17 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 
 // Order status type
 type OrderStatus = 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
 
-// Order interface
+// Order interface with customer info
 interface Order {
   id: string;
   date: string;
   total: number;
   status: OrderStatus;
+  customerName: string;
+  customerPhone?: string;
+  customerAddress?: string;
   items: {
     id: string;
     name: string;
@@ -37,8 +39,7 @@ const statusColors: Record<OrderStatus, string> = {
   cancelled: '#6B7280' // Gray
 };
 
-export default function OrdersPage() {
-  const router = useRouter();
+export default function CustomerOrdersPage() {
   const [activeTab, setActiveTab] = useState<'completed' | 'pending'>('completed');
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
@@ -53,11 +54,8 @@ export default function OrdersPage() {
       try {
         const { supabase } = await import('../../lib/supabase/client');
         
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        // Get orders with their items and product details for current user
-        let query = supabase
+        // Get all orders with their items and product details for all customers
+        const { data: ordersData, error: ordersError } = await supabase
           .from('orders')
           .select(`
             id,
@@ -79,18 +77,7 @@ export default function OrdersPage() {
                 main_image_url
               )
             )
-          `);
-          
-        // If user is logged in, filter by user ID, otherwise show orders for current session
-        if (user?.id) {
-          query = query.eq('customer_id', user.id);
-        } else {
-          // For non-logged in users, we could use session storage to track their orders
-          // For now, we'll show no orders unless they're logged in
-          query = query.eq('customer_id', 'no-user-logged-in');
-        }
-        
-        const { data: ordersData, error: ordersError } = await query
+          `)
           .order('created_at', { ascending: false });
 
         if (ordersError) {
@@ -106,6 +93,9 @@ export default function OrdersPage() {
             date: order.created_at.split('T')[0], // Extract date part
             total: parseFloat(order.total_amount),
             status: order.status,
+            customerName: order.customer_name || 'عميل غير محدد',
+            customerPhone: order.customer_phone,
+            customerAddress: order.customer_address,
             items: order.order_items.map((item: any) => ({
               id: item.id.toString(),
               name: item.products?.name || 'منتج غير معروف',
@@ -137,8 +127,8 @@ export default function OrdersPage() {
       filtered = orders.filter(order => order.status !== 'completed');
     }
 
-    // Filter by date range for completed orders
-    if (activeTab === 'completed' && (dateFrom || dateTo)) {
+    // Filter by date range for both tabs
+    if (dateFrom || dateTo) {
       filtered = filtered.filter(order => {
         const orderDate = new Date(order.date);
         const fromDate = dateFrom ? new Date(dateFrom) : null;
@@ -179,7 +169,7 @@ export default function OrdersPage() {
       <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#c0c0c0'}}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{borderBottomColor: '#5D1F1F'}}></div>
-          <p className="text-gray-600">جاري تحميل الطلبات...</p>
+          <p className="text-gray-600">جاري تحميل طلبات العملاء...</p>
         </div>
       </div>
     );
@@ -212,7 +202,7 @@ export default function OrdersPage() {
           <div className="max-w-[80%] mx-auto px-4 flex items-center justify-between min-h-[80px] w-full">
             <div className="flex items-center gap-8">
               <button
-                onClick={() => router.back()}
+                onClick={() => window.history.back()}
                 className="flex items-center gap-2 text-white hover:text-gray-300 transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -262,45 +252,43 @@ export default function OrdersPage() {
           </button>
         </div>
 
-        {/* Date Filter (only for completed orders) */}
-        {activeTab === 'completed' && (
-          <div className="bg-white rounded-lg p-6 mb-6 shadow-lg">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">فلتر التاريخ</h3>
-            <div className="flex flex-wrap gap-4">
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-600 mb-1">من تاريخ</label>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                  style={{"--tw-ring-color": "#5D1F1F"} as React.CSSProperties}
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm text-gray-600 mb-1">إلى تاريخ</label>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                  style={{"--tw-ring-color": "#5D1F1F"} as React.CSSProperties}
-                />
-              </div>
-              <div className="flex items-end">
-                <button
-                  onClick={() => {
-                    setDateFrom('');
-                    setDateTo('');
-                  }}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  مسح الفلتر
-                </button>
-              </div>
+        {/* Date Filter (for both tabs) */}
+        <div className="bg-white rounded-lg p-6 mb-6 shadow-lg">
+          <h3 className="text-lg font-semibold mb-4 text-gray-800">فلتر التاريخ</h3>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col">
+              <label className="text-sm text-gray-600 mb-1">من تاريخ</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
+                style={{"--tw-ring-color": "#5D1F1F"} as React.CSSProperties}
+              />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-sm text-gray-600 mb-1">إلى تاريخ</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
+                style={{"--tw-ring-color": "#5D1F1F"} as React.CSSProperties}
+              />
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  setDateFrom('');
+                  setDateTo('');
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                مسح الفلتر
+              </button>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Orders List */}
         <div className="space-y-4">
@@ -310,25 +298,12 @@ export default function OrdersPage() {
               <h3 className="text-xl font-semibold text-gray-600 mb-2">
                 {activeTab === 'completed' ? 'لا توجد طلبات منفذة' : 'لا توجد طلبات قيد التنفيذ'}
               </h3>
-              <p className="text-gray-500 mb-4">
+              <p className="text-gray-500">
                 {activeTab === 'completed' 
-                  ? 'لم تقم بأي طلبات مكتملة بعد' 
-                  : 'جميع طلباتك مكتملة'
+                  ? 'لم يتم تنفيذ أي طلبات بعد' 
+                  : 'جميع الطلبات مكتملة'
                 }
               </p>
-              <button
-                onClick={() => window.location.href = '/'}
-                className="px-6 py-2 rounded-lg text-white transition-colors"
-                style={{backgroundColor: '#5d1f1f'}}
-                onMouseEnter={(e) => {
-                  (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
-                }}
-                onMouseLeave={(e) => {
-                  (e.target as HTMLButtonElement).style.backgroundColor = '#5d1f1f';
-                }}
-              >
-                تصفح المنتجات
-              </button>
             </div>
           ) : (
             filteredOrders.map((order) => {
@@ -356,6 +331,10 @@ export default function OrdersPage() {
                       <div>
                         <h3 className="text-lg font-semibold text-gray-800">طلب رقم: {order.id}</h3>
                         <p className="text-gray-600">التاريخ: {new Date(order.date).toLocaleDateString('ar-SA')}</p>
+                        <p className="text-blue-600 font-medium">العميل: {order.customerName}</p>
+                        {order.customerPhone && (
+                          <p className="text-gray-500 text-sm">الهاتف: {order.customerPhone}</p>
+                        )}
                       </div>
                     </div>
                     
@@ -373,6 +352,16 @@ export default function OrdersPage() {
                   {/* Order Items - Collapsible */}
                   {isExpanded && (
                     <div className="px-6 pb-6 border-t border-gray-200">
+                      {/* Customer Address */}
+                      {order.customerAddress && (
+                        <div className="pt-4 pb-2">
+                          <p className="text-sm text-gray-600">
+                            <span className="font-medium">العنوان:</span> {order.customerAddress}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Order Items */}
                       <div className="pt-4 space-y-3">
                         {order.items.map((item) => (
                           <div key={item.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">

@@ -16,7 +16,8 @@ import {
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   XMarkIcon,
-  MapIcon
+  MapIcon,
+  ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline'
 
 const sidebarItems = [
@@ -26,6 +27,7 @@ const sidebarItems = [
   { href: '/inventory', label: 'المخزون', icon: ArchiveBoxIcon },
   { href: '/customers', label: 'العملاء', icon: UserGroupIcon },
   { href: '/suppliers', label: 'الموردين', icon: TruckIcon },
+  { href: '/customer-orders', label: 'طلبات العملاء', icon: ClipboardDocumentListIcon },
   { href: '/records', label: 'السجلات', icon: DocumentTextIcon },
   { href: '/reports', label: 'التقارير', icon: ChartBarIcon },
   { href: '/permissions', label: 'الصلاحيات', icon: ShieldCheckIcon },
