@@ -9,6 +9,7 @@ type OrderStatus = 'pending' | 'processing' | 'shipped' | 'completed' | 'cancell
 // Order interface
 interface Order {
   id: string;
+  orderId: string; // Added database ID
   date: string;
   total: number;
   status: OrderStatus;
@@ -18,6 +19,7 @@ interface Order {
     quantity: number;
     price: number;
     image?: string;
+    isPrepared?: boolean; // Added for preparation tracking
   }[];
 }
 
@@ -46,6 +48,11 @@ export default function OrdersPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  
+  // New state for preparation mode
+  const [showStartPreparationModal, setShowStartPreparationModal] = useState(false);
+  const [showCompletePreparationModal, setShowCompletePreparationModal] = useState(false);
+  const [selectedOrderForAction, setSelectedOrderForAction] = useState<Order | null>(null);
 
   // Load orders from database
   useEffect(() => {
@@ -103,6 +110,7 @@ export default function OrdersPage() {
           .filter((order: any) => order.order_items && order.order_items.length > 0) // Filter out empty orders
           .map((order: any) => ({
             id: order.order_number,
+            orderId: order.id, // Store database ID
             date: order.created_at.split('T')[0], // Extract date part
             total: parseFloat(order.total_amount),
             status: order.status,
@@ -111,7 +119,8 @@ export default function OrdersPage() {
               name: item.products?.name || 'منتج غير معروف',
               quantity: item.quantity,
               price: parseFloat(item.unit_price),
-              image: item.products?.main_image_url || undefined
+              image: item.products?.main_image_url || undefined,
+              isPrepared: false // Initialize as not prepared
             }))
           }));
 
@@ -172,6 +181,97 @@ export default function OrdersPage() {
       newExpandedOrders.add(orderId);
     }
     setExpandedOrders(newExpandedOrders);
+  };
+
+  // Start preparation of an order
+  const handleStartPreparation = async (order: Order) => {
+    try {
+      const { supabase } = await import('../../lib/supabase/client');
+      
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'processing' } as any)
+        .eq('id', order.orderId);
+
+      if (error) {
+        console.error('Error updating order status:', error);
+        return;
+      }
+
+      // Update local state
+      setOrders(prevOrders => 
+        prevOrders.map(o => 
+          o.orderId === order.orderId 
+            ? { ...o, status: 'processing' as OrderStatus }
+            : o
+        )
+      );
+
+      setShowStartPreparationModal(false);
+      setSelectedOrderForAction(null);
+    } catch (error) {
+      console.error('Error starting preparation:', error);
+    }
+  };
+
+  // Complete preparation of an order
+  const handleCompletePreparation = async (order: Order) => {
+    try {
+      const { supabase } = await import('../../lib/supabase/client');
+      
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'completed' } as any)
+        .eq('id', order.orderId);
+
+      if (error) {
+        console.error('Error updating order status:', error);
+        return;
+      }
+
+      // Update local state
+      setOrders(prevOrders => 
+        prevOrders.map(o => 
+          o.orderId === order.orderId 
+            ? { ...o, status: 'completed' as OrderStatus }
+            : o
+        )
+      );
+
+      setShowCompletePreparationModal(false);
+      setSelectedOrderForAction(null);
+    } catch (error) {
+      console.error('Error completing preparation:', error);
+    }
+  };
+
+  // Toggle item preparation status
+  const toggleItemPreparation = (orderId: string, itemId: string) => {
+    setOrders(prevOrders => 
+      prevOrders.map(order => 
+        order.orderId === orderId 
+          ? {
+              ...order,
+              items: order.items.map(item => 
+                item.id === itemId 
+                  ? { ...item, isPrepared: !item.isPrepared }
+                  : item
+              )
+            }
+          : order
+      )
+    );
+  };
+
+  // Check if all items in an order are prepared
+  const areAllItemsPrepared = (order: Order) => {
+    return order.items.every(item => item.isPrepared);
+  };
+
+  // Get preparation progress percentage
+  const getPreparationProgress = (order: Order) => {
+    const preparedItems = order.items.filter(item => item.isPrepared).length;
+    return Math.round((preparedItems / order.items.length) * 100);
   };
 
   if (loading) {
@@ -373,9 +473,37 @@ export default function OrdersPage() {
                   {/* Order Items - Collapsible */}
                   {isExpanded && (
                     <div className="px-6 pb-6 border-t border-gray-200">
+                      {/* Preparation Progress Bar for processing orders */}
+                      {order.status === 'processing' && (
+                        <div className="pt-4 pb-3">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-medium text-gray-700">تقدم التحضير</span>
+                            <span className="text-sm font-medium text-gray-700">{getPreparationProgress(order)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-3">
+                            <div 
+                              className="bg-green-600 h-3 rounded-full transition-all duration-300" 
+                              style={{ width: `${getPreparationProgress(order)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="pt-4 space-y-3">
                         {order.items.map((item) => (
                           <div key={item.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                            {/* Preparation Checkbox for processing orders */}
+                            {order.status === 'processing' && (
+                              <div className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={item.isPrepared || false}
+                                  onChange={() => toggleItemPreparation(order.orderId, item.id)}
+                                  className="w-5 h-5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+                                />
+                              </div>
+                            )}
+                            
                             <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
                               {item.image ? (
                                 <img 
@@ -388,7 +516,9 @@ export default function OrdersPage() {
                               )}
                             </div>
                             <div className="flex-1">
-                              <h4 className="font-semibold text-gray-800">{item.name}</h4>
+                              <h4 className={`font-semibold ${item.isPrepared ? 'text-green-600 line-through' : 'text-gray-800'}`}>
+                                {item.name}
+                              </h4>
                               <p className="text-gray-600">الكمية: {item.quantity}</p>
                             </div>
                             <div className="text-left">
@@ -398,6 +528,48 @@ export default function OrdersPage() {
                           </div>
                         ))}
                       </div>
+
+                      {/* Action Buttons */}
+                      <div className="pt-4 border-t border-gray-200 mt-4 flex gap-3 justify-end">
+                        {/* Start Preparation Button - Only for pending orders */}
+                        {order.status === 'pending' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedOrderForAction(order);
+                              setShowStartPreparationModal(true);
+                            }}
+                            className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm font-medium"
+                          >
+                            بدء التحضير
+                          </button>
+                        )}
+
+                        {/* Complete Preparation Button - Only for processing orders with all items prepared */}
+                        {order.status === 'processing' && areAllItemsPrepared(order) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedOrderForAction(order);
+                              setShowCompletePreparationModal(true);
+                            }}
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium"
+                          >
+                            تم التحضير
+                          </button>
+                        )}
+
+                        {/* View Order Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/order-view/${order.orderId}`);
+                          }}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                        >
+                          عرض الطلب
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -406,6 +578,64 @@ export default function OrdersPage() {
           )}
         </div>
       </main>
+
+      {/* Start Preparation Confirmation Modal */}
+      {showStartPreparationModal && selectedOrderForAction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">تأكيد بدء التحضير</h3>
+            <p className="text-gray-600 mb-6">
+              هل أنت متأكد أنك تريد تفعيل وضع التحضير للطلب رقم: {selectedOrderForAction.id}؟
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowStartPreparationModal(false);
+                  setSelectedOrderForAction(null);
+                }}
+                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={() => handleStartPreparation(selectedOrderForAction)}
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+              >
+                نعم، ابدأ التحضير
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Preparation Confirmation Modal */}
+      {showCompletePreparationModal && selectedOrderForAction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">تأكيد إتمام التحضير</h3>
+            <p className="text-gray-600 mb-6">
+              هل أنت متأكد أنه تم تحضير الطلب؟ سيتم تحويله إلى "تم التحضير"
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowCompletePreparationModal(false);
+                  setSelectedOrderForAction(null);
+                }}
+                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={() => handleCompletePreparation(selectedOrderForAction)}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              >
+                نعم، تم التحضير
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
