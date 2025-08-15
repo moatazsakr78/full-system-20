@@ -177,24 +177,6 @@ export default function CustomerOrdersPage() {
 
   return (
     <div className="min-h-screen text-gray-800" style={{backgroundColor: '#c0c0c0'}}>
-      {/* Hide system blue header */}
-      <style jsx global>{`
-        body {
-          margin-top: 0 !important;
-          padding-top: 0 !important;
-        }
-        html {
-          margin-top: 0 !important;
-          padding-top: 0 !important;
-        }
-        /* Hide any potential system headers */
-        iframe,
-        .system-header,
-        [class*="system"],
-        [class*="navigation"] {
-          display: none !important;
-        }
-      `}</style>
 
       {/* Store Header (Red) */}
       <header className="border-b border-gray-700 py-0 relative z-40" style={{backgroundColor: '#5d1f1f'}}>

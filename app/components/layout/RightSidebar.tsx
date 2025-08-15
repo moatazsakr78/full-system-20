@@ -102,8 +102,8 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
                 {/* Customer Orders (Admin Only) */}
                 <button
                   onClick={() => {
-                    // Handle Customer Orders navigation for admin
-                    alert('سيتم إضافة صفحة طلبات العملاء (للإدارة) قريباً');
+                    // Navigate to customer orders page for admin
+                    window.location.href = '/customer-orders';
                     onClose();
                   }}
                   className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"

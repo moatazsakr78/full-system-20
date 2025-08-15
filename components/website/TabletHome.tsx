@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useProducts, Product as DatabaseProduct } from '../../app/lib/hooks/useProducts';
 import { UserInfo, Product } from './shared/types';
 import AuthButtons from '../../app/components/auth/AuthButtons';
+import RightSidebar from '../../app/components/layout/RightSidebar';
+import { useRightSidebar } from '../../app/lib/hooks/useRightSidebar';
 import { useUserProfile } from '../../lib/hooks/useUserProfile';
 import InteractiveProductCard from './InteractiveProductCard';
 import CategoryCarousel from './CategoryCarousel';
@@ -28,13 +30,15 @@ export default function TabletHome({
   onClearCart 
 }: TabletHomeProps) {
   const router = useRouter();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('الكل');
-  const [isSearchSticky, setIsSearchSticky] = useState(false);
+  const [isCompactHeaderVisible, setIsCompactHeaderVisible] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [websiteProducts, setWebsiteProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  
+  // Use right sidebar hook for the website menu
+  const { isRightSidebarOpen, toggleRightSidebar, closeRightSidebar } = useRightSidebar();
   
   // Get user profile to check admin status
   const { isAdmin } = useUserProfile();
@@ -111,12 +115,12 @@ export default function TabletHome({
     setIsClient(true);
   }, []);
 
-  // Handle scroll for sticky search
+  // Handle scroll for compact header
   useEffect(() => {
     if (!isClient) return;
     
     const handleScroll = () => {
-      setIsSearchSticky(window.scrollY > 180);
+      setIsCompactHeaderVisible(window.scrollY > 120);
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -148,34 +152,175 @@ export default function TabletHome({
   }
 
   return (
+    <>
+    {/* Right Sidebar for Website Menu */}
+    <RightSidebar isOpen={isRightSidebarOpen} onClose={closeRightSidebar} />
+    
     <div className="min-h-screen text-gray-800" style={{backgroundColor: '#c0c0c0'}}>
-      {/* Tablet Header */}
-      <header className="border-b border-gray-700 py-3 sticky top-0 z-50" style={{backgroundColor: '#5d1f1f'}}>
-        <div className="max-w-[85%] mx-auto px-3 flex items-center justify-between">
-          <button 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="p-2 hover:bg-gray-700 rounded-lg transition-colors md:hidden"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+      {/* Hide system blue header */}
+      <style jsx global>{`
+        body {
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+        }
+        html {
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+        }
+        /* Hide any potential system headers */
+        iframe,
+        .system-header,
+        [class*="system"],
+        [class*="navigation"],
+        [style*="background: #374151"],
+        [style*="background-color: #374151"] {
+          display: none !important;
+        }
+      `}</style>
+      
+      {/* Compact Sticky Header */}
+      {isCompactHeaderVisible && (
+        <header className="fixed top-0 left-0 right-0 border-b border-gray-700 py-2 z-50 transition-all duration-300" style={{backgroundColor: '#5d1f1f'}}>
+          <div className="relative flex items-center min-h-[55px]">
+            {/* Main Compact Content Container */}
+            <div className="max-w-[90%] mx-auto px-4 flex items-center justify-between w-full min-h-[55px]">
+              <div className="flex items-center gap-3">
+                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-12 w-12 object-contain" />
+                <h1 className="text-lg font-bold text-white">El Farouk Group</h1>
+              </div>
+            
+            {/* Compact Search Bar */}
+            <div className="flex-1 max-w-sm mx-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="ابحث عن المنتجات..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white border-0 rounded-full px-4 py-2 pr-10 text-sm text-gray-800 placeholder-gray-500 shadow-sm focus:outline-none focus:ring-1"
+                  style={{"--tw-ring-color": "#5D1F1F"} as React.CSSProperties}
+                  onFocus={(e) => {
+                    e.target.style.boxShadow = '0 0 0 1px #5D1F1F';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+                <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+            
+            {/* Compact Navigation Links */}
+            <nav className="hidden lg:flex gap-4">
+              <a href="#about" className="text-gray-300 hover:text-white transition-colors text-sm">عن المتجر</a>
+              <a href="#offers" className="text-gray-300 hover:text-white transition-colors text-sm">العروض</a>
+              <a href="#categories" className="text-gray-300 hover:text-white transition-colors text-sm">الفئات</a>
+              <a href="#products" className="text-gray-300 hover:text-white transition-colors text-sm">المنتجات</a>
+            </nav>
+            
+            {/* Compact Auth & Cart */}
+            <div className="flex items-center gap-4">
+              <div className="mr-2">
+                <AuthButtons compact />
+              </div>
+              
+              <div className="ml-1">
+                <button 
+                  onClick={() => router.push('/cart')}
+                  className="relative p-2 rounded-lg transition-colors"
+                  onMouseEnter={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
+                  </svg>
+                  {(userInfo.cartCount || 0) > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" style={{color: '#5D1F1F'}}>
+                      {userInfo.cartCount || 0}
+                    </span>
+                  )}
+                </button>
+              </div>
+              </div>
+            </div>
+            
+            {/* Compact Menu Button - Absolute Right Edge, Full Height */}
+            <div className="absolute right-0 top-0 h-full">
+              <button 
+                className="h-full px-4 text-white bg-transparent flex items-center justify-center"
+                onClick={toggleRightSidebar}
+                title="القائمة"
+              >
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </header>
+      )}
+
+      {/* Main Tablet Header */}
+      <header className="border-b border-gray-700 py-0 relative z-40" style={{backgroundColor: '#5d1f1f'}}>
+        <div className="relative flex items-center min-h-[75px]">
+          {/* Main Content Container */}
+          <div className="max-w-[85%] mx-auto px-4 flex items-center justify-between min-h-[75px] w-full">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-16 w-16 object-contain" />
+                <h1 className="text-xl font-bold text-white">El Farouk Group</h1>
+              </div>
+            </div>
           
-          <div className="flex items-center gap-2">
-            <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-10 w-10 object-contain" />
-            <h1 className="text-xl font-bold" style={{color: '#5D1F1F'}}>متجر الفاروق</h1>
+          {/* Search Bar in Header */}
+          <div className="flex-1 max-w-lg mx-6">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="ابحث عن المنتجات..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white border-0 rounded-full px-5 py-2.5 pr-12 text-gray-800 placeholder-gray-500 shadow-md focus:outline-none focus:ring-2 transition-all duration-300"
+                style={{"--tw-ring-color": "#5D1F1F"} as React.CSSProperties}
+                onFocus={(e) => {
+                  e.target.style.boxShadow = '0 0 0 2px #5D1F1F';
+                }}
+                onBlur={(e) => {
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+              <svg className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="mr-4">
-              <AuthButtons compact />
+            <nav className="hidden lg:flex gap-5">
+              <a href="#products" className="text-gray-300 transition-colors font-medium hover:text-[#5D1F1F]">المنتجات</a>
+              <a href="#categories" className="text-gray-300 transition-colors font-medium hover:text-[#5D1F1F]">الفئات</a>
+              <a href="#offers" className="text-gray-300 transition-colors font-medium hover:text-[#5D1F1F]">العروض</a>
+              <a href="#about" className="text-gray-300 transition-colors font-medium hover:text-[#5D1F1F]">عن المتجر</a>
+            </nav>
+          </div>
+          
+          <div className="flex items-center gap-5">
+            {/* Authentication Buttons with margin */}
+            <div className="mr-6">
+              <AuthButtons />
             </div>
             
-            
-            <div className="ml-2">
+            {/* Cart Button pushed to the right */}
+            <div className="ml-3">
               <button 
                 onClick={() => router.push('/cart')}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-white"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-white"
                 style={{backgroundColor: '#5D1F1F'}}
                 onMouseEnter={(e) => {
                   (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
@@ -184,154 +329,36 @@ export default function TabletHome({
                   (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
                 }}
               >
-                <span className="text-sm">السلة ({userInfo.cartCount || 0})</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span>السلة ({userInfo.cartCount || 0})</span>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
                 </svg>
               </button>
             </div>
+            </div>
+          </div>
+          
+          {/* Menu Button - Absolute Right Edge, Full Height */}
+          <div className="absolute right-0 top-0 h-full">
+            <button 
+              className="h-full px-5 text-white bg-transparent flex items-center justify-center"
+              onClick={toggleRightSidebar}
+              title="القائمة"
+            >
+              <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
           </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="bg-gray-700 border-t border-gray-600 md:hidden">
-            <nav className="px-4 py-2 space-y-2">
-              <a href="#products" className="block py-2 px-3 text-gray-300 hover:bg-gray-600 rounded transition-colors hover:text-[#5D1F1F]">المنتجات</a>
-              <a href="#categories" className="block py-2 px-3 text-gray-300 hover:bg-gray-600 rounded transition-colors hover:text-[#5D1F1F]">الفئات</a>
-              <a href="#offers" className="block py-2 px-3 text-gray-300 hover:bg-gray-600 rounded transition-colors hover:text-[#5D1F1F]">العروض</a>
-              <a href="#about" className="block py-2 px-3 text-gray-300 hover:bg-gray-600 rounded transition-colors hover:text-[#5D1F1F]">عن المتجر</a>
-            </nav>
-          </div>
-        )}
       </header>
 
-      {/* Sticky Search Bar */}
-      <div className={`${isSearchSticky ? 'fixed top-16 left-0 right-0 bg-gray-800 border-b border-gray-600 py-3 z-40' : 'bg-gray-800 border-b border-gray-700 py-4'} transition-all duration-300`}>
-        <div className="max-w-[85%] mx-auto px-3">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                placeholder="ابحث عن المنتجات..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  backgroundColor: '#374151',
-                  border: '1px solid #4B5563',
-                  borderRadius: '8px',
-                  padding: '10px 16px',
-                  paddingRight: '40px',
-                  color: 'white',
-                  outline: 'none'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#5D1F1F';
-                  e.target.style.boxShadow = '0 0 0 1px #5D1F1F';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#4B5563';
-                  e.target.style.boxShadow = 'none';
-                }}
-                className="w-full text-white placeholder-gray-400"
-              />
-              <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              style={{
-                backgroundColor: '#374151',
-                border: '1px solid #4B5563',
-                borderRadius: '8px',
-                padding: '10px 12px',
-                color: 'white',
-                fontSize: '14px',
-                outline: 'none'
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#5D1F1F';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#4B5563';
-              }}
-            >
-              <option value="الكل">جميع الفئات</option>
-              {categories.map(category => (
-                <option key={category.id} value={category.name}>{category.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
       {/* Tablet Main Content */}
-      <main className="max-w-[85%] mx-auto px-3 py-6">
-
-        {/* Quick Categories */}
-        <section className="mb-6">
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            <button 
-              onClick={() => setSelectedCategory('الكل')}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '9999px',
-                fontSize: '14px',
-                fontWeight: '500',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s',
-                backgroundColor: selectedCategory === 'الكل' ? '#5D1F1F' : '#1F2937',
-                color: selectedCategory === 'الكل' ? 'white' : '#D1D5DB'
-              }}
-              onMouseEnter={(e) => {
-                if (selectedCategory !== 'الكل') {
-                  (e.target as HTMLButtonElement).style.backgroundColor = '#374151';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (selectedCategory !== 'الكل') {
-                  (e.target as HTMLButtonElement).style.backgroundColor = '#1F2937';
-                }
-              }}
-            >
-              الكل
-            </button>
-            {categories.slice(0, 6).map((category) => (
-              <button 
-                key={category.id}
-                onClick={() => setSelectedCategory(category.name)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '9999px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.2s',
-                  backgroundColor: selectedCategory === category.name ? '#5D1F1F' : '#1F2937',
-                  color: selectedCategory === category.name ? 'white' : '#D1D5DB'
-                }}
-                onMouseEnter={(e) => {
-                  if (selectedCategory !== category.name) {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#374151';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedCategory !== category.name) {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#1F2937';
-                  }
-                }}
-              >
-                {category.name}
-              </button>
-            ))}
-          </div>
-        </section>
+      <main className="max-w-[85%] mx-auto px-4 py-7">
 
         {/* Featured Products */}
-        <section className="mb-6">
-          <h3 className="text-2xl font-bold mb-4 text-black">المنتجات المميزة</h3>
+        <section className="mb-7">
+          <h3 className="text-3xl font-bold mb-5 text-black">المنتجات المميزة</h3>
           {featuredProducts.length > 0 ? (
             <FeaturedProductsCarousel
               products={featuredProducts}
@@ -348,11 +375,20 @@ export default function TabletHome({
           )}
         </section>
 
+        {/* Categories Section */}
+        <section id="categories" className="mb-7">
+          <h3 className="text-3xl font-bold mb-5 text-black">فئات المنتجات</h3>
+          <CategoryCarousel
+            categories={categories}
+            onCategorySelect={setSelectedCategory}
+            itemsPerView={3}
+          />
+        </section>
 
         {/* All Products */}
-        <section id="products" className="mb-6">
-          <h3 className="text-2xl font-bold mb-4 text-black">جميع المنتجات</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <section id="products" className="mb-7">
+          <h3 className="text-3xl font-bold mb-5 text-black">جميع المنتجات</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredProducts.map((product) => (
               <InteractiveProductCard
                 key={product.id}
@@ -369,71 +405,46 @@ export default function TabletHome({
             </button>
           </div>
         </section>
-
-        {/* Featured Categories */}
-        <section id="categories" className="mb-6">
-          <h3 className="text-2xl font-bold mb-4 text-black">فئات المنتجات</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {categories.map((category) => (
-              <div 
-                key={category.id} 
-                className="bg-gray-800 p-4 rounded-lg text-center hover:bg-gray-700 transition-colors cursor-pointer border border-gray-700 group"
-                onClick={() => setSelectedCategory(category.name)}
-              >
-                <div className="relative mb-3">
-                  <img 
-                    src={category.image} 
-                    alt={category.name} 
-                    className="w-full h-32 object-cover rounded-lg"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">{category.icon}</span>
-                  </div>
-                </div>
-                <h4 className="font-semibold text-sm text-white transition-colors" onMouseEnter={(e) => {(e.target as HTMLElement).style.color = '#5D1F1F';}} onMouseLeave={(e) => {(e.target as HTMLElement).style.color = 'white';}}>{category.name}</h4>
-                <p className="text-xs text-gray-400 mt-1">{category.productCount} منتج</p>
-              </div>
-            ))}
-          </div>
-        </section>
       </main>
+    </div>
 
       {/* Tablet Footer */}
-      <footer className="py-6 mt-8" style={{backgroundColor: '#4D4D4D', borderTop: '1px solid #666'}}>
-        <div className="max-w-[85%] mx-auto px-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <footer className="py-7 mt-0 w-full" style={{backgroundColor: '#4D4D4D', borderTop: '1px solid #666'}}>
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <div className="flex items-center gap-3 mb-3">
-                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-6 w-6 object-contain" />
+              <div className="flex items-center gap-3 mb-4">
+                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-7 w-7 object-contain" />
                 <h5 className="font-bold text-lg" style={{color: '#5D1F1F'}}>متجر الفاروق</h5>
               </div>
-              <p className="text-gray-400 text-sm mb-4">متجرك المتكامل للحصول على أفضل المنتجات بأسعار مميزة وجودة عالية</p>
-              <div className="space-y-1 text-gray-400 text-sm">
+              <p className="text-gray-400 mb-4">متجرك المتكامل للحصول على أفضل المنتجات بأسعار مميزة وجودة عالية</p>
+              <div className="space-y-2 text-gray-400">
                 <p>📞 966+123456789</p>
                 <p>✉️ info@elfarouk-store.com</p>
+                <p>📍 الرياض، المملكة العربية السعودية</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h6 className="font-semibold mb-2 text-sm">روابط سريعة</h6>
-                <ul className="space-y-1 text-gray-400 text-sm">
-                  <li><a href="#" className="hover:text-red-400 transition-colors">الرئيسية</a></li>
-                  <li><a href="#" className="hover:text-red-400 transition-colors">المنتجات</a></li>
-                  <li><a href="#" className="hover:text-red-400 transition-colors">من نحن</a></li>
-                </ul>
-              </div>
-              <div>
-                <h6 className="font-semibold mb-2 text-sm">خدمة العملاء</h6>
-                <ul className="space-y-1 text-gray-400 text-sm">
-                  <li><a href="#" className="hover:text-red-400 transition-colors">المساعدة</a></li>
-                  <li><a href="#" className="hover:text-red-400 transition-colors">سياسة الإرجاع</a></li>
-                  <li><a href="#" className="hover:text-red-400 transition-colors">الدفع</a></li>
-                </ul>
-              </div>
+            <div>
+              <h6 className="font-semibold mb-3">روابط سريعة</h6>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">الرئيسية</a></li>
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">المنتجات</a></li>
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">من نحن</a></li>
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">اتصل بنا</a></li>
+              </ul>
+            </div>
+            <div>
+              <h6 className="font-semibold mb-3">خدمة العملاء</h6>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">المساعدة</a></li>
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">سياسة الإرجاع</a></li>
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">الشحن والتوصيل</a></li>
+                <li><a href="#" className="transition-colors hover:text-[#5D1F1F]">الدفع</a></li>
+              </ul>
             </div>
           </div>
         </div>
       </footer>
-    </div>
+    </>
   );
 }
