@@ -140,7 +140,9 @@ export default function InteractiveProductCard({
         <div 
           className="mb-1"
           style={{ 
-            height: product.colors && product.colors.length > 0 ? '2.5rem' : '3.75rem' 
+            height: product.colors && product.colors.length > 0 
+              ? (deviceType === 'tablet' ? '2.75rem' : '2.5rem')
+              : (deviceType === 'tablet' ? '4rem' : '3.75rem')
           }}
         >
           <p className={`text-sm overflow-hidden ${
@@ -150,7 +152,9 @@ export default function InteractiveProductCard({
             WebkitLineClamp: product.colors && product.colors.length > 0 ? 2 : 3,
             WebkitBoxOrient: 'vertical',
             lineHeight: '1.25rem',
-            maxHeight: product.colors && product.colors.length > 0 ? '2.5rem' : '3.75rem'
+            maxHeight: product.colors && product.colors.length > 0 
+              ? (deviceType === 'tablet' ? '2.75rem' : '2.5rem')
+              : (deviceType === 'tablet' ? '4rem' : '3.75rem')
           }}>
             {product.description}
           </p>
@@ -158,13 +162,15 @@ export default function InteractiveProductCard({
         
         {/* Color Options - Show container for colors, or empty space for alignment */}
         {product.colors && product.colors.length > 0 ? (
-          <div className="h-8 mb-1 flex items-center">
-            <div className="flex flex-wrap gap-2">
+          <div className={`${deviceType === 'tablet' ? 'h-10' : 'h-8'} mb-1 flex items-center`}>
+            <div className={`flex flex-wrap ${deviceType === 'tablet' ? 'gap-2.5' : 'gap-2'}`}>
               {product.colors.map((color) => (
                 <button
                   key={color.id}
                   onClick={(e) => handleColorSelect(color, e)}
-                  className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
+                  className={`${
+                    deviceType === 'tablet' ? 'w-7 h-7' : 'w-6 h-6'
+                  } rounded-full border-2 transition-all duration-200 ${
                     selectedColor?.id === color.id 
                       ? 'border-gray-800 scale-110 shadow-md' 
                       : 'border-gray-300 hover:border-gray-500'
@@ -176,7 +182,7 @@ export default function InteractiveProductCard({
             </div>
           </div>
         ) : (
-          <div className="h-2 mb-1"></div>
+          <div className={`${deviceType === 'tablet' ? 'h-3' : 'h-2'} mb-1`}></div>
         )}
         
         <div className="flex items-center justify-between mb-3">

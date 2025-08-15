@@ -49,6 +49,35 @@
     flex-direction: column;
     justify-content: space-between;
   }
+  
+  /* Ensure color options are visible and properly spaced */
+  .tablet-carousel .h-8,
+  [data-device-type="tablet"] .h-8 {
+    height: 2rem !important;
+    margin-bottom: 0.25rem !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  
+  /* Color button styling for tablet */
+  .tablet-carousel button[style*="backgroundColor"],
+  [data-device-type="tablet"] button[style*="backgroundColor"] {
+    width: 1.75rem !important;
+    height: 1.75rem !important;
+    border-radius: 50% !important;
+    border: 2px solid #D1D5DB !important;
+    display: inline-block !important;
+    margin-right: 0.625rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  /* Hover effects for tablet color buttons */
+  .tablet-carousel button[style*="backgroundColor"]:hover,
+  [data-device-type="tablet"] button[style*="backgroundColor"]:hover {
+    border-color: #6B7280 !important;
+    transform: scale(1.1) !important;
+  }
 }
 
 .mobile-carousel .bg-custom-gray {
