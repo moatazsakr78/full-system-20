@@ -21,7 +21,9 @@ interface Order {
     quantity: number;
     price: number;
     image?: string;
+    isPrepared?: boolean;
   }[];
+  preparationProgress?: number;
 }
 
 const statusTranslations: Record<OrderStatus, string> = {
@@ -76,6 +78,7 @@ export default function CustomerOrdersPage() {
               id,
               quantity,
               unit_price,
+              is_prepared,
               products (
                 id,
                 name,
@@ -93,25 +96,90 @@ export default function CustomerOrdersPage() {
         // Transform data to match our Order interface and filter out orders with no items
         const transformedOrders: Order[] = (ordersData || [])
           .filter((order: any) => order.order_items && order.order_items.length > 0) // Filter out empty orders
-          .map((order: any) => ({
-            id: order.order_number,
-            date: order.created_at.split('T')[0], // Extract date part
-            total: parseFloat(order.total_amount),
-            status: order.status,
-            customerName: order.customer_name || 'عميل غير محدد',
-            customerPhone: order.customer_phone,
-            customerAddress: order.customer_address,
-            items: order.order_items.map((item: any) => ({
+          .map((order: any) => {
+            const items = order.order_items.map((item: any) => ({
               id: item.id.toString(),
               name: item.products?.name || 'منتج غير معروف',
               quantity: item.quantity,
               price: parseFloat(item.unit_price),
-              image: item.products?.main_image_url || undefined
-            }))
-          }));
+              image: item.products?.main_image_url || undefined,
+              isPrepared: item.is_prepared || false
+            }));
+
+            // Calculate preparation progress
+            const preparedItems = items.filter(item => item.isPrepared).length;
+            const totalItems = items.length;
+            const preparationProgress = totalItems > 0 ? (preparedItems / totalItems) * 100 : 0;
+
+            return {
+              id: order.order_number,
+              date: order.created_at.split('T')[0], // Extract date part
+              total: parseFloat(order.total_amount),
+              status: order.status,
+              customerName: order.customer_name || 'عميل غير محدد',
+              customerPhone: order.customer_phone,
+              customerAddress: order.customer_address,
+              items,
+              preparationProgress
+            };
+          });
 
         setOrders(transformedOrders);
         setLoading(false);
+
+        // Set up real-time subscription for order items preparation status
+        const subscription = supabase
+          .channel('order_items_preparation_updates')
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'order_items'
+            },
+            (payload) => {
+              console.log('Real-time preparation update received:', payload);
+              
+              // Update the specific order's progress
+              setOrders(prevOrders => {
+                return prevOrders.map(order => {
+                  // Find if this order contains the updated item
+                  const updatedItemIndex = order.items.findIndex(item => 
+                    String(item.id) === String(payload.new.id)
+                  );
+                  
+                  if (updatedItemIndex !== -1) {
+                    // Update the item's preparation status
+                    const updatedItems = [...order.items];
+                    updatedItems[updatedItemIndex] = {
+                      ...updatedItems[updatedItemIndex],
+                      isPrepared: payload.new.is_prepared || false
+                    };
+                    
+                    // Recalculate progress
+                    const preparedItems = updatedItems.filter(item => item.isPrepared).length;
+                    const totalItems = updatedItems.length;
+                    const preparationProgress = totalItems > 0 ? (preparedItems / totalItems) * 100 : 0;
+                    
+                    return {
+                      ...order,
+                      items: updatedItems,
+                      preparationProgress
+                    };
+                  }
+                  
+                  return order;
+                });
+              });
+            }
+          )
+          .subscribe();
+
+        // Cleanup subscription on unmount
+        return () => {
+          supabase.removeChannel(subscription);
+        };
+
       } catch (error) {
         console.error('Error loading orders:', error);
         setLoading(false);
@@ -402,6 +470,7 @@ export default function CustomerOrdersPage() {
                     </div>
                   </div>
 
+
                   {/* Order Header - Always Visible */}
                   <div 
                     className="flex justify-between items-center p-6 cursor-pointer hover:bg-gray-50 transition-colors"
@@ -438,6 +507,28 @@ export default function CustomerOrdersPage() {
                       >
                         {statusTranslations[order.status]}
                       </span>
+                      
+                      {/* Progress Bar at the top - Only for processing orders */}
+                      {order.status === 'processing' && order.preparationProgress !== undefined && (
+                        <div className="mt-3 min-w-[250px]">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs font-medium text-gray-600">
+                              {order.items.filter(item => item.isPrepared).length}/{order.items.length}
+                            </span>
+                            <span className="text-xs font-medium text-gray-600">
+                              {Math.round(order.preparationProgress)}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div 
+                              className={`h-1.5 rounded-full transition-all duration-300 ${
+                                order.preparationProgress === 100 ? 'bg-green-500' : 'bg-yellow-500'
+                              }`}
+                              style={{ width: `${order.preparationProgress}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 

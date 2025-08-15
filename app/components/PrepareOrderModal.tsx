@@ -278,49 +278,54 @@ export default function PrepareOrderModal({ isOpen, onClose, orderId }: PrepareO
 
   return (
     <div className="fixed inset-0 bg-gray-100 z-50" dir="rtl">
-      {/* Modal Header with Close Button */}
-      <div className="bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">تحضير الطلب</h1>
-        <button
-          onClick={onClose}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <XMarkIcon className="w-6 h-6 text-gray-600" />
-        </button>
+      {/* Enhanced Modal Header with Customer Info */}
+      <div className="bg-white border-b border-gray-200 p-6">
+        {/* Top Row: Title and Close Button */}
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-gray-800">تحضير الطلب</h1>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <XMarkIcon className="w-6 h-6 text-gray-600" />
+          </button>
+        </div>
+
+        {/* Progress Bar with percentage and counter */}
+        <div className="mb-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-gray-600">
+              {order.items.filter(item => item.isPrepared).length} من {order.items.length} منتج
+            </span>
+            <span className="text-sm font-medium text-gray-600">
+              {Math.round(preparationProgress)}% مكتمل
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className={`h-2 rounded-full transition-all duration-300 ${
+                preparationProgress === 100 ? 'bg-green-500' : 'bg-yellow-500'
+              }`}
+              style={{ width: `${preparationProgress}%` }}
+            ></div>
+          </div>
+        </div>
+
+        {/* Customer Information */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="text-right">
+            <h2 className="text-lg font-semibold text-gray-800 mb-1">العميل: {order.customerName}</h2>
+            <p className="text-gray-600 text-sm">رقم الطلب: {order.id}</p>
+            {order.customerPhone && (
+              <p className="text-gray-600 text-sm">الهاتف: {order.customerPhone}</p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Modal Content */}
-      <div className="p-6 overflow-y-auto h-[calc(100vh-80px)] scrollbar-hide">
+      <div className="p-6 overflow-y-auto h-[calc(100vh-200px)] scrollbar-hide">
         <div className="max-w-4xl mx-auto">
-          {/* Customer Info */}
-          <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
-            <div className="text-right">
-              <h2 className="text-lg font-semibold text-gray-800">العميل: {order.customerName}</h2>
-              <p className="text-gray-600">رقم الطلب: {order.id}</p>
-              {order.customerPhone && (
-                <p className="text-gray-600">الهاتف: {order.customerPhone}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="bg-white rounded-lg p-4 shadow-sm mb-6">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-gray-600">تقدم التحضير</span>
-              <span className="text-sm font-medium text-gray-600">
-                {Math.round(preparationProgress)}% مكتمل
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div 
-                className="bg-green-500 h-3 rounded-full transition-all duration-300"
-                style={{ width: `${preparationProgress}%` }}
-              ></div>
-            </div>
-            <p className="text-sm text-gray-500 mt-2">
-              {order.items.filter(item => item.isPrepared).length} من {order.items.length} منتج
-            </p>
-          </div>
 
           {/* Items List */}
           <h3 className="text-lg font-semibold text-gray-800 mb-4">قائمة المنتجات للتحضير</h3>
