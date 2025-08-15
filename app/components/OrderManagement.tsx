@@ -94,7 +94,7 @@ export default function OrderManagement({ className = "" }: OrderManagementProps
         return
       }
       
-      setOrders(data || [])
+      setOrders((data as any) || [])
       
     } catch (error) {
       console.error('Error fetching orders:', error)
@@ -150,6 +150,7 @@ export default function OrderManagement({ className = "" }: OrderManagementProps
     setSelectedOrder(order)
     fetchOrderItems(order.id)
   }
+
 
   // Setup real-time subscriptions
   useEffect(() => {
@@ -254,6 +255,7 @@ export default function OrderManagement({ className = "" }: OrderManagementProps
     // Format time from HH:MM:SS to HH:MM format
     return timeString.substring(0, 5)
   }
+
 
   return (
     <div className={`flex flex-col h-full ${className}`} dir="rtl">

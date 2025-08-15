@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import PrepareOrderModal from '../../components/PrepareOrderModal';
 
 // Order status type
 type OrderStatus = 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
@@ -40,13 +41,17 @@ const statusColors: Record<OrderStatus, string> = {
 };
 
 export default function CustomerOrdersPage() {
-  const [activeTab, setActiveTab] = useState<'completed' | 'pending'>('completed');
+  const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedOrderForProcessing, setSelectedOrderForProcessing] = useState<string | null>(null);
+  const [showPrepareModal, setShowPrepareModal] = useState(false);
+  const [selectedOrderForPreparation, setSelectedOrderForPreparation] = useState<string | null>(null);
 
   // Load orders from database
   useEffect(() => {
@@ -121,10 +126,10 @@ export default function CustomerOrdersPage() {
     let filtered = orders;
 
     // Filter by status
-    if (activeTab === 'completed') {
-      filtered = orders.filter(order => order.status === 'completed');
+    if (activeTab === 'pending') {
+      filtered = orders.filter(order => ['pending', 'processing'].includes(order.status));
     } else {
-      filtered = orders.filter(order => order.status !== 'completed');
+      filtered = orders.filter(order => ['completed', 'shipped', 'cancelled'].includes(order.status));
     }
 
     // Filter by date range for both tabs
@@ -145,8 +150,8 @@ export default function CustomerOrdersPage() {
     // Set default expanded state for orders
     const newExpandedOrders = new Set<string>();
     filtered.forEach(order => {
-      // Auto-expand non-completed orders (pending, processing, shipped)
-      if (order.status !== 'completed') {
+      // Auto-expand pending orders in pending tab only
+      if (activeTab === 'pending' && ['pending', 'processing'].includes(order.status)) {
         newExpandedOrders.add(order.id);
       }
     });
@@ -162,6 +167,67 @@ export default function CustomerOrdersPage() {
       newExpandedOrders.add(orderId);
     }
     setExpandedOrders(newExpandedOrders);
+  };
+
+  // Handle start preparation button click
+  const handleStartPreparation = (orderId: string) => {
+    setSelectedOrderForProcessing(orderId);
+    setShowConfirmModal(true);
+  };
+
+  // Confirm start preparation
+  const confirmStartPreparation = async () => {
+    if (!selectedOrderForProcessing) return;
+    
+    // Update order status
+    await updateOrderStatus(selectedOrderForProcessing, 'processing');
+    
+    // Close modal
+    setShowConfirmModal(false);
+    setSelectedOrderForProcessing(null);
+  };
+
+  // Handle preparation page button click
+  const handlePreparationPage = (orderId: string) => {
+    setSelectedOrderForPreparation(orderId);
+    setShowPrepareModal(true);
+  };
+
+  // Close prepare modal
+  const closePrepareModal = () => {
+    setShowPrepareModal(false);
+    setSelectedOrderForPreparation(null);
+  };
+
+  // Update order status
+  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    try {
+      const { supabase } = await import('../../lib/supabase/client');
+      
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('order_number', orderId);
+
+      if (error) {
+        console.error('Error updating order status:', error);
+        return;
+      }
+
+      // Update local state
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? { ...order, status: newStatus }
+            : order
+        )
+      );
+    } catch (error) {
+      console.error('Error updating order status:', error);
+    }
   };
 
   if (loading) {
@@ -207,19 +273,6 @@ export default function CustomerOrdersPage() {
         {/* Tabs */}
         <div className="flex mb-8 bg-white rounded-lg overflow-hidden shadow-lg">
           <button
-            onClick={() => setActiveTab('completed')}
-            className={`flex-1 py-4 px-6 font-semibold transition-colors ${
-              activeTab === 'completed'
-                ? 'text-white'
-                : 'text-gray-600 hover:text-gray-800'
-            }`}
-            style={{
-              backgroundColor: activeTab === 'completed' ? '#5d1f1f' : 'transparent'
-            }}
-          >
-            الطلبات المنفذة
-          </button>
-          <button
             onClick={() => setActiveTab('pending')}
             className={`flex-1 py-4 px-6 font-semibold transition-colors ${
               activeTab === 'pending'
@@ -231,6 +284,19 @@ export default function CustomerOrdersPage() {
             }}
           >
             الطلبات قيد التنفيذ
+          </button>
+          <button
+            onClick={() => setActiveTab('completed')}
+            className={`flex-1 py-4 px-6 font-semibold transition-colors ${
+              activeTab === 'completed'
+                ? 'text-white'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+            style={{
+              backgroundColor: activeTab === 'completed' ? '#5d1f1f' : 'transparent'
+            }}
+          >
+            الطلبات المنفذة
           </button>
         </div>
 
@@ -278,12 +344,12 @@ export default function CustomerOrdersPage() {
             <div className="bg-white rounded-lg p-8 shadow-lg text-center">
               <div className="text-gray-400 text-6xl mb-4">📦</div>
               <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                {activeTab === 'completed' ? 'لا توجد طلبات منفذة' : 'لا توجد طلبات قيد التنفيذ'}
+                {activeTab === 'pending' ? 'لا توجد طلبات قيد التنفيذ' : 'لا توجد طلبات منفذة'}
               </h3>
               <p className="text-gray-500">
-                {activeTab === 'completed' 
-                  ? 'لم يتم تنفيذ أي طلبات بعد' 
-                  : 'جميع الطلبات مكتملة'
+                {activeTab === 'pending' 
+                  ? 'جميع الطلبات مكتملة' 
+                  : 'لم يتم تنفيذ أي طلبات بعد'
                 }
               </p>
             </div>
@@ -292,6 +358,50 @@ export default function CustomerOrdersPage() {
               const isExpanded = expandedOrders.has(order.id);
               return (
                 <div key={order.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
+                  {/* Action Buttons */}
+                  <div className="px-6 pt-4">
+                    <div className="flex gap-3">
+                      {/* Start Preparation Button - Only for pending orders */}
+                      {order.status === 'pending' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartPreparation(order.id);
+                          }}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                          بدء التحضير
+                        </button>
+                      )}
+                      
+                      {/* Preparation Page Button - Only for processing orders */}
+                      {order.status === 'processing' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePreparationPage(order.id);
+                          }}
+                          className="inline-flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                          style={{ backgroundColor: '#F59E0B' }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#D97706';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#F59E0B';
+                          }}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                          </svg>
+                          صفحة التحضير
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Order Header - Always Visible */}
                   <div 
                     className="flex justify-between items-center p-6 cursor-pointer hover:bg-gray-50 transition-colors"
@@ -321,7 +431,7 @@ export default function CustomerOrdersPage() {
                     </div>
                     
                     <div className="text-left">
-                      <p className="text-xl font-bold text-gray-800">{order.total.toFixed(2)} ريال</p>
+                      <p className="text-xl font-bold text-gray-800 mb-2">{order.total.toFixed(2)} ريال</p>
                       <span
                         className="inline-block px-3 py-1 rounded-full text-sm font-semibold text-white"
                         style={{ backgroundColor: statusColors[order.status] }}
@@ -377,6 +487,42 @@ export default function CustomerOrdersPage() {
           )}
         </div>
       </main>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">تأكيد بدء التحضير</h3>
+            <p className="text-gray-600 mb-6">هل أنت متأكد أنك تريد تفعيل وضع التحضير لهذا الطلب؟</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setSelectedOrderForProcessing(null);
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={confirmStartPreparation}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                نعم، بدء التحضير
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Prepare Order Modal */}
+      {showPrepareModal && selectedOrderForPreparation && (
+        <PrepareOrderModal
+          isOpen={showPrepareModal}
+          onClose={closePrepareModal}
+          orderId={selectedOrderForPreparation}
+        />
+      )}
     </div>
   );
 }
