@@ -399,11 +399,6 @@ export default function TabletHome({
             ))}
           </div>
           
-          <div className="text-center mt-6">
-            <button className="bg-gray-800 hover:bg-gray-700 px-6 py-3 rounded-lg font-medium transition-colors border border-gray-700">
-              عرض المزيد
-            </button>
-          </div>
         </section>
       </main>
     </div>

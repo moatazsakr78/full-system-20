@@ -17,17 +17,6 @@
 }
 
 /* Responsive styles for carousel */
-.tablet-carousel .bg-custom-gray {
-  background-color: #1F2937 !important;
-}
-
-.tablet-carousel .text-gray-800 {
-  color: white !important;
-}
-
-.tablet-carousel .hover\:text-\[\#5D1F1F\]:hover {
-  color: #5D1F1F !important;
-}
 
 .mobile-carousel .bg-custom-gray {
   background-color: #1F2937 !important;
