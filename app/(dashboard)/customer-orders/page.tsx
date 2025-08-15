@@ -107,7 +107,7 @@ export default function CustomerOrdersPage() {
             }));
 
             // Calculate preparation progress
-            const preparedItems = items.filter(item => item.isPrepared).length;
+            const preparedItems = items.filter((item: { isPrepared: boolean }) => item.isPrepared).length;
             const totalItems = items.length;
             const preparationProgress = totalItems > 0 ? (preparedItems / totalItems) * 100 : 0;
 
