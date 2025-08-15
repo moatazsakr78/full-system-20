@@ -88,9 +88,9 @@ export default function InteractiveProductCard({
         };
       case 'tablet':
         return {
-          containerClass: 'bg-custom-gray rounded-lg p-3 hover:bg-gray-300 transition-colors border border-gray-300 shadow-md cursor-pointer group',
-          imageClass: 'w-full h-48 object-cover rounded-lg scale-105',
-          titleClass: 'font-semibold mb-2 text-sm text-gray-800 truncate transition-colors group-hover:text-[#5D1F1F]'
+          containerClass: 'bg-custom-gray rounded-lg p-4 hover:bg-gray-300 transition-colors border border-gray-300 shadow-md cursor-pointer group',
+          imageClass: 'w-full h-64 object-cover rounded-lg scale-105',
+          titleClass: 'font-semibold mb-2 text-gray-800 truncate transition-colors group-hover:text-[#5D1F1F]'
         };
       case 'mobile':
         return {
@@ -104,7 +104,10 @@ export default function InteractiveProductCard({
   const classes = getResponsiveClasses();
 
   return (
-    <div className={`${classes.containerClass} flex flex-col`}>
+    <div 
+      className={`${classes.containerClass} flex flex-col`}
+      data-device-type={deviceType}
+    >
       <div 
         ref={imageRef}
         className="relative mb-4" 
