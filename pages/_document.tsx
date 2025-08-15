@@ -12,10 +12,10 @@ export default function Document() {
         <meta name="msapplication-TileColor" content="#DC2626" />
         
         {/* PWA App Meta */}
-        <meta name="application-name" content="متجر الفاروق" />
+        <meta name="application-name" content="El Farouk Group" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="متجر الفاروق" />
+        <meta name="apple-mobile-web-app-title" content="El Farouk Group" />
         <meta name="mobile-web-app-capable" content="yes" />
         
         {/* PWA Icons */}
@@ -29,13 +29,13 @@ export default function Document() {
         />
         
         {/* SEO Meta */}
-        <meta name="description" content="متجر الفاروق الإلكتروني - أفضل المنتجات بأسعار مميزة" />
+        <meta name="description" content="El Farouk Group Store - أفضل المنتجات بأسعار مميزة" />
         <meta name="keywords" content="متجر إلكتروني, الفاروق, تسوق, منتجات" />
         <meta name="author" content="El Farouk Store" />
         
         {/* Open Graph */}
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="متجر الفاروق الإلكتروني" />
+        <meta property="og:title" content="El Farouk Group Store" />
         <meta property="og:description" content="أفضل المنتجات بأسعار مميزة" />
         <meta property="og:image" content="/assets/logo/El Farouk10.png" />
         

@@ -410,7 +410,7 @@ export default function TabletHome({
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-7 w-7 object-contain" />
-                <h5 className="font-bold text-lg" style={{color: '#5D1F1F'}}>متجر الفاروق</h5>
+                <h5 className="font-bold text-lg text-white">El Farouk Group</h5>
               </div>
               <p className="text-gray-400 mb-4">متجرك المتكامل للحصول على أفضل المنتجات بأسعار مميزة وجودة عالية</p>
               <div className="space-y-2 text-gray-400">

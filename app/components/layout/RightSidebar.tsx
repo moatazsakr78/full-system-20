@@ -255,7 +255,7 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
         {/* Footer */}
         <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-400 bg-[#eaeaea]">
           <p className="text-center text-black text-xs">
-            متجر الفاروق
+            El Farouk Group
           </p>
         </div>
       </div>
