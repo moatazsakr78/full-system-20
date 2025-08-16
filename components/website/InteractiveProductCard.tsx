@@ -37,8 +37,28 @@ export default function InteractiveProductCard({
     return allImages[currentImageIndex] || product.image || '/placeholder-product.svg';
   };
 
-  // Handle mouse movement over the image to cycle through images
+  // Handle click on image to cycle through images (only for tablet)
+  const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation(); // Prevent navigation to product page
+    
+    if (deviceType !== 'tablet') return;
+
+    // Get available images array based on selected color
+    const availableImages = selectedColor && selectedColor.image_url
+      ? [selectedColor.image_url, ...allImages.filter(img => img !== selectedColor.image_url)]
+      : allImages;
+    
+    if (availableImages.length <= 1) return;
+
+    // Cycle to next image
+    const nextIndex = (currentImageIndex + 1) % availableImages.length;
+    setCurrentImageIndex(nextIndex);
+  };
+
+  // Handle mouse movement over the image to cycle through images (for desktop and mobile)
   const handleImageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (deviceType === 'tablet') return; // Disable mousemove for tablet
+    
     const imageContainer = imageRef.current;
     if (!imageContainer) return;
 
@@ -60,8 +80,9 @@ export default function InteractiveProductCard({
     setCurrentImageIndex(clampedIndex);
   };
 
-  // Reset to first image when mouse leaves
+  // Reset to first image when mouse leaves (for desktop and mobile)
   const handleImageMouseLeave = () => {
+    if (deviceType === 'tablet') return; // Disable mouseleave for tablet
     setCurrentImageIndex(0);
   };
 
@@ -107,11 +128,12 @@ export default function InteractiveProductCard({
     <div 
       className={`${classes.containerClass} flex flex-col`}
       data-device-type={deviceType}
+      onClick={() => router.push(`/product/${product.id}`)}
     >
       <div 
         ref={imageRef}
         className="relative mb-4" 
-        onClick={() => router.push(`/product/${product.id}`)}
+        onClick={deviceType === 'tablet' ? handleImageClick : () => router.push(`/product/${product.id}`)}
         onMouseMove={handleImageMouseMove}
         onMouseLeave={handleImageMouseLeave}
       >
@@ -132,9 +154,34 @@ export default function InteractiveProductCard({
           </span>
         )}
         
+        {/* Image navigation indicator for tablet */}
+        {deviceType === 'tablet' && allImages.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
+            <div className="flex gap-1">
+              {allImages.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    index === currentImageIndex 
+                      ? 'bg-white' 
+                      : 'bg-white/50'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Touch indicator for tablet */}
+        {deviceType === 'tablet' && allImages.length > 1 && (
+          <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs opacity-75">
+            اضغط للتقليب
+          </div>
+        )}
+        
       </div>
       
-      <div onClick={() => router.push(`/product/${product.id}`)} className="flex flex-col">
+      <div className="flex flex-col">
         <h4 className={classes.titleClass}>{product.name}</h4>
         {/* Description with dynamic height based on colors availability */}
         <div 
