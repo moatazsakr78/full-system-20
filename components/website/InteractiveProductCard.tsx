@@ -37,10 +37,23 @@ export default function InteractiveProductCard({
     return allImages[currentImageIndex] || product.image || '/placeholder-product.svg';
   };
 
-  // Handle click on image to cycle through images (only for tablet)
-  const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Handle touch/swipe events for tablets
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
     e.stopPropagation(); // Prevent navigation to product page
     
+    if (!touchStart || !touchEnd) return;
     if (deviceType !== 'tablet') return;
 
     // Get available images array based on selected color
@@ -50,9 +63,19 @@ export default function InteractiveProductCard({
     
     if (availableImages.length <= 1) return;
 
-    // Cycle to next image
-    const nextIndex = (currentImageIndex + 1) % availableImages.length;
-    setCurrentImageIndex(nextIndex);
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      // Swipe left - next image
+      const nextIndex = (currentImageIndex + 1) % availableImages.length;
+      setCurrentImageIndex(nextIndex);
+    } else if (isRightSwipe) {
+      // Swipe right - previous image
+      const prevIndex = currentImageIndex === 0 ? availableImages.length - 1 : currentImageIndex - 1;
+      setCurrentImageIndex(prevIndex);
+    }
   };
 
   // Handle mouse movement over the image to cycle through images (for desktop and mobile)
@@ -133,9 +156,16 @@ export default function InteractiveProductCard({
       <div 
         ref={imageRef}
         className="relative mb-4" 
-        onClick={deviceType === 'tablet' ? handleImageClick : () => router.push(`/product/${product.id}`)}
+        onClick={(e) => {
+          if (deviceType === 'tablet') {
+            e.stopPropagation();
+          }
+        }}
         onMouseMove={handleImageMouseMove}
         onMouseLeave={handleImageMouseLeave}
+        onTouchStart={deviceType === 'tablet' ? handleTouchStart : undefined}
+        onTouchMove={deviceType === 'tablet' ? handleTouchMove : undefined}
+        onTouchEnd={deviceType === 'tablet' ? handleTouchEnd : undefined}
       >
         <img 
           src={getCurrentDisplayImage()}
@@ -152,31 +182,6 @@ export default function InteractiveProductCard({
           <span className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold">
             -{product.discount}%
           </span>
-        )}
-        
-        {/* Image navigation indicator for tablet */}
-        {deviceType === 'tablet' && allImages.length > 1 && (
-          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
-            <div className="flex gap-1">
-              {allImages.map((_, index) => (
-                <div
-                  key={index}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    index === currentImageIndex 
-                      ? 'bg-white' 
-                      : 'bg-white/50'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {/* Touch indicator for tablet */}
-        {deviceType === 'tablet' && allImages.length > 1 && (
-          <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs opacity-75">
-            اضغط للتقليب
-          </div>
         )}
         
       </div>
