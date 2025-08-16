@@ -167,14 +167,25 @@ export default function TabletHome({
           margin-top: 0 !important;
           padding-top: 0 !important;
         }
-        /* Hide any potential system headers */
-        iframe,
-        .system-header,
-        [class*="system"],
-        [class*="navigation"],
-        [style*="background: #374151"],
-        [style*="background-color: #374151"] {
+        /* Hide any potential system headers - but exclude auth-related elements */
+        .system-header:not([class*="auth"]):not([id*="auth"]):not([data-auth]),
+        [class*="system"]:not([class*="auth"]):not([id*="auth"]):not([data-auth]),
+        [class*="navigation"]:not([class*="auth"]):not([id*="auth"]):not([data-auth]),
+        [style*="background: #374151"]:not([class*="auth"]):not([id*="auth"]):not([data-auth]),
+        [style*="background-color: #374151"]:not([class*="auth"]):not([id*="auth"]):not([data-auth]) {
           display: none !important;
+        }
+        /* Ensure auth-related iframes and popups are visible */
+        iframe[src*="google"],
+        iframe[src*="auth"],
+        iframe[id*="auth"],
+        [class*="auth"],
+        [id*="auth"],
+        [data-auth] {
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          pointer-events: auto !important;
         }
       `}</style>
       
