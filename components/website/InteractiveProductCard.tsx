@@ -40,20 +40,22 @@ export default function InteractiveProductCard({
   // Handle touch/swipe events for tablets
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [hasMoved, setHasMoved] = useState(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
+    setHasMoved(false);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     setTouchEnd(e.targetTouches[0].clientX);
+    setHasMoved(true);
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     e.stopPropagation(); // Prevent navigation to product page
     
-    if (!touchStart || !touchEnd) return;
     if (deviceType !== 'tablet') return;
 
     // Get available images array based on selected color
@@ -63,18 +65,50 @@ export default function InteractiveProductCard({
     
     if (availableImages.length <= 1) return;
 
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
+    // Handle swipe if there was movement
+    if (touchStart && touchEnd && hasMoved) {
+      const distance = touchStart - touchEnd;
+      const isLeftSwipe = distance > 50;
+      const isRightSwipe = distance < -50;
 
-    if (isLeftSwipe) {
-      // Swipe left - next image
-      const nextIndex = (currentImageIndex + 1) % availableImages.length;
-      setCurrentImageIndex(nextIndex);
-    } else if (isRightSwipe) {
-      // Swipe right - previous image
-      const prevIndex = currentImageIndex === 0 ? availableImages.length - 1 : currentImageIndex - 1;
-      setCurrentImageIndex(prevIndex);
+      if (isLeftSwipe) {
+        // Swipe left - next image
+        const nextIndex = (currentImageIndex + 1) % availableImages.length;
+        setCurrentImageIndex(nextIndex);
+        return;
+      } else if (isRightSwipe) {
+        // Swipe right - previous image
+        const prevIndex = currentImageIndex === 0 ? availableImages.length - 1 : currentImageIndex - 1;
+        setCurrentImageIndex(prevIndex);
+        return;
+      }
+    }
+
+    // Handle tap on sides if no swipe occurred
+    if (!hasMoved && touchStart) {
+      const imageContainer = imageRef.current;
+      if (!imageContainer) return;
+
+      const rect = imageContainer.getBoundingClientRect();
+      const tapX = touchStart;
+      const containerLeft = rect.left;
+      const containerWidth = rect.width;
+      const relativeX = tapX - containerLeft;
+
+      // Divide image into three zones: left (40%), center (20%), right (40%)
+      const leftZone = containerWidth * 0.4;
+      const rightZone = containerWidth * 0.6;
+
+      if (relativeX < leftZone) {
+        // Tap on left side - previous image
+        const prevIndex = currentImageIndex === 0 ? availableImages.length - 1 : currentImageIndex - 1;
+        setCurrentImageIndex(prevIndex);
+      } else if (relativeX > rightZone) {
+        // Tap on right side - next image
+        const nextIndex = (currentImageIndex + 1) % availableImages.length;
+        setCurrentImageIndex(nextIndex);
+      }
+      // Center zone does nothing (allows for future functionality if needed)
     }
   };
 
