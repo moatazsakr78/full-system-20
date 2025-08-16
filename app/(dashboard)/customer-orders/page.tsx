@@ -1748,7 +1748,7 @@ export default function CustomerOrdersPage() {
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">إنشاء فاتورة</h3>
             <p className="text-gray-600 mb-2">
-              يتطلب تغيير حالة الطلب إلى <span className="font-bold text-gray-800">"{statusTranslations[nextStatus]}"</span> إنشاء فاتورة أولاً.
+              يتطلب تغيير حالة الطلب إلى <span className="font-bold text-gray-800">&quot;{statusTranslations[nextStatus]}&quot;</span> إنشاء فاتورة أولاً.
             </p>
             <p className="text-gray-600 mb-6">
               هل تريد إنشاء فاتورة للطلب رقم: <span className="font-bold text-blue-600">{selectedOrderForInvoice.id}</span>؟
