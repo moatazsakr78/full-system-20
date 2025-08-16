@@ -366,6 +366,8 @@ export default function SuppliersPage() {
 
   const handleSupplierGroupSelect = (group: SupplierGroup | null) => {
     setSelectedSupplierGroup(group)
+    // إلغاء تحديد المورد عند تغيير المجموعة
+    setSelectedSupplier(null)
   }
 
   const handleDeleteGroup = async () => {
@@ -470,11 +472,48 @@ export default function SuppliersPage() {
 
   // toggleGroup is now provided by the hook
 
-  const filteredSuppliers = suppliers.filter(supplier =>
-    supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (supplier.phone && supplier.phone.includes(searchQuery)) ||
-    (supplier.city && supplier.city.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
+  // دالة للحصول على جميع معرفات المجموعات الفرعية
+  const getAllSubGroupIds = (groupId: string, allGroups: SupplierGroup[]): string[] => {
+    const subGroups: string[] = [groupId]
+    
+    const findSubGroups = (parentId: string) => {
+      allGroups.forEach(group => {
+        if (group.parent_id === parentId) {
+          subGroups.push(group.id)
+          findSubGroups(group.id) // البحث بشكل متكرر
+        }
+      })
+    }
+    
+    findSubGroups(groupId)
+    return subGroups
+  }
+
+  // فلترة الموردين حسب المجموعة المحددة والبحث
+  const filteredSuppliers = suppliers.filter(supplier => {
+    // فلترة البحث أولاً
+    const matchesSearch = supplier.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (supplier.phone && supplier.phone.includes(searchQuery)) ||
+      (supplier.city && supplier.city.toLowerCase().includes(searchQuery.toLowerCase()))
+    
+    // إذا لم يكن هناك مجموعة محددة، إظهار جميع الموردين
+    if (!selectedSupplierGroup) {
+      return matchesSearch
+    }
+    
+    // إذا كانت المجموعة المحددة هي المجموعة الرئيسية "موردين"، إظهار جميع الموردين
+    if (selectedSupplierGroup.name === 'موردين') {
+      return matchesSearch
+    }
+    
+    // الحصول على جميع المجموعات الفرعية للمجموعة المحددة
+    const allGroupIds = getAllSubGroupIds(selectedSupplierGroup.id, groups)
+    
+    // فلترة الموردين الذين ينتمون للمجموعة أو مجموعاتها الفرعية
+    const matchesGroup = supplier.group_id && allGroupIds.includes(supplier.group_id)
+    
+    return matchesSearch && matchesGroup
+  })
 
   return (
     <div className="h-screen bg-[#2B3544] overflow-hidden">
@@ -655,7 +694,7 @@ export default function SuppliersPage() {
                   {/* Group Filter Dropdown */}
                   <div className="relative">
                     <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium transition-colors">
-                      <span>{selectedGroup}</span>
+                      <span>فئة الموردين</span>
                       <ChevronDownIcon className="h-4 w-4" />
                     </button>
                   </div>

@@ -395,12 +395,72 @@ const CartPage = () => {
         userSession = 'guest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
       }
       
+      // Find or create customer in customers table
+      let customerId = null;
+      if (user?.id) {
+        // Check if customer already exists for this user
+        const { data: existingCustomer, error: customerCheckError } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (customerCheckError && customerCheckError.code !== 'PGRST116') {
+          // Error other than "not found"
+          console.error('Error checking existing customer:', customerCheckError);
+        }
+
+        if (existingCustomer) {
+          // Customer exists, update their information
+          customerId = existingCustomer.id;
+          const { error: updateError } = await supabase
+            .from('customers')
+            .update({
+              name: orderData.customer.name,
+              phone: orderData.customer.phone,
+              address: orderData.customer.address,
+              email: user.email,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', customerId);
+
+          if (updateError) {
+            console.error('Error updating customer:', updateError);
+          }
+        } else {
+          // Customer doesn't exist, create new one
+          const { data: newCustomer, error: createCustomerError } = await supabase
+            .from('customers')
+            .insert({
+              user_id: user.id,
+              name: orderData.customer.name,
+              phone: orderData.customer.phone,
+              address: orderData.customer.address,
+              email: user.email,
+              is_active: true,
+              loyalty_points: 0,
+              account_balance: 0,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select('id')
+            .single();
+
+          if (createCustomerError) {
+            console.error('Error creating customer:', createCustomerError);
+          } else {
+            customerId = newCustomer.id;
+          }
+        }
+      }
+      
       // Insert order into orders table
       const { data: orderResult, error: orderError } = await supabase
         .from('orders')
         .insert({
           order_number: orderNumber,
-          customer_id: user?.id || null,
+          customer_id: customerId,
+          user_id: user?.id || null,
           user_session: userSession,
           customer_name: orderData.customer.name,
           customer_phone: orderData.customer.phone,

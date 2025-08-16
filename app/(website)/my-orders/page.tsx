@@ -19,6 +19,7 @@ interface Order {
     quantity: number;
     price: number;
     image?: string;
+    barcode?: string;
     isPrepared?: boolean; // Added for preparation tracking
   }[];
 }
@@ -83,6 +84,7 @@ export default function OrdersPage() {
               products (
                 id,
                 name,
+                barcode,
                 main_image_url
               )
             )
@@ -90,11 +92,11 @@ export default function OrdersPage() {
           
         // If user is logged in, filter by user ID, otherwise show orders for current session
         if (user?.id) {
-          query = query.eq('customer_id', user.id);
+          query = query.eq('user_id', user.id);
         } else {
           // For non-logged in users, we could use session storage to track their orders
           // For now, we'll show no orders unless they're logged in
-          query = query.eq('customer_id', 'no-user-logged-in');
+          query = query.eq('user_id', 'no-user-logged-in');
         }
         
         const { data: ordersData, error: ordersError } = await query
@@ -108,21 +110,45 @@ export default function OrdersPage() {
         // Transform data to match our Order interface and filter out orders with no items
         const transformedOrders: Order[] = (ordersData || [])
           .filter((order: any) => order.order_items && order.order_items.length > 0) // Filter out empty orders
-          .map((order: any) => ({
-            id: order.order_number,
-            orderId: order.id, // Store database ID
-            date: order.created_at.split('T')[0], // Extract date part
-            total: parseFloat(order.total_amount),
-            status: order.status,
-            items: order.order_items.map((item: any) => ({
+          .map((order: any) => {
+            // First, map all items
+            const rawItems = order.order_items.map((item: any) => ({
               id: item.id.toString(),
+              product_id: item.products?.id,
               name: item.products?.name || 'منتج غير معروف',
               quantity: item.quantity,
               price: parseFloat(item.unit_price),
               image: item.products?.main_image_url || undefined,
+              barcode: item.products?.barcode || null,
               isPrepared: false // Initialize as not prepared
-            }))
-          }));
+            }));
+
+            // Group items by product_id and combine quantities
+            const groupedItemsMap = new Map();
+            rawItems.forEach((item: any) => {
+              const key = item.product_id || item.name; // Use product_id as key, fallback to name
+              if (groupedItemsMap.has(key)) {
+                const existingItem = groupedItemsMap.get(key);
+                existingItem.quantity += item.quantity;
+                // Keep the prepared status as true if any of the items is prepared
+                existingItem.isPrepared = existingItem.isPrepared || item.isPrepared;
+              } else {
+                groupedItemsMap.set(key, { ...item });
+              }
+            });
+
+            // Convert back to array
+            const groupedItems = Array.from(groupedItemsMap.values());
+
+            return {
+              id: order.order_number,
+              orderId: order.id, // Store database ID
+              date: order.created_at.split('T')[0], // Extract date part
+              total: parseFloat(order.total_amount),
+              status: order.status,
+              items: groupedItems
+            };
+          });
 
         setOrders(transformedOrders);
         setLoading(false);
@@ -273,6 +299,7 @@ export default function OrdersPage() {
     const preparedItems = order.items.filter(item => item.isPrepared).length;
     return Math.round((preparedItems / order.items.length) * 100);
   };
+
 
   if (loading) {
     return (
@@ -473,103 +500,70 @@ export default function OrdersPage() {
                   {/* Order Items - Collapsible */}
                   {isExpanded && (
                     <div className="px-6 pb-6 border-t border-gray-200">
-                      {/* Preparation Progress Bar for processing orders */}
-                      {order.status === 'processing' && (
-                        <div className="pt-4 pb-3">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm font-medium text-gray-700">تقدم التحضير</span>
-                            <span className="text-sm font-medium text-gray-700">{getPreparationProgress(order)}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-3">
-                            <div 
-                              className="bg-green-600 h-3 rounded-full transition-all duration-300" 
-                              style={{ width: `${getPreparationProgress(order)}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      )}
 
+                      {/* Table Header */}
+                      <div className="grid grid-cols-6 gap-4 p-3 bg-gray-100 rounded-lg font-semibold text-gray-700 text-sm">
+                        <div className="text-right">المنتج</div>
+                        <div className="text-center">السعر</div>
+                        <div className="text-center">الكمية</div>
+                        <div className="text-center">الإجمالي</div>
+                        <div className="text-center">ملاحظات</div>
+                        <div className="text-center">الألوان</div>
+                      </div>
+
+                      {/* Items */}
                       <div className="pt-4 space-y-3">
                         {order.items.map((item) => (
-                          <div key={item.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                            {/* Preparation Checkbox for processing orders */}
-                            {order.status === 'processing' && (
-                              <div className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={item.isPrepared || false}
-                                  onChange={() => toggleItemPreparation(order.orderId, item.id)}
-                                  className="w-5 h-5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
-                                />
+                          <div key={item.id} className="grid grid-cols-6 gap-4 p-3 bg-gray-50 rounded-lg items-center">
+                            {/* Product Image and Name */}
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                {item.image ? (
+                                  <img 
+                                    src={item.image} 
+                                    alt={item.name}
+                                    className="w-full h-full object-cover rounded-lg"
+                                  />
+                                ) : (
+                                  <span className="text-gray-400 text-xl">📦</span>
+                                )}
                               </div>
-                            )}
-                            
-                            <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                              {item.image ? (
-                                <img 
-                                  src={item.image} 
-                                  alt={item.name}
-                                  className="w-full h-full object-cover rounded-lg"
-                                />
-                              ) : (
-                                <span className="text-gray-400 text-2xl">📦</span>
-                              )}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-gray-800 text-sm">
+                                  {item.name}
+                                </h4>
+                              </div>
                             </div>
-                            <div className="flex-1">
-                              <h4 className={`font-semibold ${item.isPrepared ? 'text-green-600 line-through' : 'text-gray-800'}`}>
-                                {item.name}
-                              </h4>
-                              <p className="text-gray-600">الكمية: {item.quantity}</p>
+
+                            {/* Price */}
+                            <div className="text-center">
+                              <p className="font-medium text-gray-800 text-sm">{item.price.toFixed(2)} ريال</p>
                             </div>
-                            <div className="text-left">
+
+                            {/* Quantity */}
+                            <div className="text-center">
+                              <p className="font-medium text-gray-800">{item.quantity}</p>
+                            </div>
+
+                            {/* Total */}
+                            <div className="text-center">
                               <p className="font-semibold text-gray-800">{(item.price * item.quantity).toFixed(2)} ريال</p>
-                              <p className="text-sm text-gray-500">{item.price.toFixed(2)} ريال لكل قطعة</p>
+                            </div>
+
+                            {/* Notes */}
+                            <div className="text-center">
+                              <p className="text-gray-600 text-sm">-</p>
+                            </div>
+
+                            {/* Colors */}
+                            <div className="text-center">
+                              <p className="text-gray-600 text-sm">-</p>
                             </div>
                           </div>
                         ))}
                       </div>
 
-                      {/* Action Buttons */}
-                      <div className="pt-4 border-t border-gray-200 mt-4 flex gap-3 justify-end">
-                        {/* Start Preparation Button - Only for pending orders */}
-                        {order.status === 'pending' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedOrderForAction(order);
-                              setShowStartPreparationModal(true);
-                            }}
-                            className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm font-medium"
-                          >
-                            بدء التحضير
-                          </button>
-                        )}
 
-                        {/* Complete Preparation Button - Only for processing orders with all items prepared */}
-                        {order.status === 'processing' && areAllItemsPrepared(order) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedOrderForAction(order);
-                              setShowCompletePreparationModal(true);
-                            }}
-                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium"
-                          >
-                            تم التحضير
-                          </button>
-                        )}
-
-                        {/* View Order Button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/order-view/${order.orderId}`);
-                          }}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
-                        >
-                          عرض الطلب
-                        </button>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -636,6 +630,7 @@ export default function OrdersPage() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

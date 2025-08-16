@@ -74,74 +74,60 @@ export default function PrepareOrderModal({ isOpen, onClose, orderId }: PrepareO
           return;
         }
 
+        // First, map all items
+        const rawItems = orderData.order_items.map((item: any) => ({
+          id: String(item.id),
+          product_id: item.products?.id,
+          name: item.products?.name || 'منتج غير معروف',
+          quantity: item.quantity,
+          price: Number(item.unit_price),
+          image: item.products?.main_image_url || undefined,
+          isPrepared: item.is_prepared || false,
+          preparedBy: item.prepared_by,
+          preparedAt: item.prepared_at
+        }));
+
+        // Group items by product_id and combine quantities
+        const groupedItemsMap = new Map();
+        rawItems.forEach((item: any) => {
+          const key = item.product_id || item.name; // Use product_id as key, fallback to name
+          if (groupedItemsMap.has(key)) {
+            const existingItem = groupedItemsMap.get(key);
+            existingItem.quantity += item.quantity;
+            // Keep the prepared status as true if any of the items is prepared
+            existingItem.isPrepared = existingItem.isPrepared || item.isPrepared;
+            // Keep track of prepared times
+            if (item.preparedAt && !existingItem.preparedAt) {
+              existingItem.preparedAt = item.preparedAt;
+            }
+            if (item.preparedBy && !existingItem.preparedBy) {
+              existingItem.preparedBy = item.preparedBy;
+            }
+          } else {
+            groupedItemsMap.set(key, { ...item });
+          }
+        });
+
+        // Convert back to array
+        const groupedItems = Array.from(groupedItemsMap.values());
+
         // Transform data to match our Order interface
         const transformedOrder: Order = {
           id: orderData.order_number,
           customerName: orderData.customer_name || 'عميل غير محدد',
           customerPhone: orderData.customer_phone,
           total: Number(orderData.total_amount),
-          items: orderData.order_items.map((item: any) => ({
-            id: String(item.id),
-            name: item.products?.name || 'منتج غير معروف',
-            quantity: item.quantity,
-            price: Number(item.unit_price),
-            image: item.products?.main_image_url || undefined,
-            isPrepared: item.is_prepared || false,
-            preparedBy: item.prepared_by,
-            preparedAt: item.prepared_at
-          }))
+          items: groupedItems
         };
 
         setOrder(transformedOrder);
         setLoading(false);
 
+        // Note: Real-time updates disabled for grouped items to avoid complexity
         // Set up real-time subscription for order items preparation status
-        const subscription = supabase
-          .channel(`order_${orderId}_preparation`)
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'order_items',
-              filter: `id=in.(${orderData.order_items.map((item: any) => item.id).join(',')})`
-            },
-            (payload) => {
-              console.log('Real-time update received:', payload);
-              
-              // Update the specific item in real-time
-              setOrder(prevOrder => {
-                if (!prevOrder) return prevOrder;
-                
-                const updatedOrder = {
-                  ...prevOrder,
-                  items: prevOrder.items.map(item => {
-                    if (String(item.id) === String(payload.new.id)) {
-                      console.log('Updating item:', item.id, 'to prepared:', payload.new.is_prepared);
-                      return {
-                        ...item,
-                        isPrepared: payload.new.is_prepared || false,
-                        preparedBy: payload.new.prepared_by,
-                        preparedAt: payload.new.prepared_at
-                      };
-                    }
-                    return item;
-                  })
-                };
-                
-                console.log('Updated order:', updatedOrder);
-                return updatedOrder;
-              });
-            }
-          )
-          .subscribe();
+        // (Disabled for grouped items as it requires complex handling)
 
-        console.log('Real-time subscription created for order:', orderId);
-
-        // Cleanup subscription on unmount
-        return () => {
-          supabase.removeChannel(subscription);
-        };
+        // Note: Real-time subscription cleanup would go here if implemented
 
       } catch (error) {
         console.error('Error loading order:', error);
@@ -216,18 +202,38 @@ export default function PrepareOrderModal({ isOpen, onClose, orderId }: PrepareO
     }
   };
 
-  // Complete order preparation
+  // Complete order preparation - Move to correct next status
   const completeOrder = async () => {
     if (!order) return;
     
     try {
       const { supabase } = await import('../lib/supabase/client');
       
-      // Update order status to completed
+      // First, get the full order details to determine delivery type
+      const { data: orderData, error: fetchError } = await supabase
+        .from('orders')
+        .select('delivery_type')
+        .eq('order_number', orderId)
+        .single() as { data: { delivery_type: string } | null, error: any };
+
+      if (fetchError) {
+        console.error('Error fetching order details:', fetchError);
+        return;
+      }
+
+      // Determine next status based on delivery type
+      let nextStatus: string;
+      if (orderData?.delivery_type === 'pickup') {
+        nextStatus = 'ready_for_pickup';
+      } else {
+        nextStatus = 'ready_for_shipping';
+      }
+      
+      // Update order status to next logical step
       const { error } = await supabase
         .from('orders')
         .update({ 
-          status: 'completed',
+          status: nextStatus,
           updated_at: new Date().toISOString()
         })
         .eq('order_number', orderId);
@@ -237,7 +243,8 @@ export default function PrepareOrderModal({ isOpen, onClose, orderId }: PrepareO
         return;
       }
 
-      alert('تم إكمال الطلب بنجاح!');
+      const statusMessage = nextStatus === 'ready_for_pickup' ? 'جاهز للاستلام' : 'جاهز للشحن';
+      alert(`تم إكمال التحضير بنجاح! الطلب الآن ${statusMessage}`);
       onClose();
     } catch (error) {
       console.error('Error completing order:', error);
@@ -278,143 +285,131 @@ export default function PrepareOrderModal({ isOpen, onClose, orderId }: PrepareO
 
   return (
     <div className="fixed inset-0 bg-gray-100 z-50" dir="rtl">
-      {/* Enhanced Modal Header with Customer Info */}
-      <div className="bg-white border-b border-gray-200 p-6">
-        {/* Top Row: Title and Close Button */}
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-gray-800">تحضير الطلب</h1>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <XMarkIcon className="w-6 h-6 text-gray-600" />
-          </button>
-        </div>
+      {/* Header with close button */}
+      <div className="bg-white p-4 flex justify-between items-center border-b border-gray-200">
+        <h1 className="text-xl font-bold text-gray-800">تحضير الطلب</h1>
+        <button
+          onClick={onClose}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <XMarkIcon className="w-6 h-6 text-gray-600" />
+        </button>
+      </div>
 
-        {/* Progress Bar with percentage and counter */}
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-600">
-              {order.items.filter(item => item.isPrepared).length} من {order.items.length} منتج
-            </span>
-            <span className="text-sm font-medium text-gray-600">
-              {Math.round(preparationProgress)}% مكتمل
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className={`h-2 rounded-full transition-all duration-300 ${
-                preparationProgress === 100 ? 'bg-green-500' : 'bg-yellow-500'
-              }`}
-              style={{ width: `${preparationProgress}%` }}
-            ></div>
-          </div>
-        </div>
+      {/* Progress Bar - Empty with Yellow/Green Progress */}
+      <div className="bg-gray-300 h-2 w-full">
+        <div 
+          className={`h-full transition-all duration-300 ${
+            preparationProgress === 100 ? 'bg-green-500' : 'bg-yellow-500'
+          }`}
+          style={{ width: `${preparationProgress}%` }}
+        ></div>
+      </div>
+      
+      {/* Progress Text */}
+      <div className="bg-white px-4 py-2 text-left">
+        <span className="text-sm text-gray-600">
+          {Math.round(preparationProgress)}% مكتمل - {order.items.filter(item => item.isPrepared).length} من {order.items.length} منتج
+        </span>
+      </div>
 
-        {/* Customer Information */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="text-right">
-            <h2 className="text-lg font-semibold text-gray-800 mb-1">العميل: {order.customerName}</h2>
-            <p className="text-gray-600 text-sm">رقم الطلب: {order.id}</p>
-            {order.customerPhone && (
-              <p className="text-gray-600 text-sm">الهاتف: {order.customerPhone}</p>
-            )}
-          </div>
+      {/* Customer Information */}
+      <div className="bg-white px-4 py-3 border-b border-gray-200">
+        <div className="text-right">
+          <h2 className="text-lg font-semibold text-gray-800">العميل: {order.customerName}</h2>
+          <p className="text-gray-600 text-sm">رقم الطلب: {order.id}</p>
+          {order.customerPhone && (
+            <p className="text-gray-600 text-sm">الهاتف: {order.customerPhone}</p>
+          )}
         </div>
       </div>
 
-      {/* Modal Content */}
-      <div className="p-6 overflow-y-auto h-[calc(100vh-200px)] scrollbar-hide">
-        <div className="max-w-4xl mx-auto">
+      {/* Products List */}
+      <div className="p-4 overflow-y-auto h-[calc(100vh-300px)] scrollbar-hide">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">قائمة المنتجات للتحضير</h3>
+        
+        <div className="space-y-4 max-w-2xl mx-auto">
+          {order.items.map((item) => (
+            <div 
+              key={item.id} 
+              className={`bg-white rounded-lg p-4 shadow-sm border-2 transition-all cursor-pointer relative ${
+                item.isPrepared 
+                  ? 'border-green-400 bg-green-50' 
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => toggleItemPreparation(item.id)}
+            >
+              {/* Green checkmark overlay when prepared */}
+              {item.isPrepared && (
+                <div className="absolute top-3 right-3 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
 
-          {/* Items List */}
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">قائمة المنتجات للتحضير</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {order.items.map((item) => (
-              <div 
-                key={item.id} 
-                className={`bg-white rounded-lg p-4 shadow-sm border-2 transition-all cursor-pointer ${
-                  item.isPrepared 
-                    ? 'border-green-500 bg-green-50' 
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => toggleItemPreparation(item.id)}
-              >
-                <div className="flex items-center gap-4">
-                  {/* Product Image */}
-                  <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                    {item.image ? (
-                      <img 
-                        src={item.image} 
-                        alt={item.name}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    ) : (
-                      <span className="text-gray-400 text-2xl">📦</span>
-                    )}
-                  </div>
-
-                  {/* Product Info */}
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-800">{item.name}</h4>
-                    <p className="text-gray-600">الكمية: {item.quantity} قطعة</p>
-                    <p className="text-gray-600">السعر الواحد: {item.price.toFixed(2)} ريال</p>
-                    <p className="text-gray-600">الإجمالي: {(item.price * item.quantity).toFixed(2)} ريال</p>
-                    {item.preparedBy && item.preparedAt && (
-                      <p className="text-green-600 text-xs mt-1">
-                        تم التحضير في: {new Date(item.preparedAt).toLocaleString('ar-SA')}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Preparation Status */}
-                  <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      item.isPrepared ? 'bg-green-500' : 'bg-gray-300'
-                    }`}>
-                      {item.isPrepared ? (
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        <div className="w-3 h-3 bg-white rounded-full"></div>
-                      )}
+              <div className="flex items-center gap-4">
+                {/* Product Image */}
+                <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                  {item.image ? (
+                    <img 
+                      src={item.image} 
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                      <span className="text-gray-400 text-xl">📦</span>
                     </div>
-                    <span className={`text-xs mt-1 font-medium ${
-                      item.isPrepared ? 'text-green-600' : 'text-gray-500'
-                    }`}>
-                      {item.isPrepared ? 'تم التحضير' : 'لم يحضر'}
-                    </span>
+                  )}
+                </div>
+
+                {/* Product Details */}
+                <div className="flex-1">
+                  <h4 className="font-bold text-gray-800 text-lg mb-1">{item.name}</h4>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <p>الكمية: <span className="font-medium">{item.quantity} قطعة</span></p>
+                    <p>السعر الواحد: <span className="font-medium">{item.price.toFixed(2)} ريال</span></p>
+                    <p>الإجمالي: <span className="font-medium">{(item.price * item.quantity).toFixed(2)} ريال</span></p>
                   </div>
+                  
+                  {item.isPrepared && (
+                    <div className="mt-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        تم التحضير
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
-          {/* Complete Order Button */}
-          <div className="text-center">
-            <button
-              onClick={completeOrder}
-              disabled={!allItemsPrepared}
-              className={`px-8 py-3 rounded-lg font-semibold text-white transition-all ${
-                allItemsPrepared
-                  ? 'bg-green-600 hover:bg-green-700 cursor-pointer'
-                  : 'bg-gray-400 cursor-not-allowed'
-              }`}
-            >
-              {allItemsPrepared ? (
-                <>
-                  <svg className="w-5 h-5 inline-block ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  إتمام الطلب
-                </>
-              ) : (
-                'يرجى تحضير جميع المنتجات أولاً'
-              )}
-            </button>
-          </div>
+      {/* Complete Order Button - Fixed at bottom */}
+      <div className="bg-white border-t border-gray-200 p-4">
+        <div className="max-w-2xl mx-auto">
+          <button
+            onClick={completeOrder}
+            disabled={!allItemsPrepared}
+            className={`w-full py-4 rounded-lg font-bold text-white text-lg transition-all ${
+              allItemsPrepared
+                ? 'bg-green-600 hover:bg-green-700 cursor-pointer shadow-lg'
+                : 'bg-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {allItemsPrepared ? (
+              <div className="flex items-center justify-center gap-2">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                إتمام الطلب
+              </div>
+            ) : (
+              'يرجى تحضير جميع المنتجات أولاً'
+            )}
+          </button>
         </div>
       </div>
     </div>

@@ -366,6 +366,8 @@ export default function CustomersPage() {
 
   const handleCustomerGroupSelect = (group: CustomerGroup | null) => {
     setSelectedCustomerGroup(group)
+    // إلغاء تحديد العميل عند تغيير المجموعة
+    setSelectedCustomer(null)
   }
 
   const handleDeleteGroup = async () => {
@@ -470,11 +472,48 @@ export default function CustomersPage() {
 
   // toggleGroup is now provided by the hook
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (customer.phone && customer.phone.includes(searchQuery)) ||
-    (customer.city && customer.city.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
+  // دالة للحصول على جميع معرفات المجموعات الفرعية
+  const getAllSubGroupIds = (groupId: string, allGroups: CustomerGroup[]): string[] => {
+    const subGroups: string[] = [groupId]
+    
+    const findSubGroups = (parentId: string) => {
+      allGroups.forEach(group => {
+        if (group.parent_id === parentId) {
+          subGroups.push(group.id)
+          findSubGroups(group.id) // البحث بشكل متكرر
+        }
+      })
+    }
+    
+    findSubGroups(groupId)
+    return subGroups
+  }
+
+  // فلترة العملاء حسب المجموعة المحددة والبحث
+  const filteredCustomers = customers.filter(customer => {
+    // فلترة البحث أولاً
+    const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (customer.phone && customer.phone.includes(searchQuery)) ||
+      (customer.city && customer.city.toLowerCase().includes(searchQuery.toLowerCase()))
+    
+    // إذا لم يكن هناك مجموعة محددة، إظهار جميع العملاء
+    if (!selectedCustomerGroup) {
+      return matchesSearch
+    }
+    
+    // إذا كانت المجموعة المحددة هي المجموعة الرئيسية "عملاء"، إظهار جميع العملاء
+    if (selectedCustomerGroup.name === 'عملاء') {
+      return matchesSearch
+    }
+    
+    // الحصول على جميع المجموعات الفرعية للمجموعة المحددة
+    const allGroupIds = getAllSubGroupIds(selectedCustomerGroup.id, groups)
+    
+    // فلترة العملاء الذين ينتمون للمجموعة أو مجموعاتها الفرعية
+    const matchesGroup = customer.group_id && allGroupIds.includes(customer.group_id)
+    
+    return matchesSearch && matchesGroup
+  })
 
   return (
     <div className="h-screen bg-[#2B3544] overflow-hidden">
@@ -655,7 +694,7 @@ export default function CustomersPage() {
                   {/* Group Filter Dropdown */}
                   <div className="relative">
                     <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium transition-colors">
-                      <span>{selectedGroup}</span>
+                      <span>فئة العملاء</span>
                       <ChevronDownIcon className="h-4 w-4" />
                     </button>
                   </div>
