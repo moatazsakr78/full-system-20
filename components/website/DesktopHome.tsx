@@ -11,6 +11,7 @@ import { useUserProfile } from '../../lib/hooks/useUserProfile';
 import CategoryCarousel from './CategoryCarousel';
 import FeaturedProductsCarousel from './FeaturedProductsCarousel';
 import InteractiveProductCard from './InteractiveProductCard';
+import ProductDetailsModal from '../../app/components/ProductDetailsModal';
 
 interface DesktopHomeProps {
   userInfo: UserInfo;
@@ -34,6 +35,8 @@ export default function DesktopHome({
   const [selectedCategory, setSelectedCategory] = useState('الكل');
   const [isCompactHeaderVisible, setIsCompactHeaderVisible] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
   
   // Use right sidebar hook for the website menu
   const { isRightSidebarOpen, toggleRightSidebar, closeRightSidebar } = useRightSidebar();
@@ -138,6 +141,17 @@ export default function DesktopHome({
   });
 
   const featuredProducts = websiteProducts.filter(product => product.isFeatured || product.isOnSale);
+
+  // Handle product click to show modal instead of navigation
+  const handleProductClick = (productId: string) => {
+    setSelectedProductId(productId);
+    setIsProductModalOpen(true);
+  };
+
+  const handleCloseProductModal = () => {
+    setIsProductModalOpen(false);
+    setSelectedProductId('');
+  };
 
   // Show loading state during hydration or while loading data
   if (!isClient || isLoading) {
@@ -366,6 +380,7 @@ export default function DesktopHome({
               products={featuredProducts}
               onAddToCart={onAddToCart}
               itemsPerView={4}
+              onProductClick={handleProductClick}
             />
           ) : (
             <div className="text-center py-12">
@@ -397,6 +412,7 @@ export default function DesktopHome({
                 product={product}
                 onAddToCart={onAddToCart}
                 deviceType="desktop"
+                onProductClick={handleProductClick}
               />
             ))}
           </div>
@@ -444,6 +460,15 @@ export default function DesktopHome({
           </div>
         </div>
       </footer>
+
+      {/* Product Details Modal */}
+      <ProductDetailsModal
+        isOpen={isProductModalOpen}
+        onClose={handleCloseProductModal}
+        productId={selectedProductId}
+        userCart={userInfo.cart}
+        onUpdateCart={onCartUpdate}
+      />
     </>
   );
 }

@@ -8,12 +8,14 @@ interface InteractiveProductCardProps {
   product: Product;
   onAddToCart: (product: Product) => Promise<void>;
   deviceType: 'desktop' | 'tablet' | 'mobile';
+  onProductClick?: (productId: string) => void;
 }
 
 export default function InteractiveProductCard({ 
   product, 
   onAddToCart,
-  deviceType 
+  deviceType,
+  onProductClick 
 }: InteractiveProductCardProps) {
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -185,7 +187,13 @@ export default function InteractiveProductCard({
     <div 
       className={`${classes.containerClass} flex flex-col`}
       data-device-type={deviceType}
-      onClick={() => router.push(`/product/${product.id}`)}
+      onClick={() => {
+        if (onProductClick) {
+          onProductClick(String(product.id));
+        } else {
+          router.push(`/product/${product.id}`);
+        }
+      }}
     >
       <div 
         ref={imageRef}

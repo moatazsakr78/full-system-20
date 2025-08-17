@@ -9,13 +9,15 @@ interface FeaturedProductsCarouselProps {
   onAddToCart: (product: Product) => Promise<void>;
   itemsPerView?: number;
   className?: string;
+  onProductClick?: (productId: string) => void;
 }
 
 export default function FeaturedProductsCarousel({
   products,
   onAddToCart,
   itemsPerView = 4,
-  className = ""
+  className = "",
+  onProductClick
 }: FeaturedProductsCarouselProps) {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -77,7 +79,13 @@ export default function FeaturedProductsCarousel({
                 animationFillMode: 'both'
               }}
             >
-              <div className="relative mb-4" onClick={() => router.push(`/product/${product.id}`)}>
+              <div className="relative mb-4" onClick={() => {
+                if (onProductClick) {
+                  onProductClick(String(product.id));
+                } else {
+                  router.push(`/product/${product.id}`);
+                }
+              }}>
                 <img 
                   src={product.image || '/placeholder-product.svg'} 
                   alt={product.name} 

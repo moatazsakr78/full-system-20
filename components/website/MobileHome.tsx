@@ -9,6 +9,7 @@ import { useUserProfile } from '../../lib/hooks/useUserProfile';
 import InteractiveProductCard from './InteractiveProductCard';
 import CategoryCarousel from './CategoryCarousel';
 import FeaturedProductsCarousel from './FeaturedProductsCarousel';
+import ProductDetailsModal from '../../app/components/ProductDetailsModal';
 
 interface MobileHomeProps {
   userInfo: UserInfo;
@@ -33,6 +34,8 @@ export default function MobileHome({
   const [selectedCategory, setSelectedCategory] = useState('الكل');
   const [isSearchSticky, setIsSearchSticky] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [websiteProducts, setWebsiteProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   
@@ -134,6 +137,17 @@ export default function MobileHome({
   });
 
   const featuredProducts = websiteProducts.filter(product => product.isFeatured || product.isOnSale);
+
+  // Handle product click to show modal instead of navigation
+  const handleProductClick = (productId: string) => {
+    setSelectedProductId(productId);
+    setIsProductModalOpen(true);
+  };
+
+  const handleCloseProductModal = () => {
+    setIsProductModalOpen(false);
+    setSelectedProductId('');
+  };
 
   // Show loading state during hydration or while loading data
   if (!isClient || isLoading) {
@@ -275,6 +289,7 @@ export default function MobileHome({
               onAddToCart={onAddToCart}
               itemsPerView={2}
               className="mobile-carousel"
+              onProductClick={handleProductClick}
             />
           ) : (
             <div className="text-center py-12">
@@ -300,6 +315,7 @@ export default function MobileHome({
                 product={product}
                 onAddToCart={onAddToCart}
                 deviceType="mobile"
+                onProductClick={handleProductClick}
               />
             ))}
           </div>
@@ -380,6 +396,15 @@ export default function MobileHome({
           </button>
         </div>
       </nav>
+
+      {/* Product Details Modal */}
+      <ProductDetailsModal
+        isOpen={isProductModalOpen}
+        onClose={handleCloseProductModal}
+        productId={selectedProductId}
+        userCart={userInfo.cart}
+        onUpdateCart={onCartUpdate}
+      />
     </div>
   );
 }
