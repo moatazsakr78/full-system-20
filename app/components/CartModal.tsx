@@ -34,7 +34,12 @@ interface ShippingArea {
 
 type DeliveryMethod = 'pickup' | 'delivery';
 
-const CartPage = () => {
+interface CartModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const CartModal = ({ isOpen, onClose }: CartModalProps) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [cartItems, setCartItems] = useState<CartItemData[]>([]);
@@ -115,14 +120,16 @@ const CartPage = () => {
   
   // Initial load and subscription setup
   useEffect(() => {
-    isMountedRef.current = true;
-    
-    if (sessionIdRef.current) {
-      loadCartData();
-      setupRealtimeSubscription();
+    if (isOpen) {
+      isMountedRef.current = true;
+      
+      if (sessionIdRef.current) {
+        loadCartData();
+        setupRealtimeSubscription();
+      }
     }
     
-    // Cleanup on unmount
+    // Cleanup on unmount or close
     return () => {
       isMountedRef.current = false;
       if (subscriptionRef.current) {
@@ -130,10 +137,12 @@ const CartPage = () => {
         subscriptionRef.current = null;
       }
     };
-  }, [loadCartData, setupRealtimeSubscription]);
+  }, [isOpen, loadCartData, setupRealtimeSubscription]);
 
   // Handle page visibility changes to manage subscriptions
   useEffect(() => {
+    if (!isOpen) return;
+    
     const handleVisibilityChange = () => {
       if (document.hidden) {
         // Page is hidden, unsubscribe to save resources
@@ -155,7 +164,7 @@ const CartPage = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [loadCartData, setupRealtimeSubscription]);
+  }, [isOpen, loadCartData, setupRealtimeSubscription]);
 
   // Load shipping companies
   const loadShippingCompanies = useCallback(async () => {
@@ -182,8 +191,10 @@ const CartPage = () => {
 
   // Load shipping companies on mount
   useEffect(() => {
-    loadShippingCompanies();
-  }, [loadShippingCompanies]);
+    if (isOpen) {
+      loadShippingCompanies();
+    }
+  }, [isOpen, loadShippingCompanies]);
 
   // Load governorates for selected company
   const loadGovernorates = useCallback(async (companyId: string) => {
@@ -380,7 +391,7 @@ const CartPage = () => {
   // Save order to database
   const saveOrderToDatabase = async (orderData: any) => {
     try {
-      const { supabase } = await import('../../lib/supabase/client');
+      const { supabase } = await import('../lib/supabase/client');
       
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
@@ -590,7 +601,8 @@ const CartPage = () => {
       // Clear cart after confirmation
       await handleClearCart();
       
-      // Redirect to homepage
+      // Close modal and redirect to homepage
+      onClose();
       router.push('/');
     } catch (error) {
       console.error('Error confirming order:', error);
@@ -598,9 +610,11 @@ const CartPage = () => {
     }
   };
   
+  if (!isOpen) return null;
+  
   if (isLoading) {
     return (
-      <div className="min-h-screen font-['Cairo',Arial,sans-serif] flex items-center justify-center" dir="rtl" style={{backgroundColor: '#C0C0C0'}}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{backgroundColor: '#C0C0C0'}}>
         <div className="text-gray-600">جاري التحميل...</div>
       </div>
     );
@@ -632,7 +646,7 @@ const CartPage = () => {
           color: #6B7280 !important;
         }
       `}</style>
-      <div className="min-h-screen font-['Cairo',Arial,sans-serif]" dir="rtl" style={{backgroundColor: '#C0C0C0'}}>
+      <div className="fixed inset-0 z-50 font-['Cairo',Arial,sans-serif]" dir="rtl" style={{backgroundColor: '#C0C0C0'}}>
       {/* Header */}
       <header className="border-b border-gray-700 py-0 sticky top-0 z-10" style={{backgroundColor: '#661a1a'}}>
         <div className="max-w-[80%] mx-auto px-4 flex items-center justify-between min-h-[80px]">
@@ -655,7 +669,7 @@ const CartPage = () => {
           
           <div className="flex items-center gap-4">
             <button 
-              onClick={() => router.push('/')}
+              onClick={onClose}
               className="text-gray-300 hover:text-red-400 transition-colors font-medium flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -667,7 +681,7 @@ const CartPage = () => {
         </div>
       </header>
 
-      <div className="max-w-[90%] mx-auto px-4 py-6">
+      <div className="max-w-[90%] mx-auto px-4 py-6 h-[calc(100vh-80px)] overflow-y-auto">
         {cartItems.length === 0 ? (
           // Empty cart message
           <div className="text-center py-16">
@@ -678,7 +692,7 @@ const CartPage = () => {
               <h2 className="text-2xl font-bold text-gray-800 mb-4">السلة فارغة</h2>
               <p className="text-gray-600 mb-8">لم تقم بإضافة أي منتجات إلى السلة بعد</p>
               <button
-                onClick={() => router.push('/')}
+                onClick={onClose}
                 className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
               >
                 تصفح المنتجات
@@ -1081,4 +1095,4 @@ const CartPage = () => {
   );
 };
 
-export default CartPage;
+export default CartModal;

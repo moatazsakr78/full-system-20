@@ -9,6 +9,7 @@ import MobileHome from '../components/website/MobileHome';
 import { useRealCart } from '../lib/useRealCart';
 import { useAuth } from '../lib/useAuth';
 import { UserInfo } from '../components/website/shared/types';
+import { CartProvider } from '../lib/contexts/CartContext';
 
 export default function HomePage() {
   const router = useRouter();
@@ -101,17 +102,22 @@ export default function HomePage() {
   // Show loading screen during hydration to prevent mismatch
   if (!isClient) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#c0c0c0'}}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">جاري تحميل التطبيق...</p>
+      <CartProvider>
+        <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#c0c0c0'}}>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">جاري تحميل التطبيق...</p>
+          </div>
         </div>
-      </div>
+      </CartProvider>
     );
   }
 
   // Render appropriate component based on device type
-  switch (deviceInfo.type) {
+  return (
+    <CartProvider>
+      {(() => {
+        switch (deviceInfo.type) {
     case 'mobile':
       return (
         <MobileHome 
@@ -256,5 +262,8 @@ export default function HomePage() {
           onClearCart={clearCart}
         />
       );
-  }
+        }
+      })()}
+    </CartProvider>
+  );
 }

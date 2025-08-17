@@ -10,6 +10,8 @@ import InteractiveProductCard from './InteractiveProductCard';
 import CategoryCarousel from './CategoryCarousel';
 import FeaturedProductsCarousel from './FeaturedProductsCarousel';
 import ProductDetailsModal from '../../app/components/ProductDetailsModal';
+import CartModal from '../../app/components/CartModal';
+import { useCart } from '../../lib/contexts/CartContext';
 
 interface MobileHomeProps {
   userInfo: UserInfo;
@@ -36,11 +38,15 @@ export default function MobileHome({
   const [isClient, setIsClient] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [isCartModalOpen, setIsCartModalOpen] = useState(false);
   const [websiteProducts, setWebsiteProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   
   // Get user profile to check admin status
   const { isAdmin } = useUserProfile();
+  
+  // Get cart context for badge
+  const { cartCount } = useCart();
   
   // Get real products from database
   const { products: databaseProducts, isLoading } = useProducts();
@@ -188,15 +194,15 @@ export default function MobileHome({
             
             <div className="ml-1">
               <button 
-                onClick={() => router.push('/cart')}
+                onClick={() => setIsCartModalOpen(true)}
                 className="relative p-2 hover:bg-gray-700 rounded-lg"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
                 </svg>
-                {(userInfo.cartCount || 0) > 0 && (
+                {cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center" style={{backgroundColor: '#5D1F1F'}}>
-                    {userInfo.cartCount || 0}
+                    {cartCount}
                   </span>
                 )}
               </button>
@@ -374,15 +380,15 @@ export default function MobileHome({
           
           
           <button 
-            onClick={() => router.push('/cart')}
+            onClick={() => setIsCartModalOpen(true)}
             className="flex flex-col items-center gap-1 p-2 text-gray-400 relative"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
             </svg>
-            {(userInfo.cartCount || 0) > 0 && (
+            {cartCount > 0 && (
               <span className="absolute -top-1 -right-1 text-xs rounded-full w-4 h-4 flex items-center justify-center text-white" style={{backgroundColor: '#5D1F1F'}}>
-                {userInfo.cartCount || 0}
+                {cartCount}
               </span>
             )}
             <span className="text-xs">السلة</span>
@@ -404,6 +410,12 @@ export default function MobileHome({
         productId={selectedProductId}
         userCart={userInfo.cart}
         onUpdateCart={onCartUpdate}
+      />
+
+      {/* Cart Modal */}
+      <CartModal
+        isOpen={isCartModalOpen}
+        onClose={() => setIsCartModalOpen(false)}
       />
     </div>
   );

@@ -12,6 +12,8 @@ import CategoryCarousel from './CategoryCarousel';
 import FeaturedProductsCarousel from './FeaturedProductsCarousel';
 import InteractiveProductCard from './InteractiveProductCard';
 import ProductDetailsModal from '../../app/components/ProductDetailsModal';
+import CartModal from '../../app/components/CartModal';
+import { useCart } from '../../lib/contexts/CartContext';
 
 interface DesktopHomeProps {
   userInfo: UserInfo;
@@ -37,6 +39,7 @@ export default function DesktopHome({
   const [isClient, setIsClient] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [isCartModalOpen, setIsCartModalOpen] = useState(false);
   
   // Use right sidebar hook for the website menu
   const { isRightSidebarOpen, toggleRightSidebar, closeRightSidebar } = useRightSidebar();
@@ -45,6 +48,9 @@ export default function DesktopHome({
   
   // Get user profile to check admin status
   const { isAdmin } = useUserProfile();
+  
+  // Get cart context for badge
+  const { cartCount } = useCart();
   
   // Get real products from database
   const { products: databaseProducts, isLoading } = useProducts();
@@ -242,7 +248,7 @@ export default function DesktopHome({
               
               <div className="ml-1">
                 <button 
-                  onClick={() => router.push('/cart')}
+                  onClick={() => setIsCartModalOpen(true)}
                   className="relative p-2 rounded-lg transition-colors"
                   onMouseEnter={(e) => {
                     (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
@@ -334,7 +340,7 @@ export default function DesktopHome({
             {/* Cart Button pushed to the right */}
             <div className="ml-4">
               <button 
-                onClick={() => router.push('/cart')}
+                onClick={() => setIsCartModalOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-white"
                 style={{backgroundColor: '#5D1F1F'}}
                 onMouseEnter={(e) => {
@@ -344,7 +350,7 @@ export default function DesktopHome({
                   (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
                 }}
               >
-                <span>السلة ({userInfo.cartCount || 0})</span>
+                <span>السلة ({cartCount})</span>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
                 </svg>
@@ -468,6 +474,12 @@ export default function DesktopHome({
         productId={selectedProductId}
         userCart={userInfo.cart}
         onUpdateCart={onCartUpdate}
+      />
+
+      {/* Cart Modal */}
+      <CartModal
+        isOpen={isCartModalOpen}
+        onClose={() => setIsCartModalOpen(false)}
       />
     </>
   );
