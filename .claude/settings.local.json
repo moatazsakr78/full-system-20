@@ -61,7 +61,8 @@
       "Bash(npx playwright:*)",
       "Bash(mv:*)",
       "Bash(move \"C:\\Users\\pc\\Desktop\\pos-sys7\\app\\(website)\\orders\\page.tsx\" \"C:\\Users\\pc\\Desktop\\pos-sys7\\app\\(website)\\my-orders\\page.tsx\")",
-      "mcp__supabase__get_logs"
+      "mcp__supabase__get_logs",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useCart, CartProvider } from '@/lib/contexts/CartContext'
+import { useCartBadge } from '@/lib/hooks/useCartBadge'
+import CartModal from '@/app/components/CartModal'
 
 // Editable Field Component for inline editing
 interface EditableFieldProps {
@@ -107,10 +110,13 @@ import {
   PrinterIcon
 } from '@heroicons/react/24/outline'
 
-export default function POSPage() {
+function POSPageContent() {
   
   const [searchQuery, setSearchQuery] = useState('')
-  const [cartItems, setCartItems] = useState<any[]>([])
+  // Replace local cartItems with CartContext
+  const { cartItems, addToCart, removeFromCart, updateQuantity, clearCart } = useCart()
+  const { cartBadgeCount } = useCartBadge()
+  const [isCartModalOpen, setIsCartModalOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isRecordsModalOpen, setIsRecordsModalOpen] = useState(false)
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false)
@@ -543,119 +549,36 @@ export default function POSPage() {
     (product.barcode && product.barcode.includes(searchQuery))
   )
 
-  // Cart functions - COMPLETELY REWRITTEN
-  const handleAddToCart = (product: any, quantity: number, selectedColor?: string) => {
+  // Cart functions - Updated to use CartContext
+  const handleAddToCart = async (product: any, quantity: number, selectedColor?: string) => {
     console.log('Adding to cart:', { productId: product.id, quantity, selectedColor })
     
-    setCartItems(prev => {
-      const existingItemIndex = prev.findIndex(item => item.product.id === product.id)
-      
-      if (existingItemIndex >= 0) {
-        // Product already exists in cart
-        const newCartItems = [...prev]
-        const existingItem = { ...newCartItems[existingItemIndex] }
-        
-        if (selectedColor) {
-          // Initialize selectedColors if it doesn't exist
-          if (!existingItem.selectedColors) {
-            existingItem.selectedColors = {}
-          } else {
-            // Create a copy to avoid mutation
-            existingItem.selectedColors = { ...existingItem.selectedColors }
-          }
-          
-          // Add the color quantity
-          existingItem.selectedColors[selectedColor] = (existingItem.selectedColors[selectedColor] || 0) + quantity
-          
-          // Recalculate total quantity from all colors
-          existingItem.quantity = Object.values(existingItem.selectedColors).reduce((total: number, colorQty) => total + (colorQty as number), 0)
-        } else {
-          // No color, just add to total quantity
-          existingItem.quantity += quantity
-        }
-        
-        // Update total price
-        existingItem.total = existingItem.price * existingItem.quantity
-        
-        newCartItems[existingItemIndex] = existingItem
-        return newCartItems
-      } else {
-        // New product - create new cart item
-        const newCartItem = {
-          id: product.id.toString(),
-          product: product,
-          quantity: quantity,
-          selectedColors: selectedColor ? { [selectedColor]: quantity } : null,
-          price: product.price || 0,
-          total: (product.price || 0) * quantity,
-          color: selectedColor || null
-        }
-        
-        return [...prev, newCartItem]
-      }
-    })
+    try {
+      await addToCart(String(product.id), quantity, product.price || 0, selectedColor)
+      console.log('✅ POS: Product added successfully')
+    } catch (error) {
+      console.error('❌ POS: Error adding product to cart:', error)
+    }
   }
 
-  const handleColorSelection = (selections: {[key: string]: number}, totalQuantity: number, purchasePrice?: number) => {
+  const handleColorSelection = async (selections: {[key: string]: number}, totalQuantity: number, purchasePrice?: number) => {
     console.log('Color selection:', { selections, totalQuantity, productId: modalProduct?.id })
     
     if (!modalProduct) return
     
     // Create the product with correct price
-    const productWithPrice = {
-      ...modalProduct,
-      price: isPurchaseMode && purchasePrice !== undefined ? purchasePrice : (modalProduct.price || 0)
-    }
+    const productPrice = isPurchaseMode && purchasePrice !== undefined ? purchasePrice : (modalProduct.price || 0)
     
-    // Find if this product already exists in cart
-    const existingItemIndex = cartItems.findIndex(item => item.product.id === modalProduct.id)
-    
-    if (existingItemIndex >= 0) {
-      // Product exists - update it directly
-      setCartItems(prev => {
-        const newCartItems = [...prev]
-        const existingItem = { ...newCartItems[existingItemIndex] }
-        
-        // Initialize or copy selectedColors
-        if (!existingItem.selectedColors) {
-          existingItem.selectedColors = {}
-        } else {
-          existingItem.selectedColors = { ...existingItem.selectedColors }
-        }
-        
-        // Add each color selection
-        Object.entries(selections).forEach(([color, quantity]) => {
-          if (quantity > 0) {
-            existingItem.selectedColors![color] = (existingItem.selectedColors![color] || 0) + quantity
-          }
-        })
-        
-        // Recalculate total quantity from all colors
-        existingItem.quantity = Object.values(existingItem.selectedColors).reduce((total: number, colorQty) => total + (colorQty as number), 0)
-        existingItem.total = existingItem.price * existingItem.quantity
-        
-        newCartItems[existingItemIndex] = existingItem
-        return newCartItems
-      })
-    } else {
-      // New product - create new cart item
-      const selectedColors: {[key: string]: number} = {}
-      Object.entries(selections).forEach(([color, quantity]) => {
+    try {
+      // Add each color selection to cart using CartContext
+      for (const [color, quantity] of Object.entries(selections)) {
         if (quantity > 0) {
-          selectedColors[color] = quantity
+          await addToCart(String(modalProduct.id), quantity, productPrice, color)
         }
-      })
-      
-      const newCartItem = {
-        id: productWithPrice.id.toString(),
-        product: productWithPrice,
-        quantity: totalQuantity,
-        selectedColors: Object.keys(selectedColors).length > 0 ? selectedColors : null,
-        price: productWithPrice.price || 0,
-        total: (productWithPrice.price || 0) * totalQuantity
       }
-      
-      setCartItems(prev => [...prev, newCartItem])
+      console.log('✅ POS: Color selection added successfully')
+    } catch (error) {
+      console.error('❌ POS: Error adding color selection to cart:', error)
     }
   }
 
@@ -689,17 +612,11 @@ export default function POSPage() {
     setShowColorSelectionModal(true)
   }
 
-  const cartTotal = cartItems.reduce((sum, item) => sum + item.total, 0)
+  // Calculate cart total from CartContext items
+  const cartTotal = useMemo(() => {
+    return cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  }, [cartItems])
 
-  // Remove item from cart
-  const removeFromCart = (itemId: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== itemId))
-  }
-
-  // Clear all cart items
-  const clearCart = () => {
-    setCartItems([])
-  }
 
   // Handle invoice creation
   const handleCreateInvoice = async () => {
@@ -1256,11 +1173,10 @@ export default function POSPage() {
       {/* Sidebar */}
       <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
       
-      {/* Main Content Area - Fixed width to prevent cart interference */}
+      {/* Main Content Area - Full width since cart is now modal */}
       <div 
-        className="flex flex-col transition-all duration-300 ease-in-out"
+        className="flex flex-col transition-all duration-300 ease-in-out flex-1"
         style={{
-          width: 'calc(100vw - 320px)', // 320px for cart
           height: '100vh'
         }}
       >
@@ -1380,8 +1296,22 @@ export default function POSPage() {
               </button>
             </div>
 
-            {/* Right Side - Purchase Mode Toggle & Returns */}
+            {/* Right Side - Cart, Purchase Mode Toggle & Returns */}
             <div className="flex items-center gap-2">
+              {/* Cart Button */}
+              <button 
+                onClick={() => setIsCartModalOpen(true)}
+                className="flex flex-col items-center p-2 text-blue-400 hover:text-blue-300 cursor-pointer min-w-[80px] transition-all relative"
+              >
+                <ShoppingCartIcon className="h-5 w-5 mb-1" />
+                <span className="text-sm">السلة ({cartBadgeCount})</span>
+                {cartBadgeCount > 0 && (
+                  <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartBadgeCount}
+                  </div>
+                )}
+              </button>
+
               {/* Returns Button */}
               <button 
                 onClick={() => setIsReturnMode(!isReturnMode)}
@@ -1672,256 +1602,7 @@ export default function POSPage() {
         </div>
       </div>
 
-      {/* Shopping Cart Panel - Back to original position */}
-      <div className="w-80 bg-[#374151] border-r-2 border-gray-500 flex flex-col">
-        {/* Cart Items Area - Full Height */}
-        <div className="flex-1 border-t-2 border-gray-500">
-          {cartItems.length === 0 ? (
-            <div className="flex flex-col justify-center items-center h-full p-8">
-              <ShoppingCartIcon className="h-24 w-24 text-gray-500 mb-8" />
-              <p className="text-gray-400 text-sm text-center mb-4">اضغط على المنتجات لإضافتها للسلة</p>
-              <div className="text-center">
-                <span className="bg-gray-600 px-3 py-1 rounded text-sm text-gray-300">0 منتج</span>
-              </div>
-            </div>
-          ) : (
-            <div className="h-full flex flex-col">
-              {/* Cart Header */}
-              <div className="p-4 border-b border-gray-600">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="text-white font-medium">السلة</span>
-                    <span className="bg-blue-600 px-2 py-1 rounded text-xs text-white">{cartItems.length}</span>
-                  </div>
-                  {cartItems.length > 0 && (
-                    <button
-                      onClick={clearCart}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded px-2 py-1 transition-colors text-xs"
-                      title="مسح السلة"
-                    >
-                      مسح الكل
-                    </button>
-                  )}
-                </div>
-              </div>
-              
-              {/* Cart Items */}
-              <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-3">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="bg-[#2B3544] rounded-lg p-3 border border-gray-600">
-                    <div className="flex gap-3 mb-2">
-                      {/* Product Image */}
-                      <div className="w-12 h-12 flex-shrink-0 bg-[#374151] rounded-md overflow-hidden flex items-center justify-center">
-                        {item.product.main_image_url ? (
-                          <img
-                            src={item.product.main_image_url}
-                            alt={item.product.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              // Show fallback icon if image fails to load
-                              e.currentTarget.style.display = 'none'
-                              e.currentTarget.nextElementSibling?.classList.remove('hidden')
-                            }}
-                          />
-                        ) : null}
-                        <div className={`w-6 h-6 ${item.product.main_image_url ? 'hidden' : ''}`}>
-                          <ShoppingBagIcon className="w-full h-full text-gray-400" />
-                        </div>
-                      </div>
-                      
-                      {/* Product Info and Remove Button */}
-                      <div className="flex-1 flex justify-between items-start">
-                        <h4 className="text-white text-sm font-medium leading-tight flex-1">{item.product.name}</h4>
-                        <button 
-                          onClick={() => removeFromCart(item.id)}
-                          className="text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-full p-1 transition-colors text-lg leading-none ml-2"
-                          title="إزالة من السلة"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
-                    <div className="space-y-2 text-xs">
-                      
-                      {/* Selected Colors */}
-                      {item.selectedColors && (
-                        <div>
-                          <span className="text-gray-400 block mb-1">الألوان المحددة:</span>
-                          <div className="flex flex-wrap gap-1">
-                            {Object.entries(item.selectedColors).map(([color, quantity]: [string, any]) => (
-                              <span
-                                key={color}
-                                className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-600/20 text-blue-400 border border-blue-600/30"
-                              >
-                                {color} ({quantity})
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Legacy single color support */}
-                      {item.color && !item.selectedColors && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">اللون:</span>
-                          <span className="text-blue-400">{item.color}</span>
-                        </div>
-                      )}
-                      
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">{isTransferMode ? 'الكمية:' : 'الكمية الإجمالية:'}</span>
-                        <EditableField
-                          value={item.quantity}
-                          type="number"
-                          onUpdate={(newQuantity) => {
-                            setCartItems(prev => prev.map(cartItem => {
-                              if (cartItem.id === item.id) {
-                                // Calculate the ratio of change for proportional color updates
-                                const ratio = newQuantity / cartItem.quantity;
-                                let updatedColors: {[key: string]: number} | null = null;
-                                
-                                // If we have selected colors, update them proportionally
-                                if (cartItem.selectedColors) {
-                                  updatedColors = {};
-                                  Object.entries(cartItem.selectedColors).forEach(([color, quantity]: [string, any]) => {
-                                    updatedColors![color] = Math.max(1, Math.round(quantity * ratio));
-                                  });
-                                }
-                                
-                                return { 
-                                  ...cartItem, 
-                                  quantity: newQuantity, 
-                                  selectedColors: updatedColors,
-                                  total: isTransferMode ? 0 : cartItem.price * newQuantity 
-                                }
-                              }
-                              return cartItem
-                            }))
-                          }}
-                          className="text-white font-medium text-right bg-transparent border-none outline-none w-16 hover:bg-gray-600/20 rounded px-1"
-                        />
-                      </div>
-                      
-                      {/* Hide price and total in transfer mode */}
-                      {!isTransferMode && (
-                        <>
-                          <div className="flex justify-between">
-                            <span className="text-gray-400">سعر الوحدة:</span>
-                            <EditableField
-                              value={item.price}
-                              type="number" 
-                              step="0.01"
-                              onUpdate={(newPrice) => {
-                                setCartItems(prev => prev.map(cartItem => 
-                                  cartItem.id === item.id 
-                                    ? { ...cartItem, price: newPrice, total: cartItem.quantity * newPrice }
-                                    : cartItem
-                                ))
-                              }}
-                              className="text-blue-400 font-medium text-right bg-transparent border-none outline-none w-16 hover:bg-gray-600/20 rounded px-1"
-                            />
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-400">الإجمالي:</span>
-                            <span className="text-green-400 font-medium">{item.total.toFixed(2)} ريال</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Cart Footer */}
-        <div className="p-4 border-t border-gray-600 bg-[#2B3544]">
-          <div className="space-y-3 mb-4">
-            {/* Show total only in non-transfer modes */}
-            {!isTransferMode && (
-              <div className="flex justify-between font-semibold text-lg">
-                <span className="text-white">الإجمالي:</span>
-                <span className="text-green-400 font-bold">{cartTotal.toFixed(2)} ريال</span>
-              </div>
-            )}
-            
-            {/* Transfer mode summary */}
-            {isTransferMode && (
-              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-orange-400 font-medium">وضع النقل</span>
-                  <span className="text-white font-bold">
-                    {cartItems.reduce((sum, item) => sum + item.quantity, 0)} قطعة
-                  </span>
-                </div>
-                <div className="text-xs text-gray-300">
-                  من: {transferFromLocation?.name} → إلى: {transferToLocation?.name}
-                </div>
-              </div>
-            )}
-            
-            {/* Selection Status */}
-            {!hasAllRequiredSelections() && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-                <p className="text-red-400 text-sm font-medium mb-2">التحديدات المطلوبة:</p>
-                <div className="flex flex-wrap gap-2 text-xs">
-                  {!selections.record && (
-                    <span className="bg-red-500/20 text-red-400 px-2 py-1 rounded">السجل</span>
-                  )}
-                  {isPurchaseMode ? (
-                    <>
-                      {!selectedSupplier && (
-                        <span className="bg-red-500/20 text-red-400 px-2 py-1 rounded">المورد</span>
-                      )}
-                      {!selectedWarehouse && (
-                        <span className="bg-red-500/20 text-red-400 px-2 py-1 rounded">فرع / مخزن</span>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      {!selections.customer && (
-                        <span className="bg-red-500/20 text-red-400 px-2 py-1 rounded">العميل</span>
-                      )}
-                      {!selections.branch && (
-                        <span className="bg-red-500/20 text-red-400 px-2 py-1 rounded">الفرع</span>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <button 
-            disabled={cartItems.length === 0 || !hasAllRequiredSelections() || isProcessingInvoice}
-            className={`w-full py-3 rounded-lg font-semibold transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed text-white ${
-              isTransferMode
-                ? 'bg-orange-600 hover:bg-orange-700'
-                : isReturnMode 
-                  ? (isPurchaseMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700')
-                  : 'bg-green-600 hover:bg-green-700'
-            }`}
-            onClick={handleCreateInvoice}
-          >
-            {isProcessingInvoice 
-              ? (isTransferMode
-                  ? 'جاري إنشاء فاتورة النقل...'
-                  : isReturnMode 
-                    ? (isPurchaseMode ? 'جاري معالجة مرتجع الشراء...' : 'جاري معالجة مرتجع البيع...') 
-                    : (isPurchaseMode ? 'جاري إنشاء فاتورة الشراء...' : 'جاري إنشاء الفاتورة...')
-                ) 
-              : !hasAllRequiredSelections() 
-                ? 'يجب إكمال التحديدات' 
-                : isTransferMode
-                  ? `تأكيد النقل (${cartItems.length})`
-                  : isReturnMode
-                    ? (isPurchaseMode ? `مرتجع شراء (${cartItems.length})` : `مرتجع بيع (${cartItems.length})`)
-                    : (isPurchaseMode ? `تأكيد الشراء (${cartItems.length})` : `تأكيد الطلب (${cartItems.length})`)
-            }
-          </button>
-        </div>
-      </div>
+      {/* Shopping Cart Panel removed - now using CartModal */}
 
       {/* Records Selection Modal */}
       <RecordsSelectionModal 
@@ -2542,6 +2223,20 @@ export default function POSPage() {
         columns={getAllColumns()}
         onColumnsChange={handleColumnsChange}
       />
+
+      {/* Cart Modal */}
+      <CartModal
+        isOpen={isCartModalOpen}
+        onClose={() => setIsCartModalOpen(false)}
+      />
     </div>
+  )
+}
+
+export default function POSPage() {
+  return (
+    <CartProvider>
+      <POSPageContent />
+    </CartProvider>
   )
 }
