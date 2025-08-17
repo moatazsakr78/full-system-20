@@ -52,6 +52,10 @@ export default function TabletHome({
   const { cartBadgeCount } = useCartBadge();
   const { addToCart } = useCart();
   
+  // Add state for success message
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [successProductName, setSuccessProductName] = useState('');
+
   // Handle adding products to cart
   const handleAddToCart = async (product: Product) => {
     try {
@@ -59,6 +63,11 @@ export default function TabletHome({
       const selectedColorName = product.selectedColor?.name || undefined;
       await addToCart(String(product.id), 1, product.price, selectedColorName);
       console.log('✅ Tablet: Product added successfully');
+      
+      // Show success message
+      setSuccessProductName(product.name);
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
     } catch (error) {
       console.error('❌ Tablet: Error adding product to cart:', error);
     }
@@ -284,6 +293,11 @@ export default function TabletHome({
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
                   </svg>
+                  {cartBadgeCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" style={{color: '#5D1F1F'}}>
+                      {cartBadgeCount}
+                    </span>
+                  )}
                 </button>
               </div>
               </div>
@@ -496,6 +510,18 @@ export default function TabletHome({
         isOpen={isCartModalOpen}
         onClose={() => setIsCartModalOpen(false)}
       />
+
+      {/* Success Message Toast */}
+      {showSuccessMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white p-4 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span>تم إضافة &quot;{successProductName}&quot; إلى السلة بنجاح!</span>
+          </div>
+        </div>
+      )}
     </>
   );
 }
