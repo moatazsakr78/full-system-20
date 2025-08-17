@@ -657,8 +657,17 @@ function POSPageContent() {
     try {
       if (isTransferMode) {
         // Handle transfer invoice creation
+        // Transform cartItems to match TransferCartItem interface
+        const transferCartItems = cartItems.map(item => ({
+          id: item.id,
+          product: item.products || { name: 'Unknown Product' },
+          quantity: item.quantity,
+          selectedColors: item.selected_color ? { [item.selected_color]: item.quantity } : undefined,
+          isTransfer: true
+        }))
+        
         const transferInvoice = await createTransferInvoice({
-          cartItems: cartItems,
+          cartItems: transferCartItems,
           transferFromLocation,
           transferToLocation,
           record: selections.record
@@ -685,8 +694,18 @@ function POSPageContent() {
         
       } else if (isPurchaseMode) {
         // Handle purchase invoice creation (or return)
+        // Transform cartItems to match sales invoice CartItem interface
+        const purchaseCartItems = cartItems.map(item => ({
+          id: item.id,
+          product: item.products || { name: 'Unknown Product' },
+          quantity: item.quantity,
+          selectedColors: item.selected_color ? { [item.selected_color]: item.quantity } : null,
+          price: item.price,
+          total: item.price * item.quantity
+        }))
+        
         const result = await createPurchaseInvoice({
-          cartItems: cartItems as CartItem[],
+          cartItems: purchaseCartItems,
           selections: {
             supplier: selectedSupplier,
             warehouse: selectedWarehouse,
@@ -714,8 +733,18 @@ function POSPageContent() {
         setShowPrintReceiptModal(true)
       } else {
         // Handle sales invoice creation (or return)
+        // Transform cartItems to match sales invoice CartItem interface
+        const salesCartItems = cartItems.map(item => ({
+          id: item.id,
+          product: item.products || { name: 'Unknown Product' },
+          quantity: item.quantity,
+          selectedColors: item.selected_color ? { [item.selected_color]: item.quantity } : null,
+          price: item.price,
+          total: item.price * item.quantity
+        }))
+        
         const result = await createSalesInvoice({
-          cartItems: cartItems as CartItem[],
+          cartItems: salesCartItems,
           selections: {
             customer: selections.customer,
             branch: selections.branch,
