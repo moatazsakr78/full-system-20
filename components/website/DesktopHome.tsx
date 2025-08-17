@@ -14,11 +14,11 @@ import InteractiveProductCard from './InteractiveProductCard';
 import ProductDetailsModal from '../../app/components/ProductDetailsModal';
 import CartModal from '../../app/components/CartModal';
 import { useCart } from '../../lib/contexts/CartContext';
+import { useCartBadge } from '../../lib/hooks/useCartBadge';
 
 interface DesktopHomeProps {
   userInfo: UserInfo;
   onCartUpdate: (cart: any[]) => void;
-  onAddToCart: (product: Product) => Promise<void>;
   onRemoveFromCart: (productId: string | number) => void;
   onUpdateQuantity: (productId: string | number, quantity: number) => void;
   onClearCart: () => void;
@@ -27,7 +27,6 @@ interface DesktopHomeProps {
 export default function DesktopHome({ 
   userInfo, 
   onCartUpdate, 
-  onAddToCart, 
   onRemoveFromCart, 
   onUpdateQuantity, 
   onClearCart 
@@ -49,8 +48,22 @@ export default function DesktopHome({
   // Get user profile to check admin status
   const { isAdmin } = useUserProfile();
   
-  // Get cart context for badge
-  const { cartCount } = useCart();
+  // Get cart badge count and cart functions
+  const { cartBadgeCount } = useCartBadge();
+  const { addToCart } = useCart();
+  
+  // Handle adding products to cart
+  const handleAddToCart = async (product: Product) => {
+    try {
+      console.log('🛒 Desktop: Adding product to cart:', product.name);
+      const selectedColorName = product.selectedColor?.name || undefined;
+      await addToCart(String(product.id), 1, product.price, selectedColorName);
+      console.log('✅ Desktop: Product added successfully');
+    } catch (error) {
+      console.error('❌ Desktop: Error adding product to cart:', error);
+    }
+  };
+  
   
   // Get real products from database
   const { products: databaseProducts, isLoading } = useProducts();
@@ -260,9 +273,9 @@ export default function DesktopHome({
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
                   </svg>
-                  {(userInfo.cartCount || 0) > 0 && (
+                  {cartBadgeCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" style={{color: '#5D1F1F'}}>
-                      {userInfo.cartCount || 0}
+                      {cartBadgeCount}
                     </span>
                   )}
                 </button>
@@ -350,7 +363,7 @@ export default function DesktopHome({
                   (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
                 }}
               >
-                <span>السلة ({cartCount})</span>
+                <span>السلة ({cartBadgeCount})</span>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
                 </svg>
@@ -384,7 +397,7 @@ export default function DesktopHome({
           {featuredProducts.length > 0 ? (
             <FeaturedProductsCarousel
               products={featuredProducts}
-              onAddToCart={onAddToCart}
+              onAddToCart={handleAddToCart}
               itemsPerView={4}
               onProductClick={handleProductClick}
             />
@@ -416,7 +429,7 @@ export default function DesktopHome({
               <InteractiveProductCard
                 key={product.id}
                 product={product}
-                onAddToCart={onAddToCart}
+                onAddToCart={handleAddToCart}
                 deviceType="desktop"
                 onProductClick={handleProductClick}
               />

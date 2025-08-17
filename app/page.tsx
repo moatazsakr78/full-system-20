@@ -123,37 +123,6 @@ export default function HomePage() {
         <MobileHome 
           userInfo={updatedUserInfo} 
           onCartUpdate={handleCartUpdate}
-          onAddToCart={async (product: any) => {
-            try {
-              console.log('🛒 Mobile: Adding product to cart:', product.name, 'Selected color:', product.selectedColor?.name);
-              const selectedColorName = product.selectedColor?.name || undefined;
-              const success = await addToCart(String(product.id), 1, product.price, selectedColorName);
-              if (success) {
-                console.log('✅ Mobile: Product added successfully');
-                // Show success toast notification
-                const toast = document.createElement('div');
-                toast.innerHTML = `
-                  <div style="position: fixed; top: 20px; right: 20px; background: #10B981; color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <span>✅</span>
-                      <span>تم إضافة ${product.name}${product.selectedColor ? ` (${product.selectedColor.name})` : ''} للسلة بنجاح</span>
-                    </div>
-                  </div>
-                `;
-                document.body.appendChild(toast.firstElementChild!);
-                setTimeout(() => {
-                  const toastEl = document.querySelector('[style*="position: fixed"]');
-                  if (toastEl) toastEl.remove();
-                }, 3000);
-              } else {
-                console.error('❌ Mobile: Failed to add product to cart');
-                alert('فشل في إضافة المنتج للسلة. يرجى المحاولة مرة أخرى.');
-              }
-            } catch (error) {
-              console.error('❌ Mobile: Error adding product to cart:', error);
-              alert('حدث خطأ أثناء إضافة المنتج للسلة.');
-            }
-          }}
           onRemoveFromCart={(productId: string | number) => {
             const item = cart.find(item => item.product_id === String(productId));
             if (item) removeFromCart(item.id);
@@ -171,37 +140,6 @@ export default function HomePage() {
         <TabletHome 
           userInfo={updatedUserInfo} 
           onCartUpdate={handleCartUpdate}
-          onAddToCart={async (product: any) => {
-            try {
-              console.log('🛒 Tablet: Adding product to cart:', product.name, 'Selected color:', product.selectedColor?.name);
-              const selectedColorName = product.selectedColor?.name || undefined;
-              const success = await addToCart(String(product.id), 1, product.price, selectedColorName);
-              if (success) {
-                console.log('✅ Tablet: Product added successfully');
-                // Show success toast notification
-                const toast = document.createElement('div');
-                toast.innerHTML = `
-                  <div style="position: fixed; top: 20px; right: 20px; background: #10B981; color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <span>✅</span>
-                      <span>تم إضافة ${product.name}${product.selectedColor ? ` (${product.selectedColor.name})` : ''} للسلة بنجاح</span>
-                    </div>
-                  </div>
-                `;
-                document.body.appendChild(toast.firstElementChild!);
-                setTimeout(() => {
-                  const toastEl = document.querySelector('[style*="position: fixed"]');
-                  if (toastEl) toastEl.remove();
-                }, 3000);
-              } else {
-                console.error('❌ Tablet: Failed to add product to cart');
-                alert('فشل في إضافة المنتج للسلة. يرجى المحاولة مرة أخرى.');
-              }
-            } catch (error) {
-              console.error('❌ Tablet: Error adding product to cart:', error);
-              alert('حدث خطأ أثناء إضافة المنتج للسلة.');
-            }
-          }}
           onRemoveFromCart={(productId: string | number) => {
             const item = cart.find(item => item.product_id === String(productId));
             if (item) removeFromCart(item.id);
@@ -220,37 +158,6 @@ export default function HomePage() {
         <DesktopHome 
           userInfo={updatedUserInfo} 
           onCartUpdate={handleCartUpdate}
-          onAddToCart={async (product: any) => {
-            try {
-              console.log('🛒 Desktop: Adding product to cart:', product.name, 'Selected color:', product.selectedColor?.name);
-              const selectedColorName = product.selectedColor?.name || undefined;
-              const success = await addToCart(String(product.id), 1, product.price, selectedColorName);
-              if (success) {
-                console.log('✅ Desktop: Product added successfully');
-                // Show success toast notification
-                const toast = document.createElement('div');
-                toast.innerHTML = `
-                  <div style="position: fixed; top: 20px; right: 20px; background: #10B981; color: white; padding: 12px 24px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <span>✅</span>
-                      <span>تم إضافة ${product.name}${product.selectedColor ? ` (${product.selectedColor.name})` : ''} للسلة بنجاح</span>
-                    </div>
-                  </div>
-                `;
-                document.body.appendChild(toast.firstElementChild!);
-                setTimeout(() => {
-                  const toastEl = document.querySelector('[style*="position: fixed"]');
-                  if (toastEl) toastEl.remove();
-                }, 3000);
-              } else {
-                console.error('❌ Desktop: Failed to add product to cart');
-                alert('فشل في إضافة المنتج للسلة. يرجى المحاولة مرة أخرى.');
-              }
-            } catch (error) {
-              console.error('❌ Desktop: Error adding product to cart:', error);
-              alert('حدث خطأ أثناء إضافة المنتج للسلة.');
-            }
-          }}
           onRemoveFromCart={(productId: string | number) => {
             const item = cart.find(item => item.product_id === String(productId));
             if (item) removeFromCart(item.id);

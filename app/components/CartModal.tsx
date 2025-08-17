@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { CartService } from '@/lib/cart-service';
 import { CartSession, CartItemData } from '@/lib/cart-utils';
+import { useCart } from '@/lib/contexts/CartContext';
 
 interface CustomerData {
   name: string;
@@ -37,18 +38,21 @@ type DeliveryMethod = 'pickup' | 'delivery';
 interface CartModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onCartChange?: () => void;
 }
 
-const CartModal = ({ isOpen, onClose }: CartModalProps) => {
+const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [cartItems, setCartItems] = useState<CartItemData[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [customerData, setCustomerData] = useState<CustomerData>({
     name: '',
     phone: '',
     altPhone: '',
     address: ''
   });
+  
+  // Get cart data from context
+  const { cartItems, removeFromCart, updateQuantity, clearCart, syncWithDatabase } = useCart();
   
   // Delivery and shipping states
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('pickup');
@@ -59,112 +63,12 @@ const CartModal = ({ isOpen, onClose }: CartModalProps) => {
   const [selectedArea, setSelectedArea] = useState<string>('');
   const [shippingCost, setShippingCost] = useState<number>(0);
   
-  // Refs to prevent infinite loops
-  const sessionIdRef = useRef<string>('');
-  const subscriptionRef = useRef<any>(null);
-  const isMountedRef = useRef(true);
-  const lastLoadRef = useRef<number>(0);
-  
-  // Get session ID once on mount
-  useEffect(() => {
-    sessionIdRef.current = CartSession.getSessionId();
-  }, []);
-  
-  // Load cart data from Supabase
-  const loadCartData = useCallback(async () => {
-    if (!sessionIdRef.current || !isMountedRef.current) return;
-    
-    // Prevent too frequent reloads (minimum 500ms between calls)
-    const now = Date.now();
-    if (now - lastLoadRef.current < 500) {
-      return;
-    }
-    lastLoadRef.current = now;
-    
-    try {
-      setIsLoading(true);
-      const items = await CartService.getCartItems(sessionIdRef.current);
-      
-      if (isMountedRef.current) {
-        setCartItems(items);
-      }
-    } catch (error) {
-      console.error('Error loading cart data:', error);
-      if (isMountedRef.current) {
-        setCartItems([]);
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false);
-      }
-    }
-  }, []);
-  
-  // Setup real-time subscription
-  const setupRealtimeSubscription = useCallback(() => {
-    if (!sessionIdRef.current || subscriptionRef.current) return;
-    
-    subscriptionRef.current = CartService.subscribeToCartChanges(
-      sessionIdRef.current,
-      (payload) => {
-        console.log('Cart updated in real-time:', payload.eventType);
-        // Use a timeout to prevent infinite loops
-        setTimeout(() => {
-          if (isMountedRef.current) {
-            loadCartData();
-          }
-        }, 100);
-      }
-    );
-  }, [loadCartData]);
-  
-  // Initial load and subscription setup
+  // Sync with database when modal opens
   useEffect(() => {
     if (isOpen) {
-      isMountedRef.current = true;
-      
-      if (sessionIdRef.current) {
-        loadCartData();
-        setupRealtimeSubscription();
-      }
+      syncWithDatabase();
     }
-    
-    // Cleanup on unmount or close
-    return () => {
-      isMountedRef.current = false;
-      if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe();
-        subscriptionRef.current = null;
-      }
-    };
-  }, [isOpen, loadCartData, setupRealtimeSubscription]);
-
-  // Handle page visibility changes to manage subscriptions
-  useEffect(() => {
-    if (!isOpen) return;
-    
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // Page is hidden, unsubscribe to save resources
-        if (subscriptionRef.current) {
-          subscriptionRef.current.unsubscribe();
-          subscriptionRef.current = null;
-        }
-      } else {
-        // Page is visible, resubscribe and refresh data
-        if (!subscriptionRef.current && sessionIdRef.current) {
-          setupRealtimeSubscription();
-          loadCartData();
-        }
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isOpen, loadCartData, setupRealtimeSubscription]);
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load shipping companies
   const loadShippingCompanies = useCallback(async () => {
@@ -303,7 +207,7 @@ const CartModal = ({ isOpen, onClose }: CartModalProps) => {
     }
     groups[key].items.push(item);
     return groups;
-  }, {} as Record<string, { product: any; items: CartItemData[] }>);
+  }, {} as Record<string, { product: any; items: any[] }>);
 
 
   // Calculate totals
@@ -319,73 +223,18 @@ const CartModal = ({ isOpen, onClose }: CartModalProps) => {
   };
   
   const handleQuantityChange = async (itemId: string, newQuantity: number) => {
-    try {
-      if (newQuantity <= 0) {
-        await handleRemoveItem(itemId);
-        return;
-      }
-      
-      // Optimistic UI update - update quantity immediately
-      setCartItems(prevItems => 
-        prevItems.map(item => 
-          item.id === itemId 
-            ? { ...item, quantity: newQuantity }
-            : item
-        )
-      );
-      
-      const updatedItem = await CartService.updateCartItemQuantity(itemId, newQuantity);
-      if (updatedItem) {
-        console.log('Quantity updated successfully');
-      } else {
-        // If update failed, restore the cart data
-        loadCartData();
-      }
-    } catch (error) {
-      console.error('Error updating quantity:', error);
-      // If update failed, restore the cart data
-      loadCartData();
-    }
+    // Use context for immediate local update + database sync
+    await updateQuantity(itemId, newQuantity);
   };
   
   const handleRemoveItem = async (itemId: string) => {
-    try {
-      // Optimistic UI update - remove item immediately from local state
-      setCartItems(prevItems => prevItems.filter(item => item.id !== itemId));
-      
-      const success = await CartService.removeFromCart(itemId);
-      if (success) {
-        console.log('Item removed successfully');
-      } else {
-        // If deletion failed, restore the item
-        loadCartData();
-      }
-    } catch (error) {
-      console.error('Error removing item:', error);
-      // If deletion failed, restore the cart data
-      loadCartData();
-    }
+    // Use context for immediate local update + database sync
+    await removeFromCart(itemId);
   };
   
   const handleClearCart = async () => {
-    try {
-      if (!sessionIdRef.current) return;
-      
-      // Optimistic UI update - clear cart immediately from local state
-      setCartItems([]);
-      
-      const success = await CartService.clearCart(sessionIdRef.current);
-      if (success) {
-        console.log('Cart cleared successfully');
-      } else {
-        // If clearing failed, restore the cart data
-        loadCartData();
-      }
-    } catch (error) {
-      console.error('Error clearing cart:', error);
-      // If clearing failed, restore the cart data
-      loadCartData();
-    }
+    // Use context for immediate local update + database sync
+    await clearCart();
   };
   
   // Save order to database
@@ -599,7 +448,7 @@ const CartModal = ({ isOpen, onClose }: CartModalProps) => {
       alert('تم تأكيد الطلب بنجاح! سيتم التواصل معك قريباً.');
       
       // Clear cart after confirmation
-      await handleClearCart();
+      handleClearCart();
       
       // Close modal and redirect to homepage
       onClose();
@@ -767,7 +616,7 @@ const CartModal = ({ isOpen, onClose }: CartModalProps) => {
                                           key={colorName}
                                           className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200"
                                         >
-                                          {colorName} ({colorGroup.totalQuantity})
+                                          {colorName} ({(colorGroup as any).totalQuantity})
                                         </span>
                                       );
                                     })}

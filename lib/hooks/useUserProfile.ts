@@ -74,17 +74,6 @@ export function useUserProfile() {
   }, [user?.id, isAuthenticated]); // Use user.id specifically to trigger on user change
 
   const isAdmin = profile ? profile.is_admin === true : false;
-  
-  // Debug logging
-  if (profile) {
-    console.log('🎯 useUserProfile return values:', {
-      profileExists: !!profile,
-      profileName: profile.full_name,
-      role: profile.role,
-      isAdminFromDB: profile.is_admin,
-      isAdmin: isAdmin
-    });
-  }
 
   return {
     profile,
