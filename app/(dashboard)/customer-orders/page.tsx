@@ -134,6 +134,7 @@ export default function CustomerOrdersPage() {
             customer_address,
             total_amount,
             status,
+            delivery_type,
             notes,
             created_at,
             updated_at,
