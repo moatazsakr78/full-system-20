@@ -225,8 +225,11 @@ export default function PrepareOrderModal({ isOpen, onClose, orderId }: PrepareO
       let nextStatus: string;
       if (orderData?.delivery_type === 'pickup') {
         nextStatus = 'ready_for_pickup';
-      } else {
+      } else if (orderData?.delivery_type === 'delivery') {
         nextStatus = 'ready_for_shipping';
+      } else {
+        // Default to pickup if delivery_type is null or undefined
+        nextStatus = 'ready_for_pickup';
       }
       
       // Update order status to next logical step

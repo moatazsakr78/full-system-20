@@ -487,8 +487,11 @@ export default function CustomerOrdersPage() {
     let nextStatus: OrderStatus;
     if (order.deliveryType === 'pickup') {
       nextStatus = 'ready_for_pickup';
-    } else {
+    } else if (order.deliveryType === 'delivery') {
       nextStatus = 'ready_for_shipping';
+    } else {
+      // Default to pickup if deliveryType is null or undefined
+      nextStatus = 'ready_for_pickup';
     }
 
     await updateOrderStatus(orderId, nextStatus);
