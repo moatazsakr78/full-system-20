@@ -15,6 +15,8 @@ interface Order {
   orderId: string; // Added database ID
   date: string;
   total: number;
+  subtotal?: number | null;
+  shipping?: number | null;
   status: OrderStatus;
   deliveryType: DeliveryType;
   items: {
@@ -80,6 +82,8 @@ export default function OrdersPage() {
             customer_phone,
             customer_address,
             total_amount,
+            subtotal_amount,
+            shipping_amount,
             status,
             delivery_type,
             notes,
@@ -152,6 +156,8 @@ export default function OrdersPage() {
               orderId: order.id, // Store database ID
               date: order.created_at.split('T')[0], // Extract date part
               total: parseFloat(order.total_amount),
+              subtotal: order.subtotal_amount ? parseFloat(order.subtotal_amount) : null,
+              shipping: order.shipping_amount ? parseFloat(order.shipping_amount) : null,
               status: order.status,
               deliveryType: order.delivery_type || 'pickup',
               items: groupedItems

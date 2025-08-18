@@ -15,6 +15,8 @@ interface Order {
   orderId?: string; // UUID for database operations
   date: string;
   total: number;
+  subtotal?: number | null;
+  shipping?: number | null;
   status: OrderStatus;
   deliveryType: DeliveryType;
   customerName: string;
@@ -133,6 +135,8 @@ export default function CustomerOrdersPage() {
             customer_phone,
             customer_address,
             total_amount,
+            subtotal_amount,
+            shipping_amount,
             status,
             delivery_type,
             notes,
@@ -207,6 +211,8 @@ export default function CustomerOrdersPage() {
               orderId: order.id, // Keep the actual UUID for database operations
               date: order.created_at.split('T')[0], // Extract date part
               total: parseFloat(order.total_amount),
+              subtotal: order.subtotal_amount ? parseFloat(order.subtotal_amount) : null,
+              shipping: order.shipping_amount ? parseFloat(order.shipping_amount) : null,
               status: order.status,
               deliveryType: order.delivery_type || 'pickup',
               customerName: order.customer_name || 'عميل غير محدد',
@@ -526,7 +532,7 @@ export default function CustomerOrdersPage() {
       setSelectedOrderForInvoice(order);
       setNextStatus(nextStatusValue);
       setInvoiceData({
-        paidAmount: order.total,
+        paidAmount: order.subtotal || order.total, // Use subtotal (invoice amount) if available, fallback to total
         selectedBranch: branches.length > 0 ? branches[0].id : '',
         selectedRecord: records.length > 0 ? records[0].id : '',
         notes: ''
@@ -580,11 +586,12 @@ export default function CustomerOrdersPage() {
       const invoiceNumber = 'INV-' + Date.now().toString().slice(-8);
 
       // Create sale (invoice)
+      const invoiceAmount = selectedOrderForInvoice.subtotal || selectedOrderForInvoice.total;
       const { data: saleData, error: saleError } = await supabase
         .from('sales')
         .insert({
           invoice_number: invoiceNumber,
-          total_amount: selectedOrderForInvoice.total,
+          total_amount: invoiceAmount, // Use subtotal (invoice amount) if available, fallback to total
           tax_amount: 0,
           discount_amount: 0,
           payment_method: 'cash',
@@ -700,20 +707,45 @@ export default function CustomerOrdersPage() {
         </div>
         
         <div style="font-size: 12px; margin-bottom: 15px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="font-weight: bold;">${selectedOrderForInvoice.total.toFixed(2)} ريال</span>
-            <span>الإجمالي:</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="font-weight: bold; color: green;">${invoiceData.paidAmount.toFixed(2)} ريال</span>
-            <span>المدفوع:</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 5px;">
-            <span style="font-weight: bold; color: ${selectedOrderForInvoice.total - invoiceData.paidAmount > 0 ? 'red' : 'green'};">
-              ${(selectedOrderForInvoice.total - invoiceData.paidAmount).toFixed(2)} ريال
-            </span>
-            <span>المتبقي:</span>
-          </div>
+          ${selectedOrderForInvoice.subtotal !== null && selectedOrderForInvoice.shipping !== null ? `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span style="font-weight: bold;">${selectedOrderForInvoice.subtotal.toFixed(2)} ريال</span>
+              <span>مبلغ الفاتورة:</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span style="font-weight: bold;">${selectedOrderForInvoice.shipping.toFixed(2)} ريال</span>
+              <span>الشحن:</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-top: 1px solid #ccc; padding-top: 5px;">
+              <span style="font-weight: bold;">${selectedOrderForInvoice.total.toFixed(2)} ريال</span>
+              <span>الإجمالي:</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span style="font-weight: bold; color: green;">${invoiceData.paidAmount.toFixed(2)} ريال</span>
+              <span>المدفوع (فاتورة فقط):</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 5px;">
+              <span style="font-weight: bold; color: ${selectedOrderForInvoice.subtotal - invoiceData.paidAmount > 0 ? 'red' : 'green'};">
+                ${(selectedOrderForInvoice.subtotal - invoiceData.paidAmount).toFixed(2)} ريال
+              </span>
+              <span>المتبقي من الفاتورة:</span>
+            </div>
+          ` : `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span style="font-weight: bold;">${selectedOrderForInvoice.total.toFixed(2)} ريال</span>
+              <span>الإجمالي:</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span style="font-weight: bold; color: green;">${invoiceData.paidAmount.toFixed(2)} ريال</span>
+              <span>المدفوع:</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 5px;">
+              <span style="font-weight: bold; color: ${selectedOrderForInvoice.total - invoiceData.paidAmount > 0 ? 'red' : 'green'};">
+                ${(selectedOrderForInvoice.total - invoiceData.paidAmount).toFixed(2)} ريال
+              </span>
+              <span>المتبقي:</span>
+            </div>
+          `}
         </div>
         
         <div style="text-align: center; font-size: 10px; color: #666;">
@@ -1321,7 +1353,16 @@ export default function CustomerOrdersPage() {
                     </div>
                     
                     <div className="text-left">
-                      <p className="text-xl font-bold text-gray-800 mb-2">{order.total.toFixed(2)} ريال</p>
+                      {/* Display detailed breakdown if subtotal and shipping are available */}
+                      {order.subtotal !== null && order.shipping !== null ? (
+                        <div className="mb-2">
+                          <div className="text-sm font-normal text-gray-600">مبلغ الفاتورة: {order.subtotal.toFixed(2)} ريال</div>
+                          <div className="text-sm font-normal text-gray-600">الشحن: {order.shipping.toFixed(2)} ريال</div>
+                          <div className="text-xl font-bold text-gray-800">الإجمالي: {order.total.toFixed(2)} ريال</div>
+                        </div>
+                      ) : (
+                        <p className="text-xl font-bold text-gray-800 mb-2">{order.total.toFixed(2)} ريال</p>
+                      )}
                       
                       {/* Action Buttons - Moved to right side */}
                       <div className="flex flex-col gap-2">
@@ -1809,7 +1850,17 @@ export default function CustomerOrdersPage() {
                       <div><span className="font-semibold">رقم الهاتف:</span> {selectedOrderForInvoice.customerPhone}</div>
                     )}
                     <div><span className="font-semibold">التاريخ:</span> {new Date(selectedOrderForInvoice.date).toLocaleDateString('ar-SA')}</div>
-                    <div><span className="font-semibold">الإجمالي:</span> {selectedOrderForInvoice.total.toFixed(2)} ريال</div>
+                    
+                    {/* Display detailed breakdown if subtotal and shipping are available */}
+                    {selectedOrderForInvoice.subtotal !== null && selectedOrderForInvoice.shipping !== null ? (
+                      <div className="border-t pt-3">
+                        <div><span className="font-semibold">مبلغ الفاتورة:</span> {selectedOrderForInvoice.subtotal.toFixed(2)} ريال</div>
+                        <div><span className="font-semibold">الشحن:</span> {selectedOrderForInvoice.shipping.toFixed(2)} ريال</div>
+                        <div><span className="font-semibold">الإجمالي:</span> {selectedOrderForInvoice.total.toFixed(2)} ريال</div>
+                      </div>
+                    ) : (
+                      <div><span className="font-semibold">الإجمالي:</span> {selectedOrderForInvoice.total.toFixed(2)} ريال</div>
+                    )}
                   </div>
 
                   {/* Order Items */}
@@ -1922,20 +1973,50 @@ export default function CustomerOrdersPage() {
 
                     {/* Remaining Balance */}
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-gray-700">إجمالي المبلغ:</span>
-                        <span className="font-bold text-gray-800">{selectedOrderForInvoice.total.toFixed(2)} ريال</span>
-                      </div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-gray-700">المبلغ المدفوع:</span>
-                        <span className="font-bold text-green-600">{invoiceData.paidAmount.toFixed(2)} ريال</span>
-                      </div>
-                      <div className="flex justify-between items-center border-t pt-2">
-                        <span className="text-gray-700">المتبقي:</span>
-                        <span className={`font-bold ${(selectedOrderForInvoice.total - invoiceData.paidAmount) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                          {(selectedOrderForInvoice.total - invoiceData.paidAmount).toFixed(2)} ريال
-                        </span>
-                      </div>
+                      {/* Show detailed breakdown for customer */}
+                      {selectedOrderForInvoice.subtotal !== null && selectedOrderForInvoice.shipping !== null ? (
+                        <>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-gray-700">مبلغ الفاتورة:</span>
+                            <span className="font-bold text-gray-800">{selectedOrderForInvoice.subtotal.toFixed(2)} ريال</span>
+                          </div>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-gray-700">الشحن:</span>
+                            <span className="font-bold text-gray-800">{selectedOrderForInvoice.shipping.toFixed(2)} ريال</span>
+                          </div>
+                          <div className="flex justify-between items-center mb-2 border-t pt-2">
+                            <span className="text-gray-700">إجمالي المبلغ:</span>
+                            <span className="font-bold text-gray-800">{selectedOrderForInvoice.total.toFixed(2)} ريال</span>
+                          </div>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-gray-700">المبلغ المدفوع (فاتورة فقط):</span>
+                            <span className="font-bold text-green-600">{invoiceData.paidAmount.toFixed(2)} ريال</span>
+                          </div>
+                          <div className="flex justify-between items-center border-t pt-2">
+                            <span className="text-gray-700">المتبقي من الفاتورة:</span>
+                            <span className={`font-bold ${(selectedOrderForInvoice.subtotal - invoiceData.paidAmount) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                              {(selectedOrderForInvoice.subtotal - invoiceData.paidAmount).toFixed(2)} ريال
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-gray-700">إجمالي المبلغ:</span>
+                            <span className="font-bold text-gray-800">{selectedOrderForInvoice.total.toFixed(2)} ريال</span>
+                          </div>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-gray-700">المبلغ المدفوع:</span>
+                            <span className="font-bold text-green-600">{invoiceData.paidAmount.toFixed(2)} ريال</span>
+                          </div>
+                          <div className="flex justify-between items-center border-t pt-2">
+                            <span className="text-gray-700">المتبقي:</span>
+                            <span className={`font-bold ${(selectedOrderForInvoice.total - invoiceData.paidAmount) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                              {(selectedOrderForInvoice.total - invoiceData.paidAmount).toFixed(2)} ريال
+                            </span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

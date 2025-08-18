@@ -326,6 +326,8 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
           customer_phone: orderData.customer.phone,
           customer_address: orderData.customer.address,
           total_amount: orderData.total,
+          subtotal_amount: orderData.subtotal,
+          shipping_amount: orderData.shipping,
           status: 'pending',
           delivery_type: orderData.delivery_method === 'delivery' ? 'delivery' : 'pickup',
           notes: `الشحن: ${orderData.delivery_method === 'delivery' ? 'توصيل' : 'استلام من المتجر'}${orderData.shipping_details ? ` - ${orderData.shipping_details.company_name} - ${orderData.shipping_details.governorate_name}${orderData.shipping_details.area_name ? ` - ${orderData.shipping_details.area_name}` : ''}` : ''}`
