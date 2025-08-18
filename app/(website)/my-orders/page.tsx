@@ -4,7 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 // Order status type
-type OrderStatus = 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
+type OrderStatus = 'pending' | 'processing' | 'ready_for_pickup' | 'ready_for_shipping' | 'shipped' | 'delivered' | 'cancelled' | 'issue';
+
+// Order delivery type
+type DeliveryType = 'pickup' | 'delivery';
 
 // Order interface
 interface Order {
@@ -13,6 +16,7 @@ interface Order {
   date: string;
   total: number;
   status: OrderStatus;
+  deliveryType: DeliveryType;
   items: {
     id: string;
     name: string;
@@ -27,17 +31,23 @@ interface Order {
 const statusTranslations: Record<OrderStatus, string> = {
   pending: 'معلق',
   processing: 'يتم التحضير',
+  ready_for_pickup: 'جاهز للاستلام',
+  ready_for_shipping: 'جاهز للشحن',
   shipped: 'مع شركة الشحن',
-  completed: 'مكتمل',
-  cancelled: 'ملغي'
+  delivered: 'تم التسليم',
+  cancelled: 'ملغي',
+  issue: 'مشكله'
 };
 
 const statusColors: Record<OrderStatus, string> = {
   pending: '#EF4444', // Red
   processing: '#F59E0B', // Yellow
-  shipped: '#10B981', // Green
-  completed: '#10B981', // Green
-  cancelled: '#6B7280' // Gray
+  ready_for_pickup: '#86EFAC', // Light Green
+  ready_for_shipping: '#FB923C', // Orange
+  shipped: '#3B82F6', // Blue
+  delivered: '#059669', // Dark Green
+  cancelled: '#6B7280', // Gray
+  issue: '#8B5CF6' // Purple
 };
 
 export default function OrdersPage() {
@@ -53,7 +63,9 @@ export default function OrdersPage() {
   // New state for preparation mode
   const [showStartPreparationModal, setShowStartPreparationModal] = useState(false);
   const [showCompletePreparationModal, setShowCompletePreparationModal] = useState(false);
+  const [showNextStatusModal, setShowNextStatusModal] = useState(false);
   const [selectedOrderForAction, setSelectedOrderForAction] = useState<Order | null>(null);
+  const [nextStatusAction, setNextStatusAction] = useState<{status: OrderStatus, message: string} | null>(null);
 
   // Load orders from database
   useEffect(() => {
@@ -75,6 +87,7 @@ export default function OrdersPage() {
             customer_address,
             total_amount,
             status,
+            delivery_type,
             notes,
             created_at,
             order_items (
@@ -146,6 +159,7 @@ export default function OrdersPage() {
               date: order.created_at.split('T')[0], // Extract date part
               total: parseFloat(order.total_amount),
               status: order.status,
+              deliveryType: order.delivery_type || 'pickup',
               items: groupedItems
             };
           });
@@ -167,9 +181,9 @@ export default function OrdersPage() {
 
     // Filter by status
     if (activeTab === 'completed') {
-      filtered = orders.filter(order => order.status === 'completed');
+      filtered = orders.filter(order => order.status === 'delivered');
     } else {
-      filtered = orders.filter(order => order.status !== 'completed');
+      filtered = orders.filter(order => order.status !== 'delivered');
     }
 
     // Filter by date range for completed orders
@@ -190,8 +204,8 @@ export default function OrdersPage() {
     // Set default expanded state for orders
     const newExpandedOrders = new Set<string>();
     filtered.forEach(order => {
-      // Auto-expand non-completed orders (pending, processing, shipped)
-      if (order.status !== 'completed') {
+      // Auto-expand non-delivered orders (pending, processing, ready_for_pickup, ready_for_shipping, shipped)
+      if (order.status !== 'delivered') {
         newExpandedOrders.add(order.id);
       }
     });
@@ -245,9 +259,20 @@ export default function OrdersPage() {
     try {
       const { supabase } = await import('../../lib/supabase/client');
       
+      // Determine next status based on delivery type
+      let nextStatus: OrderStatus;
+      if (order.deliveryType === 'pickup') {
+        nextStatus = 'ready_for_pickup';
+      } else if (order.deliveryType === 'delivery') {
+        nextStatus = 'ready_for_shipping';
+      } else {
+        // Default to pickup if deliveryType is null or undefined
+        nextStatus = 'ready_for_pickup';
+      }
+      
       const { error } = await supabase
         .from('orders')
-        .update({ status: 'completed' } as any)
+        .update({ status: nextStatus, updated_at: new Date().toISOString() } as any)
         .eq('id', order.orderId);
 
       if (error) {
@@ -259,11 +284,14 @@ export default function OrdersPage() {
       setOrders(prevOrders => 
         prevOrders.map(o => 
           o.orderId === order.orderId 
-            ? { ...o, status: 'completed' as OrderStatus }
+            ? { ...o, status: nextStatus }
             : o
         )
       );
 
+      const statusMessage = nextStatus === 'ready_for_pickup' ? 'جاهز للاستلام' : 'جاهز للشحن';
+      alert(`تم إكمال التحضير بنجاح! الطلب الآن ${statusMessage}`);
+      
       setShowCompletePreparationModal(false);
       setSelectedOrderForAction(null);
     } catch (error) {
@@ -298,6 +326,60 @@ export default function OrdersPage() {
   const getPreparationProgress = (order: Order) => {
     const preparedItems = order.items.filter(item => item.isPrepared).length;
     return Math.round((preparedItems / order.items.length) * 100);
+  };
+
+  // Move to next status
+  const handleMoveToNextStatus = async (order: Order) => {
+    try {
+      const { supabase } = await import('../../lib/supabase/client');
+      
+      let nextStatus: OrderStatus;
+      let message: string;
+      
+      switch (order.status) {
+        case 'ready_for_pickup':
+          nextStatus = 'delivered';
+          message = 'تم التسليم';
+          break;
+        case 'ready_for_shipping':
+          nextStatus = 'shipped';
+          message = 'تم الشحن';
+          break;
+        case 'shipped':
+          nextStatus = 'delivered';
+          message = 'تم التسليم';
+          break;
+        default:
+          return;
+      }
+      
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: nextStatus, updated_at: new Date().toISOString() } as any)
+        .eq('id', order.orderId);
+
+      if (error) {
+        console.error('Error updating order status:', error);
+        return;
+      }
+
+      // Update local state
+      setOrders(prevOrders => 
+        prevOrders.map(o => 
+          o.orderId === order.orderId 
+            ? { ...o, status: nextStatus }
+            : o
+        )
+      );
+
+      alert(`تم تحديث الحالة بنجاح! الطلب الآن ${message}`);
+      
+      setShowNextStatusModal(false);
+      setSelectedOrderForAction(null);
+      setNextStatusAction(null);
+    } catch (error) {
+      console.error('Error moving to next status:', error);
+    }
   };
 
 
@@ -563,6 +645,77 @@ export default function OrdersPage() {
                         ))}
                       </div>
 
+                      {/* Action Buttons */}
+                      <div className="pt-6 flex justify-center gap-4">
+                        {/* Start Preparation Button - Only for pending orders */}
+                        {order.status === 'pending' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedOrderForAction(order);
+                              setShowStartPreparationModal(true);
+                            }}
+                            className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-lg transition-colors shadow-md"
+                          >
+                            بدء التحضير
+                          </button>
+                        )}
+                        
+                        {/* Complete Preparation Button - Only for processing orders */}
+                        {order.status === 'processing' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedOrderForAction(order);
+                              setShowCompletePreparationModal(true);
+                            }}
+                            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors shadow-md"
+                          >
+                            إتمام التحضير
+                          </button>
+                        )}
+
+                        {/* Next Status Button - For ready orders */}
+                        {(order.status === 'ready_for_pickup' || order.status === 'ready_for_shipping' || order.status === 'shipped') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              let nextStatus: OrderStatus;
+                              let message: string;
+                              
+                              switch (order.status) {
+                                case 'ready_for_pickup':
+                                  nextStatus = 'delivered';
+                                  message = 'تم التسليم';
+                                  break;
+                                case 'ready_for_shipping':
+                                  nextStatus = 'shipped';
+                                  message = 'تم الشحن';
+                                  break;
+                                case 'shipped':
+                                  nextStatus = 'delivered';
+                                  message = 'تم التسليم';
+                                  break;
+                                default:
+                                  return;
+                              }
+                              
+                              setSelectedOrderForAction(order);
+                              setNextStatusAction({status: nextStatus, message});
+                              setShowNextStatusModal(true);
+                            }}
+                            className={`px-6 py-3 text-white font-medium rounded-lg transition-colors shadow-md ${
+                              order.status === 'ready_for_pickup' ? 'bg-green-600 hover:bg-green-700' :
+                              order.status === 'ready_for_shipping' ? 'bg-blue-600 hover:bg-blue-700' :
+                              'bg-green-600 hover:bg-green-700'
+                            }`}
+                          >
+                            {order.status === 'ready_for_pickup' ? 'تم التسليم' :
+                             order.status === 'ready_for_shipping' ? 'تم الشحن' :
+                             'تم التسليم'}
+                          </button>
+                        )}
+                      </div>
 
                     </div>
                   )}
@@ -608,7 +761,7 @@ export default function OrdersPage() {
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">تأكيد إتمام التحضير</h3>
             <p className="text-gray-600 mb-6">
-              هل أنت متأكد أنه تم تحضير الطلب؟ سيتم تحويله إلى &quot;تم التحضير&quot;
+              هل أنت متأكد أنه تم تحضير الطلب؟ سيتم تحويله حسب نوع التوصيل
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -625,6 +778,36 @@ export default function OrdersPage() {
                 className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
               >
                 نعم، تم التحضير
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Next Status Confirmation Modal */}
+      {showNextStatusModal && selectedOrderForAction && nextStatusAction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">تأكيد تحديث الحالة</h3>
+            <p className="text-gray-600 mb-6">
+              هل أنت متأكد أنك تريد تحديث حالة الطلب إلى &quot;{nextStatusAction.message}&quot;؟
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowNextStatusModal(false);
+                  setSelectedOrderForAction(null);
+                  setNextStatusAction(null);
+                }}
+                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={() => handleMoveToNextStatus(selectedOrderForAction)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                نعم، تحديث الحالة
               </button>
             </div>
           </div>
