@@ -56,6 +56,19 @@ export async function createSalesInvoice({
   }
 
   try {
+    // Validate cart items
+    for (const item of cartItems) {
+      if (!item.product || !item.product.id) {
+        throw new Error(`منتج غير صالح في السلة: ${JSON.stringify(item)}`)
+      }
+      if (typeof item.quantity !== 'number' || item.quantity <= 0) {
+        throw new Error(`كمية غير صالحة للمنتج ${item.product.name}: ${item.quantity}`)
+      }
+      if (typeof item.price !== 'number' || item.price < 0) {
+        throw new Error(`سعر غير صالح للمنتج ${item.product.name}: ${item.price}`)
+      }
+    }
+
     // Calculate totals (negative for returns)
     const baseTotal = cartItems.reduce((sum, item) => sum + item.total, 0)
     const totalAmount = isReturn ? -baseTotal : baseTotal
@@ -73,6 +86,21 @@ export async function createSalesInvoice({
     // Get current time
     const now = new Date()
     const timeString = now.toTimeString().split(' ')[0] // HH:MM:SS format
+
+    console.log('Creating sales invoice with data:', {
+      invoice_number: invoiceNumber,
+      total_amount: totalAmount,
+      tax_amount: taxAmount,
+      discount_amount: discountAmount,
+      profit: profit,
+      payment_method: paymentMethod,
+      branch_id: selections.branch.id,
+      customer_id: customerId,
+      record_id: selections.record.id,
+      notes: notes || null,
+      time: timeString,
+      invoice_type: (isReturn ? 'Sale Return' : 'Sale Invoice')
+    })
 
     // Start transaction
     const { data: salesData, error: salesError } = await supabase
@@ -95,29 +123,53 @@ export async function createSalesInvoice({
       .single()
 
     if (salesError) {
+      console.error('Sales creation error:', salesError)
       throw new Error(`خطأ في إنشاء الفاتورة: ${salesError.message}`)
     }
 
-    // Create sale items (negative quantities for returns)
-    const saleItems = cartItems.map(item => ({
-      sale_id: salesData.id,
-      product_id: item.product.id,
-      quantity: isReturn ? -item.quantity : item.quantity,
-      unit_price: item.price,
-      cost_price: item.product.cost_price || 0,
-      discount: 0, // You can add item-level discount if needed
-      notes: item.selectedColors ? `الألوان: ${Object.entries(item.selectedColors).map(([color, qty]) => `${color} (${qty})`).join(', ')}` : null
-    }))
+    console.log('Sales invoice created successfully:', salesData)
 
-    const { error: saleItemsError } = await supabase
+    // Create sale items (negative quantities for returns)
+    const saleItems = cartItems.map(item => {
+      // تنسيق النص العربي بشكل صحيح
+      let notesText = null
+      if (item.selectedColors && Object.keys(item.selectedColors).length > 0) {
+        const colorEntries = Object.entries(item.selectedColors as Record<string, number>)
+          .filter(([color, qty]) => qty > 0)
+          .map(([color, qty]) => `${color}: ${qty}`)
+          .join(', ')
+        if (colorEntries) {
+          notesText = `الألوان المحددة: ${colorEntries}`
+        }
+      }
+      
+      return {
+        sale_id: salesData.id,
+        product_id: item.product.id,
+        quantity: isReturn ? -item.quantity : item.quantity,
+        unit_price: item.price,
+        cost_price: item.product.cost_price || 0,
+        discount: 0,
+        notes: notesText
+      }
+    })
+
+    console.log('Attempting to insert sale items:', saleItems)
+    
+    const { data: saleItemsData, error: saleItemsError } = await supabase
       .from('sale_items')
       .insert(saleItems)
+      .select()
 
     if (saleItemsError) {
+      console.error('Sale items error:', saleItemsError)
+      console.error('Sale items data that failed:', saleItems)
       // If sale items creation fails, we should clean up the sale record
       await supabase.from('sales').delete().eq('id', salesData.id)
       throw new Error(`خطأ في إضافة عناصر الفاتورة: ${saleItemsError.message}`)
     }
+
+    console.log('Sale items created successfully:', saleItemsData)
 
     // Also create invoice entry for main record (السجل الرئيسي) if selected record is not the main record
     const MAIN_RECORD_ID = '89d38477-6a3a-4c02-95f2-ddafa5880706' // The main record ID from the database
@@ -161,6 +213,7 @@ export async function createSalesInvoice({
           const { error: mainSaleItemsError } = await supabase
             .from('sale_items')
             .insert(mainSaleItems)
+            .select()
 
           if (mainSaleItemsError) {
             console.warn('Failed to create main record sale items:', mainSaleItemsError.message)

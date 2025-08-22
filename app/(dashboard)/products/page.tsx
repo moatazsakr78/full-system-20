@@ -74,10 +74,46 @@ export default function ProductsPage() {
   const [showColorChangeModal, setShowColorChangeModal] = useState(false)
   const [showColumnsModal, setShowColumnsModal] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
+  const [showBranchesDropdown, setShowBranchesDropdown] = useState(false)
+  const [selectedBranches, setSelectedBranches] = useState<{[key: string]: boolean}>({})
 
   // Get products and branches data
   const { products, branches, isLoading, error, fetchProducts, createProduct, updateProduct, deleteProduct } = useProducts()
   const { fetchBranchInventory, fetchProductVariants } = useBranches()
+
+  // Initialize selected branches when branches data loads
+  useEffect(() => {
+    if (branches.length > 0 && Object.keys(selectedBranches).length === 0) {
+      const initialBranches: {[key: string]: boolean} = {}
+      branches.forEach(branch => {
+        initialBranches[branch.id] = true
+      })
+      setSelectedBranches(initialBranches)
+    }
+  }, [branches, selectedBranches])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('.branches-dropdown')) {
+        setShowBranchesDropdown(false)
+      }
+    }
+
+    if (showBranchesDropdown) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showBranchesDropdown])
+
+  // Handle branches selection
+  const handleBranchToggle = (branchId: string) => {
+    setSelectedBranches(prev => ({
+      ...prev,
+      [branchId]: !prev[branchId]
+    }))
+  }
 
   // Initialize visible columns state
   useEffect(() => {
@@ -196,45 +232,51 @@ export default function ProductsPage() {
       }
     ]
 
-    // Add dynamic branch quantity columns
-    const branchColumns = branches.map(branch => ({
-      id: `branch_${branch.id}`,
-      header: branch.name,
-      accessor: `branch_${branch.id}`,
-      width: 120,
-      render: (value: any, item: Product) => {
-        const inventoryData = item.inventoryData?.[branch.id]
-        const quantity = inventoryData?.quantity || 0
-        return (
-          <span className="text-blue-400 font-medium">قطعة {quantity}</span>
-        )
-      }
-    }))
+    // Add dynamic branch quantity columns (only for selected branches)
+    const branchColumns = branches
+      .filter(branch => selectedBranches[branch.id])
+      .map(branch => ({
+        id: `branch_${branch.id}`,
+        header: branch.name,
+        accessor: `branch_${branch.id}`,
+        width: 120,
+        render: (value: any, item: Product) => {
+          const inventoryData = item.inventoryData?.[branch.id]
+          const quantity = inventoryData?.quantity || 0
+          return (
+            <span className="text-blue-400 font-medium">قطعة {quantity}</span>
+          )
+        }
+      }))
 
-    // Add dynamic branch min stock columns
-    const minStockColumns = branches.map(branch => ({
-      id: `min_stock_${branch.id}`,
-      header: `منخفض - ${branch.name}`,
-      accessor: `min_stock_${branch.id}`,
-      width: 150,
-      render: (value: any, item: Product) => {
-        const inventoryData = item.inventoryData?.[branch.id]
-        const minStock = inventoryData?.min_stock || 0
-        const quantity = inventoryData?.quantity || 0
-        
-        // Show warning style if quantity is below or equal to min stock
-        const isLowStock = quantity <= minStock && minStock > 0
-        
-        return (
-          <span className={`font-medium ${isLowStock ? 'text-red-400' : 'text-yellow-400'}`}>
-            {minStock} قطعة
-          </span>
-        )
-      }
-    }))
+    // Add dynamic branch min stock columns (only for selected branches)
+    const minStockColumns = branches
+      .filter(branch => selectedBranches[branch.id])
+      .map(branch => ({
+        id: `min_stock_${branch.id}`,
+        header: `منخفض - ${branch.name}`,
+        accessor: `min_stock_${branch.id}`,
+        width: 150,
+        render: (value: any, item: Product) => {
+          const inventoryData = item.inventoryData?.[branch.id]
+          const minStock = inventoryData?.min_stock || 0
+          const quantity = inventoryData?.quantity || 0
+          
+          // Show warning style if quantity is below or equal to min stock
+          const isLowStock = quantity <= minStock && minStock > 0
+          
+          return (
+            <span className={`font-medium ${isLowStock ? 'text-red-400' : 'text-yellow-400'}`}>
+              {minStock} قطعة
+            </span>
+          )
+        }
+      }))
 
-    // Add dynamic branch variants columns
-    const variantColumns = branches.map(branch => ({
+    // Add dynamic branch variants columns (only for selected branches)
+    const variantColumns = branches
+      .filter(branch => selectedBranches[branch.id])
+      .map(branch => ({
       id: `variants_${branch.id}`,
       header: `الأشكال والألوان - ${branch.name}`,
       accessor: `variants_${branch.id}`,
@@ -340,11 +382,23 @@ export default function ProductsPage() {
       )
     }
 
-    const allColumns = [...baseColumns, ...branchColumns, ...minStockColumns, ...variantColumns, activityColumn]
+    // Get count of selected branches
+    const selectedBranchesCount = Object.values(selectedBranches).filter(Boolean).length
+
+    // Filter baseColumns to hide totalQuantity if only one branch is selected
+    const filteredBaseColumns = baseColumns.filter(col => {
+      // Hide totalQuantity column if only one branch is selected
+      if (col.id === 'totalQuantity' && selectedBranchesCount === 1) {
+        return false
+      }
+      return true
+    })
+
+    const allColumns = [...filteredBaseColumns, ...branchColumns, ...minStockColumns, ...variantColumns, activityColumn]
     
     // Filter columns based on visibility
     return allColumns.filter(col => visibleColumns[col.id] !== false)
-  }, [branches, products, visibleColumns])
+  }, [branches, products, visibleColumns, selectedBranches])
 
   // Refresh products data
   const handleRefresh = () => {
@@ -746,11 +800,53 @@ export default function ProductsPage() {
                 {/* Left Side - Search and Controls */}
                 <div className="flex items-center gap-4">
                   {/* Group Filter Dropdown */}
-                  <div className="relative">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium transition-colors">
+                  <div className="relative branches-dropdown">
+                    <button 
+                      onClick={() => setShowBranchesDropdown(!showBranchesDropdown)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium transition-colors"
+                    >
                       <span>{selectedGroup}</span>
-                      <ChevronDownIcon className="h-4 w-4" />
+                      <ChevronDownIcon className={`h-4 w-4 transition-transform ${showBranchesDropdown ? 'rotate-180' : ''}`} />
                     </button>
+                    
+                    {/* Branches Dropdown */}
+                    {showBranchesDropdown && (
+                      <div className="absolute top-full right-0 mt-2 w-72 bg-[#2B3544] border-2 border-[#4A5568] rounded-xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-sm">
+                        {/* Branches List - Simple and Clean */}
+                        <div className="p-3">
+                          <div className="space-y-2">
+                            {branches.map(branch => (
+                              <label
+                                key={branch.id}
+                                className="flex items-center gap-3 p-3 bg-[#374151] hover:bg-[#434E61] rounded-lg cursor-pointer transition-colors border border-gray-600/30"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedBranches[branch.id] || false}
+                                  onChange={() => handleBranchToggle(branch.id)}
+                                  className="w-5 h-5 text-blue-600 bg-[#2B3544] border-2 border-blue-500 rounded focus:ring-blue-500 focus:ring-2 accent-blue-600"
+                                />
+                                <span className="text-white text-base font-medium flex-1 text-right">
+                                  {branch.name}
+                                </span>
+                                <span className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded border border-blue-600/30">
+                                  {branch.name.includes('مخزن') || branch.name.includes('شاكوس') ? 'مخزن' : 'فرع'}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        {/* Simple Summary at Bottom */}
+                        <div className="px-4 py-2 border-t border-[#4A5568] bg-[#374151]">
+                          <div className="text-center">
+                            <span className="text-blue-400 font-medium text-sm">
+                              {Object.values(selectedBranches).filter(Boolean).length} من أصل {branches.length} محدد
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* View Toggle */}

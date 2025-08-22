@@ -64,6 +64,9 @@
       "mcp__supabase__get_logs",
       "Bash(sed:*)"
     ],
-    "deny": []
+    "deny": [],
+    "additionalDirectories": [
+      "C:\\c\\Users\\pc\\Desktop"
+    ]
   }
 }

@@ -19,6 +19,7 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, 
 
   if (!isOpen || !product) return null
 
+  // جميع دوال التعامل مع الكمية
   const handleQuantityChange = (change: number) => {
     const newQuantity = Math.max(1, quantity + change)
     setQuantity(newQuantity)
@@ -32,7 +33,6 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, 
 
   const handleQuantityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
-    // Only allow numbers
     if (value === '' || /^\d+$/.test(value)) {
       setTempQuantity(value)
     }
@@ -64,6 +64,7 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, 
     setIsEditingQuantity(false)
   }
 
+  // الألوان المتاحة
   const colors = [
     { name: 'أزرق', color: '#3B82F6' },
     { name: 'أحمر', color: '#EF4444' },
@@ -77,11 +78,11 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, 
     <>
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={onClose} />
-      
+
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="bg-[#2B3544] rounded-2xl shadow-2xl border border-[#4A5568] w-full max-w-md">
-          
+
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-[#4A5568]">
             <div className="flex items-center gap-3">
@@ -102,7 +103,7 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, 
 
           {/* Content */}
           <div className="p-6 space-y-6">
-            
+
             {/* Product Info */}
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-[#374151] rounded-lg flex items-center justify-center overflow-hidden">
@@ -152,7 +153,7 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, 
                       onFocus={(e) => e.target.select()}
                     />
                   ) : (
-                    <span 
+                    <span
                       className="text-white font-bold text-xl cursor-pointer hover:bg-[#4B5563] rounded px-2 py-1 transition-colors"
                       onClick={handleQuantityClick}
                       title="اضغط للتحرير"
@@ -211,8 +212,8 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, 
             <button
               onClick={handleAddToCart}
               className={`w-full py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-white ${
-                isTransferMode 
-                  ? 'bg-orange-600 hover:bg-orange-700' 
+                isTransferMode
+                  ? 'bg-orange-600 hover:bg-orange-700'
                   : 'bg-blue-600 hover:bg-blue-700'
               }`}
             >

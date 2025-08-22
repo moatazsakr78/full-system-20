@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ResizableTable from '../../components/tables/ResizableTable'
 import Sidebar from '../../components/layout/Sidebar'
 import TopHeader from '../../components/layout/TopHeader'
@@ -45,6 +45,13 @@ export default function InventoryPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedGroup, setSelectedGroup] = useState('الفروع والمخازن')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [showBranchesDropdown, setShowBranchesDropdown] = useState(false)
+  const [selectedBranches, setSelectedBranches] = useState<{[key: string]: boolean}>({})
+  const [stockStatusFilters, setStockStatusFilters] = useState({
+    good: true,
+    low: true,
+    zero: true
+  })
   const [isAddBranchModalOpen, setIsAddBranchModalOpen] = useState(false)
   const [isAddStorageModalOpen, setIsAddStorageModalOpen] = useState(false)
   const [isManagementModalOpen, setIsManagementModalOpen] = useState(false)
@@ -65,6 +72,32 @@ export default function InventoryPage() {
 
   // Get products and branches data using the same hook as products page
   const { products, branches, isLoading, error, fetchProducts } = useProducts()
+
+  // Initialize selected branches when branches data loads
+  useEffect(() => {
+    if (branches.length > 0 && Object.keys(selectedBranches).length === 0) {
+      const initialBranches: {[key: string]: boolean} = {}
+      branches.forEach(branch => {
+        initialBranches[branch.id] = true
+      })
+      setSelectedBranches(initialBranches)
+    }
+  }, [branches, selectedBranches])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('.branches-dropdown')) {
+        setShowBranchesDropdown(false)
+      }
+    }
+
+    if (showBranchesDropdown) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showBranchesDropdown])
 
   // Generate dynamic table columns based on branches (same as products page)
   const staticColumns = [
@@ -100,9 +133,27 @@ export default function InventoryPage() {
       header: 'كمية كلية', 
       accessor: 'totalQuantity', 
       width: 120,
-      render: (value: number) => (
-        <span className="text-blue-400 font-medium">قطعة {value || 0}</span>
-      )
+      render: (value: any, item: any) => {
+        // Calculate total quantity based on selected branches only
+        let totalQuantity = 0
+        if (item.inventoryData) {
+          Object.entries(item.inventoryData).forEach(([branchId, inventory]: [string, any]) => {
+            if (selectedBranches[branchId]) {
+              totalQuantity += inventory?.quantity || 0
+            }
+          })
+        }
+        
+        // Determine color based on stock status
+        const stockStatus = getStockStatus(item)
+        let colorClass = 'text-green-400' // Good - Green
+        if (stockStatus === 'low') colorClass = 'text-yellow-400' // Low - Yellow  
+        if (stockStatus === 'zero') colorClass = 'text-red-400' // Zero - Red
+        
+        return (
+          <span className={`${colorClass} font-medium`}>قطعة {totalQuantity}</span>
+        )
+      }
     },
     { 
       id: 'cost_price', 
@@ -162,48 +213,63 @@ export default function InventoryPage() {
     }
   ]
 
-  // Add dynamic branch quantity columns
-  const branchQuantityColumns = branches.map(branch => ({
-    id: `quantity_${branch.id}`,
-    header: branch.name,
-    accessor: `quantity_${branch.id}`,
-    width: 120,
-    render: (value: any, item: any) => {
-      const inventoryData = item.inventoryData?.[branch.id]
-      const quantity = inventoryData?.quantity || 0
-      
-      return (
-        <span className="text-blue-400 font-medium">
-          قطعة {quantity}
-        </span>
-      )
-    }
-  }))
+  // Add dynamic branch quantity columns (only for selected branches)
+  const branchQuantityColumns = branches
+    .filter(branch => selectedBranches[branch.id])
+    .map(branch => ({
+      id: `quantity_${branch.id}`,
+      header: branch.name,
+      accessor: `quantity_${branch.id}`,
+      width: 120,
+      render: (value: any, item: any) => {
+        const inventoryData = item.inventoryData?.[branch.id]
+        const quantity = inventoryData?.quantity || 0
+        const minStock = inventoryData?.min_stock || 0
+        
+        // Determine color based on quantity status for this specific branch
+        let colorClass = 'text-green-400' // Good - Green
+        if (quantity === 0) {
+          colorClass = 'text-red-400' // Zero - Red
+        } else if (quantity <= minStock && minStock > 0) {
+          colorClass = 'text-yellow-400' // Low - Yellow
+        }
+        
+        return (
+          <span className={`${colorClass} font-medium`}>
+            قطعة {quantity}
+          </span>
+        )
+      }
+    }))
 
-  // Add dynamic branch low stock columns
-  const branchLowStockColumns = branches.map(branch => ({
-    id: `lowstock_${branch.id}`,
-    header: `منخفض - ${branch.name}`,
-    accessor: `lowstock_${branch.id}`,
-    width: 150,
-    render: (value: any, item: any) => {
-      const inventoryData = item.inventoryData?.[branch.id]
-      const minStock = inventoryData?.min_stock || 0
-      const quantity = inventoryData?.quantity || 0
-      
-      // Show warning style if quantity is below or equal to min stock
-      const isLowStock = quantity <= minStock && minStock > 0
-      
-      return (
-        <span className={`font-medium ${isLowStock ? 'text-red-400' : 'text-yellow-400'}`}>
-          {minStock} قطعة
-        </span>
-      )
-    }
-  }))
+  // Add dynamic branch low stock columns (only for selected branches)
+  const branchLowStockColumns = branches
+    .filter(branch => selectedBranches[branch.id])
+    .map(branch => ({
+      id: `lowstock_${branch.id}`,
+      header: `منخفض - ${branch.name}`,
+      accessor: `lowstock_${branch.id}`,
+      width: 150,
+      render: (value: any, item: any) => {
+        const inventoryData = item.inventoryData?.[branch.id]
+        const minStock = inventoryData?.min_stock || 0
+        const quantity = inventoryData?.quantity || 0
+        
+        // Show warning style if quantity is below or equal to min stock
+        const isLowStock = quantity <= minStock && minStock > 0
+        
+        return (
+          <span className={`font-medium ${isLowStock ? 'text-red-400' : 'text-yellow-400'}`}>
+            {minStock} قطعة
+          </span>
+        )
+      }
+    }))
 
-  // Add dynamic branch variants columns
-  const variantColumns = branches.map(branch => ({
+  // Add dynamic branch variants columns (only for selected branches)
+  const variantColumns = branches
+    .filter(branch => selectedBranches[branch.id])
+    .map(branch => ({
     id: `variants_${branch.id}`,
     header: `الأشكال والألوان - ${branch.name}`,
     accessor: `variants_${branch.id}`,
@@ -303,9 +369,18 @@ export default function InventoryPage() {
     )
   }
 
-  // Combine all columns
+  // Get count of selected branches
+  const selectedBranchesCount = Object.values(selectedBranches).filter(Boolean).length
+
+  // Combine all columns - hide totalQuantity if only one branch is selected
   const tableColumns = [
-    ...staticColumns,
+    ...staticColumns.filter(col => {
+      // Hide totalQuantity column if only one branch is selected
+      if (col.id === 'totalQuantity' && selectedBranchesCount === 1) {
+        return false
+      }
+      return true
+    }),
     ...branchQuantityColumns,
     ...branchLowStockColumns,
     ...variantColumns,
@@ -338,12 +413,55 @@ export default function InventoryPage() {
     fetchProducts()
   }
 
-  // Filter products based on search query
-  const filteredProducts = products.filter(item =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.barcode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.category?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Function to calculate total quantity for selected branches only
+  const calculateTotalQuantity = (item: any) => {
+    let totalQuantity = 0
+    if (item.inventoryData) {
+      Object.entries(item.inventoryData).forEach(([branchId, inventory]: [string, any]) => {
+        if (selectedBranches[branchId]) {
+          totalQuantity += inventory?.quantity || 0
+        }
+      })
+    }
+    return totalQuantity
+  }
+
+  // Function to determine stock status
+  const getStockStatus = (item: any) => {
+    const totalQuantity = calculateTotalQuantity(item)
+    
+    if (totalQuantity === 0) return 'zero'
+    
+    // Check if any selected branch has low stock
+    let hasLowStock = false
+    if (item.inventoryData) {
+      Object.entries(item.inventoryData).forEach(([branchId, inventory]: [string, any]) => {
+        if (selectedBranches[branchId]) {
+          const quantity = inventory?.quantity || 0
+          const minStock = inventory?.min_stock || 0
+          if (quantity <= minStock && minStock > 0) {
+            hasLowStock = true
+          }
+        }
+      })
+    }
+    
+    return hasLowStock ? 'low' : 'good'
+  }
+
+  // Filter products based on search query and stock status
+  const filteredProducts = products.filter(item => {
+    // Text search filter
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.barcode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    if (!matchesSearch) return false
+    
+    // Stock status filter
+    const stockStatus = getStockStatus(item)
+    return stockStatusFilters[stockStatus as keyof typeof stockStatusFilters]
+  })
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
@@ -399,6 +517,22 @@ export default function InventoryPage() {
 
   const handleCategorySelect = (category: Category | null) => {
     setSelectedCategory(category)
+  }
+
+  // Handle branches selection
+  const handleBranchToggle = (branchId: string) => {
+    setSelectedBranches(prev => ({
+      ...prev,
+      [branchId]: !prev[branchId]
+    }))
+  }
+
+  // Handle stock status filter toggle
+  const handleStockStatusToggle = (status: 'good' | 'low' | 'zero') => {
+    setStockStatusFilters(prev => ({
+      ...prev,
+      [status]: !prev[status]
+    }))
   }
 
   return (
@@ -496,11 +630,53 @@ export default function InventoryPage() {
                 {/* Left Side - Search and Controls */}
                 <div className="flex items-center gap-4">
                   {/* Group Filter Dropdown */}
-                  <div className="relative">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium transition-colors">
+                  <div className="relative branches-dropdown">
+                    <button 
+                      onClick={() => setShowBranchesDropdown(!showBranchesDropdown)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium transition-colors"
+                    >
                       <span>{selectedGroup}</span>
-                      <ChevronDownIcon className="h-4 w-4" />
+                      <ChevronDownIcon className={`h-4 w-4 transition-transform ${showBranchesDropdown ? 'rotate-180' : ''}`} />
                     </button>
+                    
+                    {/* Branches Dropdown */}
+                    {showBranchesDropdown && (
+                      <div className="absolute top-full right-0 mt-2 w-72 bg-[#2B3544] border-2 border-[#4A5568] rounded-xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-sm">
+                        {/* Branches List - Simple and Clean */}
+                        <div className="p-3">
+                          <div className="space-y-2">
+                            {branches.map(branch => (
+                              <label
+                                key={branch.id}
+                                className="flex items-center gap-3 p-3 bg-[#374151] hover:bg-[#434E61] rounded-lg cursor-pointer transition-colors border border-gray-600/30"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedBranches[branch.id] || false}
+                                  onChange={() => handleBranchToggle(branch.id)}
+                                  className="w-5 h-5 text-blue-600 bg-[#2B3544] border-2 border-blue-500 rounded focus:ring-blue-500 focus:ring-2 accent-blue-600"
+                                />
+                                <span className="text-white text-base font-medium flex-1 text-right">
+                                  {branch.name}
+                                </span>
+                                <span className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded border border-blue-600/30">
+                                  {branch.name.includes('مخزن') || branch.name.includes('شاكوس') ? 'مخزن' : 'فرع'}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        {/* Simple Summary at Bottom */}
+                        <div className="px-4 py-2 border-t border-[#4A5568] bg-[#374151]">
+                          <div className="text-center">
+                            <span className="text-blue-400 font-medium text-sm">
+                              {Object.values(selectedBranches).filter(Boolean).length} من أصل {branches.length} محدد
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* View Toggle */}
@@ -542,13 +718,34 @@ export default function InventoryPage() {
 
                 {/* Right Side - Status Filter Buttons */}
                 <div className="flex items-center gap-2">
-                  <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm">
+                  <button 
+                    onClick={() => handleStockStatusToggle('good')}
+                    className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                      stockStatusFilters.good 
+                        ? 'bg-green-600 hover:bg-green-700 text-white' 
+                        : 'bg-gray-600 text-gray-400 opacity-50'
+                    }`}
+                  >
                     جيد
                   </button>
-                  <button className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm">
+                  <button 
+                    onClick={() => handleStockStatusToggle('low')}
+                    className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                      stockStatusFilters.low 
+                        ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+                        : 'bg-gray-600 text-gray-400 opacity-50'
+                    }`}
+                  >
                     منخفض
                   </button>
-                  <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+                  <button 
+                    onClick={() => handleStockStatusToggle('zero')}
+                    className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                      stockStatusFilters.zero 
+                        ? 'bg-red-600 hover:bg-red-700 text-white' 
+                        : 'bg-gray-600 text-gray-400 opacity-50'
+                    }`}
+                  >
                     صفر
                   </button>
                 </div>
@@ -650,24 +847,43 @@ export default function InventoryPage() {
                             </span>
                           </div>
                           
-                          {/* Total Quantity */}
+                          {/* Total Quantity - based on selected branches only */}
                           <div className="flex justify-between items-center">
-                            <span className="text-blue-400 font-medium">
-                              {(product.inventoryData && Object.values(product.inventoryData).reduce((sum: number, inv: any) => sum + (inv?.quantity || 0), 0)) || 0}
+                            <span className={`font-medium ${
+                              (() => {
+                                const stockStatus = getStockStatus(product)
+                                if (stockStatus === 'zero') return 'text-red-400'
+                                if (stockStatus === 'low') return 'text-yellow-400'
+                                return 'text-green-400'
+                              })()
+                            }`}>
+                              {calculateTotalQuantity(product)}
                             </span>
                             <span className="text-gray-400">الكمية الإجمالية</span>
                           </div>
                           
-                          {/* Branch/Warehouse Quantities */}
-                          {product.inventoryData && Object.entries(product.inventoryData).map(([locationId, inventory]: [string, any]) => {
+                          {/* Branch/Warehouse Quantities - only selected branches */}
+                          {product.inventoryData && Object.entries(product.inventoryData)
+                            .filter(([locationId]) => selectedBranches[locationId])
+                            .map(([locationId, inventory]: [string, any]) => {
                             // Find the branch name for this location
                             const branch = branches.find(b => b.id === locationId)
                             const locationName = branch?.name || `موقع ${locationId.slice(0, 8)}`
+                            const quantity = inventory?.quantity || 0
+                            const minStock = inventory?.min_stock || 0
+                            
+                            // Determine color based on quantity status for this specific branch
+                            let colorClass = 'text-green-400' // Good - Green
+                            if (quantity === 0) {
+                              colorClass = 'text-red-400' // Zero - Red
+                            } else if (quantity <= minStock && minStock > 0) {
+                              colorClass = 'text-yellow-400' // Low - Yellow
+                            }
                             
                             return (
                               <div key={locationId} className="flex justify-between items-center">
-                                <span className="text-white">
-                                  {inventory?.quantity || 0}
+                                <span className={`${colorClass} font-medium`}>
+                                  {quantity}
                                 </span>
                                 <span className="text-gray-400 truncate">
                                   {locationName}
@@ -833,13 +1049,15 @@ export default function InventoryPage() {
                       <div className="bg-blue-600/10 rounded-lg p-4 mb-4 text-center border border-blue-600/20">
                         <p className="text-blue-400 text-sm mb-1">الكمية الإجمالية</p>
                         <p className="text-blue-400 font-bold text-3xl">
-                          {modalProduct.inventoryData && Object.values(modalProduct.inventoryData).reduce((sum: number, inv: any) => sum + (inv?.quantity || 0), 0) || 0}
+                          {calculateTotalQuantity(modalProduct)}
                         </p>
                       </div>
 
-                      {/* Branch/Warehouse Details */}
+                      {/* Branch/Warehouse Details - only selected branches */}
                       <div className="space-y-3">
-                        {modalProduct.inventoryData && Object.entries(modalProduct.inventoryData).map(([locationId, inventory]: [string, any]) => {
+                        {modalProduct.inventoryData && Object.entries(modalProduct.inventoryData)
+                          .filter(([locationId]) => selectedBranches[locationId])
+                          .map(([locationId, inventory]: [string, any]) => {
                           const branch = branches.find(b => b.id === locationId)
                           const locationName = branch?.name || `موقع ${locationId.slice(0, 8)}`
                           
@@ -869,7 +1087,9 @@ export default function InventoryPage() {
                           <h3 className="text-lg font-semibold text-white">الألوان والأشكال</h3>
                         </div>
                         <div className="space-y-3">
-                          {Object.entries(modalProduct.variantsData).map(([locationId, variants]: [string, any]) => {
+                          {Object.entries(modalProduct.variantsData)
+                            .filter(([locationId]) => selectedBranches[locationId])
+                            .map(([locationId, variants]: [string, any]) => {
                             const branch = branches.find(b => b.id === locationId)
                             const locationName = branch?.name || `موقع ${locationId.slice(0, 8)}`
                             
