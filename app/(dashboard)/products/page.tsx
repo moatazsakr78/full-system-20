@@ -414,7 +414,7 @@ export default function ProductsPage() {
     
     // Filter columns based on visibility
     return allColumns.filter(col => visibleColumns[col.id] !== false)
-  }, [branches, products, visibleColumns, selectedBranches])
+  }, [branches, visibleColumns, selectedBranches])
 
   // Refresh products data
   const handleRefresh = () => {

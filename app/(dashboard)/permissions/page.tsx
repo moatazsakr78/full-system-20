@@ -78,7 +78,7 @@ export default function PermissionsPage() {
 
         const { data, error } = await supabase
           .from('user_profiles')
-          .select('id, full_name, email, role, created_at')
+          .select('id, full_name, role, created_at')
           .order('created_at', { ascending: false });
 
         console.log('📊 البيانات المسترجعة:', data);
@@ -94,11 +94,11 @@ export default function PermissionsPage() {
             code: error.code
           });
           setRealUsers([]);
-        } else {
-          const formattedUsers: User[] = data.map(user => ({
-            id: user.id,
-            name: user.full_name || 'مستخدم غير معروف',
-            email: user.email,
+        } else if (data && Array.isArray(data)) {
+          const formattedUsers: User[] = data.map((user: any) => ({
+            id: user.id || 'غير متوفر',
+            name: user.full_name || user.name || 'مستخدم غير معروف',
+            email: 'غير متوفر', // العمود غير موجود في قاعدة البيانات
             role: user.role || 'غير محدد',
             lastLogin: 'غير متوفر',
             createdAt: user.created_at ? new Date(user.created_at).toLocaleDateString('ar-EG') : null

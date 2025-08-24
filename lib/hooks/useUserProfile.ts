@@ -71,7 +71,7 @@ export function useUserProfile() {
 
     // Always fetch profile when user changes (including on fresh login)
     fetchProfile();
-  }, [user?.id, isAuthenticated]); // Use user.id specifically to trigger on user change
+  }, [user?.id, user, isAuthenticated]); // Use user.id specifically to trigger on user change
 
   const isAdmin = profile ? profile.is_admin === true : false;
 

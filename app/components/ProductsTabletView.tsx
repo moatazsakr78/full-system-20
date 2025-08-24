@@ -393,7 +393,7 @@ export default function ProductsTabletView({
     const allColumns = [...filteredBaseColumns, ...branchColumns, ...minStockColumns, ...variantColumns, activityColumn]
     
     return allColumns.filter(col => visibleColumns[col.id] !== false)
-  }, [branches, products, visibleColumns, selectedBranches])
+  }, [branches, visibleColumns, selectedBranches])
 
   // Refresh products data
   const handleRefresh = () => {
