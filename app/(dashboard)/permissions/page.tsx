@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   UserGroupIcon,
   UserPlusIcon,
@@ -24,6 +24,7 @@ import TopHeader from '@/app/components/layout/TopHeader';
 import Sidebar from '@/app/components/layout/Sidebar';
 import ResizableTable from '@/app/components/tables/ResizableTable';
 import TreeView, { TreeNode } from '@/app/components/TreeView';
+import { supabase } from '@/app/lib/supabase/client';
 
 interface Permission {
   id: string;
@@ -46,11 +47,10 @@ interface Role {
 interface User {
   id: string;
   name: string;
-  email: string;
-  role: string;
-  status: 'active' | 'inactive' | 'pending';
-  lastLogin: string;
-  createdAt: string;
+  email: string | null;
+  role: string | null;
+  lastLogin: string | null;
+  createdAt: string | null;
 }
 
 export default function PermissionsPage() {
@@ -59,10 +59,64 @@ export default function PermissionsPage() {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [realUsers, setRealUsers] = useState<User[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+
+  // جلب جميع المستخدمين من قاعدة البيانات
+  useEffect(() => {
+    const fetchRealUsers = async () => {
+      setUsersLoading(true);
+      try {
+        // فحص حالة المصادقة أولاً
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('🔐 حالة المصادقة:', !!session);
+        console.log('👤 المستخدم الحالي:', session?.user?.id);
+
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('id, full_name, email, role, created_at')
+          .order('created_at', { ascending: false });
+
+        console.log('📊 البيانات المسترجعة:', data);
+        console.log('❌ خطأ في الاستعلام:', error);
+        console.log('🔢 عدد المستخدمين:', data?.length || 0);
+
+        if (error) {
+          console.error('❌ خطأ في جلب المستخدمين:', error);
+          console.error('📋 تفاصيل الخطأ:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          setRealUsers([]);
+        } else {
+          const formattedUsers: User[] = data.map(user => ({
+            id: user.id,
+            name: user.full_name || 'مستخدم غير معروف',
+            email: user.email,
+            role: user.role || 'غير محدد',
+            lastLogin: 'غير متوفر',
+            createdAt: user.created_at ? new Date(user.created_at).toLocaleDateString('ar-EG') : null
+          }));
+          
+          console.log('✅ المستخدمين المنسقين:', formattedUsers);
+          setRealUsers(formattedUsers);
+        }
+      } catch (err) {
+        console.error('💥 خطأ عام:', err);
+        setRealUsers([]);
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+
+    fetchRealUsers();
+  }, []);
 
   const toggleTreeNode = (nodeId: string) => {
     const updateNode = (nodes: TreeNode[]): TreeNode[] => {
@@ -158,54 +212,6 @@ export default function PermissionsPage() {
     }
   ];
 
-  // Sample users data
-  const users: User[] = [
-    {
-      id: '1',
-      name: 'أحمد محمد علي',
-      email: 'ahmed@company.com',
-      role: 'المدير العام',
-      status: 'active',
-      lastLogin: '2024-07-22 14:30',
-      createdAt: '2024-01-15'
-    },
-    {
-      id: '2',
-      name: 'فاطمة أحمد حسن',
-      email: 'fatima@company.com',
-      role: 'مدير المبيعات',
-      status: 'active',
-      lastLogin: '2024-07-22 09:15',
-      createdAt: '2024-01-20'
-    },
-    {
-      id: '3',
-      name: 'محمد عبد الله',
-      email: 'mohammed@company.com',
-      role: 'أمين المخزن',
-      status: 'active',
-      lastLogin: '2024-07-21 16:45',
-      createdAt: '2024-02-01'
-    },
-    {
-      id: '4',
-      name: 'نور الهدى سالم',
-      email: 'nour@company.com',
-      role: 'كاشير',
-      status: 'pending',
-      lastLogin: 'لم يسجل دخول',
-      createdAt: '2024-07-20'
-    },
-    {
-      id: '5',
-      name: 'عبد الرحمن محمود',
-      email: 'abdulrahman@company.com',
-      role: 'مراجع مالي',
-      status: 'inactive',
-      lastLogin: '2024-06-30 11:20',
-      createdAt: '2024-03-01'
-    }
-  ];
 
   const [permissionTreeData, setPermissionTreeData] = useState<TreeNode[]>([
     {
@@ -278,31 +284,6 @@ export default function PermissionsPage() {
     }
   ]);
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <CheckCircleIcon className="h-4 w-4 text-green-500" />;
-      case 'inactive':
-        return <XCircleIcon className="h-4 w-4 text-red-500" />;
-      case 'pending':
-        return <ExclamationTriangleIcon className="h-4 w-4 text-orange-500" />;
-      default:
-        return null;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'نشط';
-      case 'inactive':
-        return 'غير نشط';
-      case 'pending':
-        return 'في الانتظار';
-      default:
-        return '';
-    }
-  };
 
   const roleColumns = [
     {
@@ -347,7 +328,7 @@ export default function PermissionsPage() {
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${role.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
           <span className={`text-sm ${role.status === 'active' ? 'text-green-400' : 'text-red-400'}`}>
-            {getStatusText(role.status)}
+            {role.status === 'active' ? 'نشط' : 'غير نشط'}
           </span>
         </div>
       )
@@ -387,15 +368,15 @@ export default function PermissionsPage() {
       id: 'name',
       header: 'اسم المستخدم',
       accessor: 'name' as keyof User,
-      width: 180,
+      width: 200,
       render: (value: any, user: User) => (
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-medium">{value.charAt(0)}</span>
+            <span className="text-white text-sm font-medium">{value?.charAt(0) || 'U'}</span>
           </div>
           <div>
-            <div className="text-white font-medium">{value}</div>
-            <div className="text-gray-400 text-xs">{user.email}</div>
+            <div className="text-white font-medium">{value || 'غير محدد'}</div>
+            <div className="text-gray-400 text-xs">{user.email || 'لا يوجد إيميل'}</div>
           </div>
         </div>
       )
@@ -406,24 +387,11 @@ export default function PermissionsPage() {
       accessor: 'role' as keyof User,
       width: 150,
       render: (value: any) => (
-        <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full">{value}</span>
-      )
-    },
-    {
-      id: 'status',
-      header: 'الحالة',
-      accessor: 'status' as keyof User,
-      width: 100,
-      render: (value: any, user: User) => (
-        <div className="flex items-center gap-2">
-          {getStatusIcon(user.status)}
-          <span className={`text-sm ${
-            user.status === 'active' ? 'text-green-400' : 
-            user.status === 'inactive' ? 'text-red-400' : 'text-orange-400'
-          }`}>
-            {getStatusText(user.status)}
-          </span>
-        </div>
+        <span className={`px-2 py-1 text-white text-xs rounded-full ${
+          value ? 'bg-blue-600' : 'bg-gray-600'
+        }`}>
+          {value || 'غير محدد'}
+        </span>
       )
     },
     {
@@ -432,7 +400,7 @@ export default function PermissionsPage() {
       accessor: 'lastLogin' as keyof User,
       width: 150,
       render: (value: any) => (
-        <span className="text-gray-400 text-sm">{value}</span>
+        <span className="text-gray-400 text-sm">{value || 'غير متوفر'}</span>
       )
     },
     {
@@ -441,7 +409,7 @@ export default function PermissionsPage() {
       accessor: 'createdAt' as keyof User,
       width: 120,
       render: (value: any) => (
-        <span className="text-gray-400 text-sm">{value}</span>
+        <span className="text-gray-400 text-sm">{value || 'غير متوفر'}</span>
       )
     },
     {
@@ -500,7 +468,7 @@ export default function PermissionsPage() {
       case 'roles':
         return roles;
       case 'users':
-        return users;
+        return realUsers;
       case 'permissions':
         return permissions;
       default:
@@ -661,26 +629,26 @@ export default function PermissionsPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-400">إجمالي المستخدمين:</span>
-                    <span className="text-white font-medium">{users.length}</span>
+                    <span className="text-white font-medium">{realUsers.length}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">نشط:</span>
-                    <span className="text-green-400 font-medium">
-                      {users.filter(u => u.status === 'active').length}
+                    <span className="text-gray-400">لديهم أدوار:</span>
+                    <span className="text-blue-400 font-medium">
+                      {realUsers.filter(u => u.role && u.role !== 'غير محدد').length}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">في الانتظار:</span>
+                    <span className="text-gray-400">بدون أدوار:</span>
                     <span className="text-orange-400 font-medium">
-                      {users.filter(u => u.status === 'pending').length}
+                      {realUsers.filter(u => !u.role || u.role === 'غير محدد').length}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">غير نشط:</span>
-                    <span className="text-red-400 font-medium">
-                      {users.filter(u => u.status === 'inactive').length}
-                    </span>
-                  </div>
+                  {usersLoading && (
+                    <div className="flex items-center justify-center py-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+                      <span className="mr-2 text-gray-400 text-xs">جاري التحميل...</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

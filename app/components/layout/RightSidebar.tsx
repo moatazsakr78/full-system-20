@@ -8,7 +8,6 @@ import {
   XMarkIcon,
   UsersIcon,
   CubeIcon,
-  ShieldCheckIcon,
   BuildingStorefrontIcon,
   MapIcon
 } from '@heroicons/react/24/outline';
@@ -135,23 +134,6 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
                   </div>
                 </button>
 
-                {/* Permissions */}
-                <button
-                  onClick={() => {
-                    // Handle Permissions navigation for admin
-                    alert('سيتم إضافة صفحة الصلاحيات قريباً');
-                    onClose();
-                  }}
-                  className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
-                >
-                  <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
-                    <ShieldCheckIcon className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="flex-1 text-right">
-                    <h3 className="font-semibold text-base text-black">الصلاحيات</h3>
-                    <p className="text-xs text-gray-600">إدارة صلاحيات المستخدمين</p>
-                  </div>
-                </button>
 
                 {/* Store Management */}
                 <button
@@ -171,7 +153,7 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
                   </div>
                 </button>
 
-                {/* Shipping Details - NEW BUTTON */}
+                {/* Shipping Details */}
                 <button
                   onClick={() => {
                     window.location.href = '/shipping';
@@ -187,6 +169,7 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
                     <p className="text-xs text-gray-600">إدارة شركات الشحن وأسعار المحافظات</p>
                   </div>
                 </button>
+
               </>
             )}
 

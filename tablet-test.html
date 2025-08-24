@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار الجهاز اللوحي</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #2B3544;
+            color: white;
+            text-align: right;
+        }
+        
+        .device-info {
+            background: #374151;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .test-link {
+            display: inline-block;
+            padding: 15px 30px;
+            background: #3B82F6;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 10px 0;
+            transition: background 0.3s;
+        }
+        
+        .test-link:hover {
+            background: #2563EB;
+        }
+        
+        .toolbar-demo {
+            display: flex;
+            gap: 5px;
+            overflow-x: auto;
+            padding: 10px;
+            background: #374151;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .btn-demo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #2B3544;
+            border-radius: 6px;
+            white-space: nowrap;
+            border: 1px solid #4A5568;
+            transition: background 0.3s;
+        }
+        
+        .btn-demo:hover {
+            background: #434E61;
+        }
+        
+        .icon {
+            width: 16px;
+            height: 16px;
+            background: currentColor;
+            border-radius: 2px;
+        }
+        
+        @media (max-width: 1024px) and (min-width: 768px) {
+            .tablet-mode {
+                border: 3px solid #10B981;
+                padding: 10px;
+                border-radius: 10px;
+                background: rgba(16, 185, 129, 0.1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="device-info tablet-mode">
+        <h1>اختبار وضع الجهاز اللوحي</h1>
+        <p><strong>عرض الشاشة:</strong> <span id="screenWidth"></span>px</p>
+        <p><strong>ارتفاع الشاشة:</strong> <span id="screenHeight"></span>px</p>
+        <p><strong>نوع الجهاز المكتشف:</strong> <span id="deviceType"></span></p>
+        <p><strong>User Agent:</strong> <span id="userAgent"></span></p>
+    </div>
+    
+    <a href="http://localhost:3002/products" class="test-link">
+        انتقل إلى صفحة المنتجات
+    </a>
+    
+    <h2>عرض توضيحي للشريط المطور للجهاز اللوحي:</h2>
+    
+    <div class="toolbar-demo">
+        <div class="btn-demo">
+            <div class="icon"></div>
+            <span>تحديث</span>
+        </div>
+        <div class="btn-demo">
+            <div class="icon"></div>
+            <span>مجموعة جديدة</span>
+        </div>
+        <div class="btn-demo">
+            <div class="icon"></div>
+            <span>تحرير المجموعة</span>
+        </div>
+        <div class="btn-demo">
+            <div class="icon"></div>
+            <span>حذف المجموعة</span>
+        </div>
+        <div class="btn-demo">
+            <div class="icon"></div>
+            <span>منتج جديد</span>
+        </div>
+        <div class="btn-demo">
+            <div class="icon"></div>
+            <span>تحرير المنتج</span>
+        </div>
+        <div class="btn-demo">
+            <div class="icon"></div>
+            <span>حذف المنتج</span>
+        </div>
+        <div class="btn-demo">
+            <div class="icon"></div>
+            <span>طباعة</span>
+        </div>
+        <div class="btn-demo">
+            <div class="icon"></div>
+            <span>حفظ كـ PDF</span>
+        </div>
+        <div class="btn-demo">
+            <div class="icon"></div>
+            <span>بطاقات الأسعار</span>
+        </div>
+        <div class="btn-demo">
+            <div class="icon"></div>
+            <span>ترتيب</span>
+        </div>
+        <div class="btn-demo">
+            <div class="icon"></div>
+            <span>استيراد</span>
+        </div>
+        <div class="btn-demo">
+            <div class="icon"></div>
+            <span>تصدير</span>
+        </div>
+        <div class="btn-demo">
+            <div class="icon"></div>
+            <span>الأعمدة</span>
+        </div>
+    </div>
+    
+    <p><strong>ملاحظة:</strong> إذا كان حد الشاشة أخضر، فهذا يعني أن الكود سيتعرف على الجهاز كجهاز لوحي.</p>
+    
+    <script>
+        function updateDeviceInfo() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const userAgent = navigator.userAgent.toLowerCase();
+            
+            document.getElementById('screenWidth').textContent = width;
+            document.getElementById('screenHeight').textContent = height;
+            document.getElementById('userAgent').textContent = navigator.userAgent;
+            
+            // Same detection logic as in the React component
+            const isTabletDevice = /tablet|ipad|playbook|silk|android(?!.*mobile)/i.test(userAgent) ||
+                                  (width >= 768 && width <= 1024);
+            
+            document.getElementById('deviceType').textContent = isTabletDevice ? 'جهاز لوحي' : 'كمبيوتر شخصي';
+            
+            // Visual indicator
+            const tabletMode = document.querySelector('.tablet-mode');
+            if (isTabletDevice) {
+                tabletMode.style.borderColor = '#10B981';
+                tabletMode.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+            } else {
+                tabletMode.style.borderColor = '#EF4444';
+                tabletMode.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+            }
+        }
+        
+        updateDeviceInfo();
+        window.addEventListener('resize', updateDeviceInfo);
+    </script>
+</body>
+</html>
