@@ -14,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ar" dir="rtl">
-      <body className="font-arabic bg-pos-dark text-white">
+      <body className="font-arabic bg-custom-gray text-gray-800">
         <TopHeader />
         {children}
       </body>
