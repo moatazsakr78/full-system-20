@@ -13,6 +13,7 @@ import FeaturedProductsCarousel from './FeaturedProductsCarousel';
 import InteractiveProductCard from './InteractiveProductCard';
 import ProductDetailsModal from '../../app/components/ProductDetailsModal';
 import CartModal from '../../app/components/CartModal';
+import SearchOverlay from './SearchOverlay';
 import { useCart } from '../../lib/contexts/CartContext';
 import { useCartBadge } from '../../lib/hooks/useCartBadge';
 
@@ -39,6 +40,7 @@ export default function DesktopHome({
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
+  const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
   
   // Use right sidebar hook for the website menu
   const { isRightSidebarOpen, toggleRightSidebar, closeRightSidebar } = useRightSidebar();
@@ -387,7 +389,6 @@ export default function DesktopHome({
         </div>
       </header>
 
-
       {/* Desktop Main Content */}
       <main className="max-w-[80%] mx-auto px-4 py-8">
 
@@ -493,6 +494,19 @@ export default function DesktopHome({
       <CartModal
         isOpen={isCartModalOpen}
         onClose={() => setIsCartModalOpen(false)}
+      />
+
+      {/* Search Overlay */}
+      <SearchOverlay
+        isOpen={isSearchOverlayOpen}
+        onClose={() => setIsSearchOverlayOpen(false)}
+        products={websiteProducts}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onProductSelect={(product) => {
+          setSelectedProductId(String(product.id));
+          setIsProductModalOpen(true);
+        }}
       />
     </>
   );
