@@ -171,10 +171,10 @@ export default function MobileHome({
   // Show loading state during hydration or while loading data
   if (!isClient || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#c0c0c0'}}>
+      <div className="min-h-screen flex items-center justify-center bg-[#2B3544]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">جاري تحميل التطبيق...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-300">جاري تحميل التطبيق...</p>
         </div>
       </div>
     );
@@ -195,8 +195,8 @@ export default function MobileHome({
           </button>
           
           <div className="flex items-center gap-2">
-            <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-8 w-8 object-contain" />
-            <h1 className="text-lg font-bold text-red-500">الفاروق</h1>
+            <img src="/assets/logo/El Farouk Group2.png" alt="El Farouk Group" className="h-8 w-8 object-contain" />
+            <h1 className="text-lg font-bold text-white">El Farouk Group</h1>
           </div>
           
           <div className="flex items-center gap-3">

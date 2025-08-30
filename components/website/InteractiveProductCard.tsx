@@ -174,9 +174,9 @@ export default function InteractiveProductCard({
         };
       case 'mobile':
         return {
-          containerClass: 'bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors border border-gray-700 cursor-pointer group',
+          containerClass: 'bg-custom-gray rounded-lg p-3 hover:bg-gray-300 transition-colors border border-gray-300 shadow-md cursor-pointer group',
           imageClass: 'w-full h-40 object-cover rounded-lg scale-105',
-          titleClass: 'font-semibold mb-2 text-sm text-white truncate transition-colors'
+          titleClass: 'font-semibold mb-2 text-sm text-gray-800 truncate transition-colors group-hover:text-[#5D1F1F]'
         };
     }
   };
@@ -239,9 +239,7 @@ export default function InteractiveProductCard({
               : (deviceType === 'tablet' ? '4rem' : '3.75rem')
           }}
         >
-          <p className={`text-sm overflow-hidden ${
-            deviceType === 'mobile' ? 'text-gray-300' : 'text-gray-600'
-          }`} style={{
+          <p className={`text-sm overflow-hidden text-gray-600`} style={{
             display: '-webkit-box',
             WebkitLineClamp: product.colors && product.colors.length > 0 ? 2 : 3,
             WebkitBoxOrient: 'vertical',
@@ -282,9 +280,7 @@ export default function InteractiveProductCard({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             {product.originalPrice && (
-              <span className={`text-sm line-through ${
-                deviceType === 'mobile' ? 'text-gray-400' : 'text-gray-500'
-              }`}>
+              <span className="text-sm line-through text-gray-500">
                 {product.originalPrice} ريال
               </span>
             )}
@@ -296,9 +292,7 @@ export default function InteractiveProductCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <span className="text-yellow-400">⭐</span>
-            <span className={`text-sm ${
-              deviceType === 'mobile' ? 'text-gray-300' : 'text-gray-400'
-            }`}>
+            <span className="text-sm text-gray-400">
               {product.rating} ({product.reviews})
             </span>
           </div>
