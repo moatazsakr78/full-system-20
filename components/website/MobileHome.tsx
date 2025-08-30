@@ -191,10 +191,10 @@ export default function MobileHome({
   // Show loading state during hydration or while loading data
   if (!isClient || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#2B3544]">
+      <div className="min-h-screen flex items-center justify-center bg-custom-gray">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-300">جاري تحميل التطبيق...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-gray-800">جاري تحميل التطبيق...</p>
         </div>
       </div>
     );
