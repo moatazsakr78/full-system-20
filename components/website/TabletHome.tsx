@@ -409,17 +409,46 @@ export default function TabletHome({
       {/* Tablet Main Content */}
       <main className="max-w-[85%] mx-auto px-4 py-7">
 
-        {/* Featured Products */}
+        {/* Categories Section - Now First Section with Horizontal Scroll */}
+        <section id="categories" className="mb-7">
+          <h3 className="text-3xl font-bold mb-5 text-black">فئات المنتجات</h3>
+          <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
+            {categories.slice(0, 8).map((category) => (
+              <div 
+                key={category.id} 
+                className="bg-white p-5 rounded-lg text-center hover:shadow-lg transition-all duration-200 border border-gray-200 group flex-shrink-0 w-48"
+                onClick={() => setSelectedCategory(category.name)}
+              >
+                <div className="mb-4">
+                  <img 
+                    src={category.image} 
+                    alt={category.name} 
+                    className="w-full h-32 object-cover rounded-lg"
+                  />
+                </div>
+                <h4 className="font-semibold text-base text-gray-800 group-hover:text-red-500 transition-colors truncate">{category.name}</h4>
+                <p className="text-sm text-gray-500 mt-1">{category.productCount} منتج</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Featured Products - Horizontal Scroll */}
         <section className="mb-7">
           <h3 className="text-3xl font-bold mb-5 text-black">المنتجات المميزة</h3>
           {featuredProducts.length > 0 ? (
-            <FeaturedProductsCarousel
-              products={featuredProducts}
-              onAddToCart={handleAddToCart}
-              itemsPerView={3}
-              className="tablet-carousel"
-              onProductClick={handleProductClick}
-            />
+            <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
+              {featuredProducts.map((product) => (
+                <div key={product.id} className="flex-shrink-0 w-64">
+                  <InteractiveProductCard
+                    product={product}
+                    onAddToCart={handleAddToCart}
+                    deviceType="tablet"
+                    onProductClick={handleProductClick}
+                  />
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="text-center py-12">
               <div className="text-gray-400 text-lg mb-2">⭐</div>
@@ -427,16 +456,6 @@ export default function TabletHome({
               <p className="text-gray-400 text-sm">يمكنك إضافة منتجات مميزة من لوحة إدارة المنتجات</p>
             </div>
           )}
-        </section>
-
-        {/* Categories Section */}
-        <section id="categories" className="mb-7">
-          <h3 className="text-3xl font-bold mb-5 text-black">فئات المنتجات</h3>
-          <CategoryCarousel
-            categories={categories}
-            onCategorySelect={setSelectedCategory}
-            itemsPerView={3}
-          />
         </section>
 
         {/* All Products */}

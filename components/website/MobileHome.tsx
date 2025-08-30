@@ -336,51 +336,49 @@ export default function MobileHome({
       {/* Mobile Main Content */}
       <main className="px-3 py-4">
 
-        {/* Quick Categories - Horizontal Scroll */}
-        <section className="mb-4">
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <button 
-              onClick={() => setSelectedCategory('الكل')}
-              className={`flex-shrink-0 px-3 py-2 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
-                selectedCategory === 'الكل' 
-                  ? 'text-white' 
-                  : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
-              }`}
-              style={selectedCategory === 'الكل' ? {backgroundColor: '#5D1F1F'} : {}}
-            >
-              الكل
-            </button>
-            {categories.slice(0, 7).map((category) => (
-              <button 
-                key={category.id}
+        {/* Featured Categories - Now First Section with Horizontal Scroll */}
+        <section id="categories" className="mb-6">
+          <h3 className="text-xl font-bold mb-4 text-black">فئات المنتجات</h3>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {categories.slice(0, 8).map((category) => (
+              <div 
+                key={category.id} 
+                className="bg-white p-4 rounded-lg text-center hover:shadow-lg transition-all duration-200 border border-gray-200 group flex-shrink-0 w-40"
                 onClick={() => setSelectedCategory(category.name)}
-                className={`flex-shrink-0 px-3 py-2 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
-                  selectedCategory === category.name 
-                    ? 'text-white' 
-                    : 'bg-gray-800 hover:bg-gray-700 text-gray-300'
-                }`}
-                style={selectedCategory === category.name ? {backgroundColor: '#5D1F1F'} : {}}
               >
-                {category.name}
-              </button>
+                <div className="mb-3">
+                  <img 
+                    src={category.image} 
+                    alt={category.name} 
+                    className="w-full h-24 object-cover rounded-lg"
+                  />
+                </div>
+                <h4 className="font-semibold text-sm text-gray-800 group-hover:text-red-500 transition-colors truncate">{category.name}</h4>
+                <p className="text-xs text-gray-500 mt-1">{category.productCount} منتج</p>
+              </div>
             ))}
           </div>
         </section>
 
-        {/* Featured Products */}
+        {/* Featured Products - Horizontal Scroll */}
         <section className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold text-black">المنتجات المميزة</h3>
           </div>
           
           {featuredProducts.length > 0 ? (
-            <FeaturedProductsCarousel
-              products={featuredProducts}
-              onAddToCart={handleAddToCart}
-              itemsPerView={2}
-              className="mobile-carousel"
-              onProductClick={handleProductClick}
-            />
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {featuredProducts.map((product) => (
+                <div key={product.id} className="flex-shrink-0 w-44">
+                  <InteractiveProductCard
+                    product={product}
+                    onAddToCart={handleAddToCart}
+                    deviceType="mobile"
+                    onProductClick={handleProductClick}
+                  />
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="text-center py-12">
               <div className="text-gray-400 text-lg mb-2">⭐</div>
@@ -390,12 +388,10 @@ export default function MobileHome({
           )}
         </section>
 
-
         {/* All Products */}
         <section id="products" className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold text-black">جميع المنتجات</h3>
-            <button className="text-red-400 text-sm">عرض الكل</button>
           </div>
           
           <div className="grid grid-cols-2 gap-3">
@@ -407,39 +403,6 @@ export default function MobileHome({
                 deviceType="mobile"
                 onProductClick={handleProductClick}
               />
-            ))}
-          </div>
-          
-          <div className="text-center mt-4">
-            <button className="bg-gray-800 hover:bg-gray-700 px-6 py-2.5 rounded-lg text-sm font-medium w-full border border-gray-700">
-              عرض المزيد
-            </button>
-          </div>
-        </section>
-
-        {/* Featured Categories */}
-        <section id="categories" className="mb-6">
-          <h3 className="text-xl font-bold mb-4 text-black">فئات المنتجات</h3>
-          <div className="grid grid-cols-2 gap-3">
-            {categories.slice(0, 8).map((category) => (
-              <div 
-                key={category.id} 
-                className="bg-gray-800 p-4 rounded-lg text-center hover:bg-gray-700 transition-colors border border-gray-700 group"
-                onClick={() => setSelectedCategory(category.name)}
-              >
-                <div className="relative mb-3">
-                  <img 
-                    src={category.image} 
-                    alt={category.name} 
-                    className="w-full h-28 object-cover rounded-lg"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-center justify-center">
-                    <span className="text-xl">{category.icon}</span>
-                  </div>
-                </div>
-                <h4 className="font-semibold text-sm text-white group-hover:text-red-400 transition-colors">{category.name}</h4>
-                <p className="text-xs text-gray-400 mt-1">{category.productCount} منتج</p>
-              </div>
             ))}
           </div>
         </section>
