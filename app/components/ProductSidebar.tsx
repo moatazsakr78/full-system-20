@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase/client'
 import { ShapeManagement } from './products/ShapeManagement'
 import { useShapes } from '../lib/hooks/useShapes'
 import { uploadProductImage, PRODUCT_STORAGE_BUCKETS, getProductImageUrl } from '../lib/supabase/storage'
+import { uploadAndSetMainImage, uploadAndSetSubImage, addAdditionalVersionedImage, uploadVersionedProductImage } from '../lib/services/simpleImageVersioning'
 import { Product } from '../lib/hooks/useProducts'
 import { checkProductPurchaseHistory, PurchaseHistoryCheck } from '../lib/utils/purchase-cost-management'
 
@@ -1206,28 +1207,32 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
 
     setIsSaving(true)
     try {
-      // Upload main image if exists (for new uploads only)
+      // For edit mode, upload images immediately using versioned upload
       let mainImageUrl = isEditMode ? editProduct?.main_image_url : ''
-      if (mainProductImages.length > 0 && mainProductImages[0].id !== 'main-existing') {
-        const { data: mainImageData, error: mainImageError } = await uploadProductImage(
-          mainProductImages[0].file,
-          'MAIN_PRODUCTS'
-        )
-        
-        if (mainImageError) {
-          console.error('Main image upload error:', mainImageError)
-          alert('فشل في رفع الصورة الرئيسية')
-          return
-        }
-        
-        if (mainImageData?.path) {
-          mainImageUrl = getProductImageUrl('MAIN_PRODUCTS', mainImageData.path)
+      if (isEditMode && mainProductImages.length > 0 && mainProductImages[0].id !== 'main-existing') {
+        const productId = editProduct?.id
+        if (productId) {
+          const result = await uploadAndSetMainImage(
+            mainProductImages[0].file,
+            productId
+          )
+          
+          if (!result.success) {
+            console.error('Main image upload error:', result.error)
+            alert('فشل في رفع الصورة الرئيسية')
+            return
+          }
+          
+          if (result.publicUrl) {
+            mainImageUrl = result.publicUrl
+          }
         }
       }
+      // For new products, we'll upload images after product creation
 
-      // Handle additional images - store URLs in video_url field as JSON
+      // Handle additional images for edit mode only - for new products, upload after creation
       let additionalImagesJson = null
-      if (additionalImages.length > 0) {
+      if (isEditMode && additionalImages.length > 0) {
         const additionalImageUrls: string[] = []
         
         for (const imageFile of additionalImages) {
@@ -1235,15 +1240,17 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
             // Keep existing image URL
             additionalImageUrls.push(imageFile.preview)
           } else {
-            // Upload new image
-            const { data: imageData, error: imageError } = await uploadProductImage(
-              imageFile.file,
-              'SUB_PRODUCTS'
-            )
-            
-            if (!imageError && imageData?.path) {
-              const imageUrl = getProductImageUrl('SUB_PRODUCTS', imageData.path)
-              additionalImageUrls.push(imageUrl)
+            // Upload new image using versioned upload
+            const productId = editProduct?.id
+            if (productId && imageFile.file) {
+              const result = await addAdditionalVersionedImage(
+                imageFile.file,
+                productId
+              )
+              
+              if (result.success && result.publicUrl) {
+                additionalImageUrls.push(result.publicUrl)
+              }
             }
           }
         }
@@ -1471,19 +1478,22 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                   : null
                 
                 if (imageFile) {
-                  const { data: imageData, error: imageError } = await uploadProductImage(
-                    imageFile,
-                    'VARIANT_PRODUCTS'
-                  )
-                  
-                  if (!imageError && imageData?.path) {
-                    const imageUrl = getProductImageUrl('VARIANT_PRODUCTS', imageData.path)
-                    editVariantImageUrl = imageUrl
-                    // Store barcode and image URL as JSON in value field
-                    editVariantValue = JSON.stringify({
-                      barcode: variant.barcode,
-                      image: imageUrl
-                    })
+                  const productId = editProduct?.id
+                  if (productId) {
+                    const result = await uploadVersionedProductImage(
+                      imageFile,
+                      productId,
+                      'variant'
+                    )
+                    
+                    if (result.success && result.publicUrl) {
+                      editVariantImageUrl = result.publicUrl
+                      // Store barcode and image URL as JSON in value field
+                      editVariantValue = JSON.stringify({
+                        barcode: variant.barcode,
+                        image: result.publicUrl
+                      })
+                    }
                   }
                 }
               } catch (error) {
@@ -1591,21 +1601,21 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                   ? await fetch(variant.image).then(r => r.blob()).then(blob => new File([blob], 'variant.jpg', { type: 'image/jpeg' }))
                   : null
                 
-                if (imageFile) {
-                  const { data: imageData, error: imageError } = await uploadProductImage(
+                if (imageFile && savedProduct?.id) {
+                  const result = await uploadVersionedProductImage(
                     imageFile,
-                    'VARIANT_PRODUCTS'
+                    savedProduct.id,
+                    'variant'
                   )
                   
-                  if (!imageError && imageData?.path) {
-                    const imageUrl = getProductImageUrl('VARIANT_PRODUCTS', imageData.path)
-                    variantImageUrl = imageUrl
+                  if (result.success && result.publicUrl) {
+                    variantImageUrl = result.publicUrl
                     // Store barcode and image URL as JSON in value field
                     variantValue = JSON.stringify({
                       barcode: variant.barcode,
-                      image: imageUrl
+                      image: result.publicUrl
                     })
-                    console.log('🖼️ Uploaded variant image:', imageUrl)
+                    console.log('🖼️ Uploaded variant image:', result.publicUrl)
                   }
                 }
               } catch (error) {
@@ -1631,6 +1641,31 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
 
           const variantResults = await Promise.all(variantPromises)
           console.log('✅ Variant save results:', variantResults)
+
+          // Upload images for new product using versioned upload
+          console.log('🖼️ Uploading images for new product:', savedProduct.name)
+          
+          // Upload main image if exists
+          if (mainProductImages.length > 0 && mainProductImages[0].id !== 'main-existing') {
+            const mainImageResult = await uploadAndSetMainImage(
+              mainProductImages[0].file,
+              savedProduct.id
+            )
+            console.log('🖼️ Main image upload result:', mainImageResult)
+          }
+          
+          // Upload additional images if exist
+          if (additionalImages.length > 0) {
+            for (const imageFile of additionalImages) {
+              if (!imageFile.id.startsWith('additional-existing')) {
+                const additionalResult = await addAdditionalVersionedImage(
+                  imageFile.file,
+                  savedProduct.id
+                )
+                console.log('🖼️ Additional image upload result:', additionalResult)
+              }
+            }
+          }
 
           // Add a small delay to ensure all database transactions are committed
           await new Promise(resolve => setTimeout(resolve, 500))

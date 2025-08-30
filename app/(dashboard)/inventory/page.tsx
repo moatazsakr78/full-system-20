@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import InventoryTabletView from '../../components/InventoryTabletView'
+import { ProductGridImage, ProductModalImage, ProductThumbnail } from '../../components/ui/OptimizedImage'
 import ResizableTable from '../../components/tables/ResizableTable'
 import Sidebar from '../../components/layout/Sidebar'
 import TopHeader from '../../components/layout/TopHeader'
@@ -9,7 +11,7 @@ import AddStorageModal from '../../components/AddStorageModal'
 import ManagementModal from '../../components/ManagementModal'
 import CategoriesTreeView from '../../components/CategoriesTreeView'
 import ColumnsControlModal from '../../components/ColumnsControlModal'
-import { useProducts } from '../../lib/hooks/useProducts'
+import { useProducts } from '../../lib/hooks/useProductsOptimized'
 import {
   ArrowPathIcon,
   BuildingStorefrontIcon,
@@ -69,9 +71,24 @@ export default function InventoryPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [showColumnsModal, setShowColumnsModal] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
+  const [isTablet, setIsTablet] = useState(false)
 
   // Get products and branches data using the same hook as products page
   const { products, branches, isLoading, error, fetchProducts } = useProducts()
+
+  // Device detection for tablet optimization
+  useEffect(() => {
+    const checkDevice = () => {
+      const userAgent = navigator.userAgent.toLowerCase()
+      const isTabletDevice = /tablet|ipad|playbook|silk|android(?!.*mobile)/i.test(userAgent) ||
+                            (window.innerWidth >= 768 && window.innerWidth <= 1024)
+      setIsTablet(isTabletDevice)
+    }
+
+    checkDevice()
+    window.addEventListener('resize', checkDevice)
+    return () => window.removeEventListener('resize', checkDevice)
+  }, [])
 
   // Initialize selected branches when branches data loads
   useEffect(() => {
@@ -83,6 +100,23 @@ export default function InventoryPage() {
       setSelectedBranches(initialBranches)
     }
   }, [branches, selectedBranches])
+
+  // Initialize visible columns state
+  useEffect(() => {
+    const allColumns = ['index', 'name', 'category', 'totalQuantity', 'cost_price', 'price', 'wholesale_price', 'price1', 'price2', 'price3', 'price4', 'barcode', 'activity']
+    
+    // Add branch columns
+    branches.forEach(branch => {
+      allColumns.push(`quantity_${branch.id}`, `lowstock_${branch.id}`, `variants_${branch.id}`)
+    })
+    
+    const initialVisible: {[key: string]: boolean} = {}
+    allColumns.forEach(colId => {
+      initialVisible[colId] = true // Initially all columns are visible
+    })
+    
+    setVisibleColumns(initialVisible)
+  }, [branches])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -99,8 +133,9 @@ export default function InventoryPage() {
     }
   }, [showBranchesDropdown])
 
-  // Generate dynamic table columns based on branches (same as products page)
-  const staticColumns = [
+  // OPTIMIZED: Generate dynamic table columns with advanced memoization
+  const dynamicTableColumns = useMemo(() => {
+    const staticColumns = [
     { 
       id: 'index', 
       header: '#', 
@@ -211,9 +246,9 @@ export default function InventoryPage() {
       width: 150,
       render: (value: string) => <span className="text-gray-300 font-mono text-sm">{value || '-'}</span>
     }
-  ]
+    ]
 
-  // Add dynamic branch quantity columns (only for selected branches)
+    // Add dynamic branch quantity columns (only for selected branches)
   const branchQuantityColumns = branches
     .filter(branch => selectedBranches[branch.id])
     .map(branch => ({
@@ -240,9 +275,9 @@ export default function InventoryPage() {
           </span>
         )
       }
-    }))
+      }))
 
-  // Add dynamic branch low stock columns (only for selected branches)
+    // Add dynamic branch low stock columns (only for selected branches)
   const branchLowStockColumns = branches
     .filter(branch => selectedBranches[branch.id])
     .map(branch => ({
@@ -264,10 +299,10 @@ export default function InventoryPage() {
           </span>
         )
       }
-    }))
+      }))
 
-  // Add dynamic branch variants columns (only for selected branches)
-  const variantColumns = branches
+      // Add dynamic branch variants columns (only for selected branches)
+    const variantColumns = branches
     .filter(branch => selectedBranches[branch.id])
     .map(branch => ({
     id: `variants_${branch.id}`,
@@ -357,7 +392,7 @@ export default function InventoryPage() {
     }
   }))
 
-  const activityColumn = { 
+    const activityColumn = { 
     id: 'activity', 
     header: 'نشيط', 
     accessor: 'is_active', 
@@ -367,54 +402,57 @@ export default function InventoryPage() {
         <div className={`w-3 h-3 rounded-full ${value ? 'bg-green-500' : 'bg-red-500'}`}></div>
       </div>
     )
-  }
+    }
 
-  // Get count of selected branches
-  const selectedBranchesCount = Object.values(selectedBranches).filter(Boolean).length
+    // Get count of selected branches
+    const selectedBranchesCount = Object.values(selectedBranches).filter(Boolean).length
 
-  // Combine all columns - hide totalQuantity if only one branch is selected
-  const tableColumns = [
-    ...staticColumns.filter(col => {
-      // Hide totalQuantity column if only one branch is selected
-      if (col.id === 'totalQuantity' && selectedBranchesCount === 1) {
-        return false
-      }
-      return true
-    }),
-    ...branchQuantityColumns,
-    ...branchLowStockColumns,
-    ...variantColumns,
-    activityColumn
-  ]
+    // Combine all columns - hide totalQuantity if only one branch is selected
+    const allColumns = [
+      ...staticColumns.filter(col => {
+        // Hide totalQuantity column if only one branch is selected
+        if (col.id === 'totalQuantity' && selectedBranchesCount === 1) {
+          return false
+        }
+        return true
+      }),
+      ...branchQuantityColumns,
+      ...branchLowStockColumns,
+      ...variantColumns,
+      activityColumn
+    ]
+    
+    // Filter columns based on visibility
+    return allColumns.filter(col => visibleColumns[col.id] !== false)
+  }, [branches, visibleColumns, selectedBranches])
 
-  // Get all columns for columns control modal
-  const getAllColumns = () => {
-    return tableColumns.map(col => ({
+  // OPTIMIZED: Memoized columns data preparation
+  const getAllColumns = useMemo(() => {
+    return dynamicTableColumns.map(col => ({
       id: col.id,
       header: col.header,
       visible: visibleColumns[col.id] !== false
     }))
-  }
+  }, [dynamicTableColumns, visibleColumns])
 
-  // Handle columns visibility change
-  const handleColumnsChange = (updatedColumns: any[]) => {
+  // OPTIMIZED: Memoized columns change handler
+  const handleColumnsChange = useCallback((updatedColumns: any[]) => {
     const newVisibleColumns: {[key: string]: boolean} = {}
     updatedColumns.forEach(col => {
       newVisibleColumns[col.id] = col.visible
     })
     setVisibleColumns(newVisibleColumns)
-  }
+  }, [])
 
-  // Filter visible columns
-  const visibleTableColumns = tableColumns.filter(col => visibleColumns[col.id] !== false)
+  // The visible columns are now handled within the memoized dynamicTableColumns
 
-  // Refresh products data
-  const handleRefresh = () => {
+  // OPTIMIZED: Memoized refresh handler
+  const handleRefresh = useCallback(() => {
     fetchProducts()
-  }
+  }, [fetchProducts])
 
-  // Function to calculate total quantity for selected branches only
-  const calculateTotalQuantity = (item: any) => {
+  // OPTIMIZED: Memoized function to calculate total quantity for selected branches only
+  const calculateTotalQuantity = useCallback((item: any) => {
     let totalQuantity = 0
     if (item.inventoryData) {
       Object.entries(item.inventoryData).forEach(([branchId, inventory]: [string, any]) => {
@@ -424,10 +462,10 @@ export default function InventoryPage() {
       })
     }
     return totalQuantity
-  }
+  }, [selectedBranches])
 
-  // Function to determine stock status
-  const getStockStatus = (item: any) => {
+  // OPTIMIZED: Memoized function to determine stock status
+  const getStockStatus = useCallback((item: any) => {
     const totalQuantity = calculateTotalQuantity(item)
     
     if (totalQuantity === 0) return 'zero'
@@ -447,21 +485,26 @@ export default function InventoryPage() {
     }
     
     return hasLowStock ? 'low' : 'good'
-  }
+  }, [calculateTotalQuantity, selectedBranches])
 
-  // Filter products based on search query and stock status
-  const filteredProducts = products.filter(item => {
-    // Text search filter
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.barcode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  // OPTIMIZED: Memoized product filtering to prevent unnecessary re-renders
+  const filteredProducts = useMemo(() => {
+    if (!products.length) return []
     
-    if (!matchesSearch) return false
-    
-    // Stock status filter
-    const stockStatus = getStockStatus(item)
-    return stockStatusFilters[stockStatus as keyof typeof stockStatusFilters]
-  })
+    return products.filter(item => {
+      // Text search filter
+      const matchesSearch = !searchQuery || 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.barcode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.category?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      if (!matchesSearch) return false
+      
+      // Stock status filter
+      const stockStatus = getStockStatus(item)
+      return stockStatusFilters[stockStatus as keyof typeof stockStatusFilters]
+    })
+  }, [products, searchQuery, stockStatusFilters, getStockStatus])
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
@@ -519,20 +562,36 @@ export default function InventoryPage() {
     setSelectedCategory(category)
   }
 
-  // Handle branches selection
-  const handleBranchToggle = (branchId: string) => {
+  // OPTIMIZED: Memoized branch toggle handler
+  const handleBranchToggle = useCallback((branchId: string) => {
     setSelectedBranches(prev => ({
       ...prev,
       [branchId]: !prev[branchId]
     }))
-  }
+  }, [])
 
-  // Handle stock status filter toggle
-  const handleStockStatusToggle = (status: 'good' | 'low' | 'zero') => {
+  // OPTIMIZED: Memoized stock status toggle handler
+  const handleStockStatusToggle = useCallback((status: 'good' | 'low' | 'zero') => {
     setStockStatusFilters(prev => ({
       ...prev,
       [status]: !prev[status]
     }))
+  }, [])
+
+  // Use tablet view if detected as tablet device
+  if (isTablet) {
+    return (
+      <InventoryTabletView
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        selectedGroup={selectedGroup}
+        setSelectedGroup={setSelectedGroup}
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+        stockStatusFilters={stockStatusFilters}
+        setStockStatusFilters={setStockStatusFilters}
+      />
+    )
   }
 
   return (
@@ -765,7 +824,7 @@ export default function InventoryPage() {
               ) : viewMode === 'table' ? (
                 <ResizableTable
                   className="h-full w-full"
-                  columns={visibleTableColumns}
+                  columns={dynamicTableColumns}
                   data={filteredProducts}
                   selectedRowId={selectedProduct?.id || null}
                   onRowClick={(item, index) => {
@@ -797,39 +856,30 @@ export default function InventoryPage() {
                             : 'border-transparent hover:border-gray-500 hover:bg-[#434E61]'
                         }`}
                       >
-                        {/* Hover Button */}
-                        <div className="absolute top-2 right-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setModalProduct(product)
-                              // Set first available image as selected
-                              const firstImage = product.allImages?.[0] || product.main_image_url || null
-                              setSelectedImage(firstImage)
-                              setShowProductModal(true)
-                            }}
-                            className="bg-black/70 hover:bg-black/90 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
-                          >
-                            <EyeIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                        
-                        {/* Product Image */}
-                        <div className="w-full h-40 bg-[#2B3544] rounded-md mb-3 flex items-center justify-center overflow-hidden">
-                          {product.main_image_url ? (
-                            <img
-                              src={product.main_image_url}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement
-                                target.style.display = 'none'
-                                target.nextElementSibling?.classList.remove('hidden')
+                        {/* Product Image - OPTIMIZED */}
+                        <div className="mb-3 relative">
+                          <ProductGridImage
+                            src={product.main_image_url}
+                            alt={product.name}
+                            priority={index < 6} // Prioritize first 6 products
+                          />
+                          
+                          {/* Hover Button - positioned above image */}
+                          <div className="absolute top-2 right-2 z-50">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setModalProduct(product)
+                                // Set first available image as selected
+                                const firstImage = product.allImages?.[0] || product.main_image_url || null
+                                setSelectedImage(firstImage)
+                                setShowProductModal(true)
                               }}
-                            />
-                          ) : null}
-                          <div className={`w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center ${product.main_image_url ? 'hidden' : ''}`}>
-                            <span className="text-2xl">😊</span>
+                              className="bg-black/50 hover:bg-black/90 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
+                              style={{ zIndex: 9999 }}
+                            >
+                              <EyeIcon className="h-4 w-4" />
+                            </button>
                           </div>
                         </div>
 
@@ -1126,53 +1176,43 @@ export default function InventoryPage() {
                         <h3 className="text-lg font-semibold text-white">صور المنتج</h3>
                       </div>
                       
-                      {/* Large Image Preview */}
-                      <div className="w-full h-64 bg-[#2B3544] rounded-lg mb-4 flex items-center justify-center overflow-hidden border border-gray-600/30">
-                        {selectedImage ? (
-                          <img
-                            src={selectedImage}
-                            alt={modalProduct.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.style.display = 'none'
-                              target.nextElementSibling?.classList.remove('hidden')
-                            }}
-                          />
-                        ) : null}
-                        <div className={`w-20 h-20 bg-yellow-400 rounded-full flex items-center justify-center ${selectedImage ? 'hidden' : ''}`}>
-                          <span className="text-4xl">😊</span>
-                        </div>
+                      {/* Large Image Preview - OPTIMIZED */}
+                      <div className="mb-4">
+                        <ProductModalImage
+                          src={selectedImage}
+                          alt={modalProduct.name}
+                          priority={true}
+                        />
                       </div>
 
-                      {/* Thumbnail Gallery */}
+                      {/* Thumbnail Gallery - OPTIMIZED */}
                       <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto scrollbar-hide">
                         {modalProduct.allImages && modalProduct.allImages.length > 0 ? (
-                          modalProduct.allImages.map((imageUrl: string, index: number) => (
-                            <button
-                              key={index}
-                              onClick={() => setSelectedImage(imageUrl)}
-                              className={`w-full h-16 bg-[#2B3544] rounded-md overflow-hidden border-2 transition-colors ${
-                                selectedImage === imageUrl
-                                  ? 'border-blue-500'
-                                  : 'border-gray-600/50 hover:border-gray-500'
-                              }`}
-                            >
-                              <img
-                                src={imageUrl}
-                                alt={`صورة ${index + 1}`}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement
-                                  target.style.display = 'none'
-                                  const parent = target.parentElement
-                                  if (parent) {
-                                    parent.innerHTML = `<span class="text-gray-500 text-xs">خطأ</span>`
-                                  }
-                                }}
-                              />
-                            </button>
-                          ))
+                          modalProduct.allImages.map((imageUrl: string, index: number) => {
+                            // Determine if this is the main image or sub image
+                            const isMainImage = imageUrl === modalProduct.main_image_url
+                            const isSubImage = imageUrl === modalProduct.sub_image_url
+                            let imageLabel = `صورة ${index + 1}`
+                            if (isMainImage) imageLabel = 'الصورة الرئيسية'
+                            else if (isSubImage) imageLabel = 'الصورة الثانوية'
+                            
+                            return (
+                              <div key={index} className="relative" title={imageLabel}>
+                                <ProductThumbnail
+                                  src={imageUrl}
+                                  alt={imageLabel}
+                                  isSelected={selectedImage === imageUrl}
+                                  onClick={() => setSelectedImage(imageUrl)}
+                                />
+                                {/* Image type indicator */}
+                                {(isMainImage || isSubImage) && (
+                                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs px-1 py-0.5 text-center rounded-b-md">
+                                    {isMainImage ? 'رئيسية' : 'ثانوية'}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })
                         ) : (
                           /* Fallback when no images available */
                           <div className="w-full h-16 bg-[#2B3544] rounded-md border border-gray-600/30 flex items-center justify-center col-span-4">
@@ -1257,7 +1297,7 @@ export default function InventoryPage() {
       <ColumnsControlModal
         isOpen={showColumnsModal}
         onClose={() => setShowColumnsModal(false)}
-        columns={getAllColumns()}
+        columns={getAllColumns}
         onColumnsChange={handleColumnsChange}
       />
     </div>

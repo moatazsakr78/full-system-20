@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useCart, CartProvider } from '@/lib/contexts/CartContext'
 import { useCartBadge } from '@/lib/hooks/useCartBadge'
 import CartModal from '@/app/components/CartModal'
+import { ProductGridImage, ProductModalImage, ProductThumbnail } from '../../components/ui/OptimizedImage'
+import { usePerformanceMonitor } from '../../lib/utils/performanceMonitor'
 
 // Editable Field Component for inline editing
 interface EditableFieldProps {
@@ -83,7 +85,7 @@ import WarehouseSelectionModal from '../../components/WarehouseSelectionModal'
 import TransferLocationModal from '../../components/TransferLocationModal'
 import QuickAddProductModal from '../../components/QuickAddProductModal'
 import ColumnsControlModal from '../../components/ColumnsControlModal'
-import { useProducts, Product } from '../../lib/hooks/useProducts'
+import { useProducts, Product } from '../../lib/hooks/useProductsOptimized'
 import { usePersistentSelections } from '../../lib/hooks/usePersistentSelections'
 import { createSalesInvoice, CartItem } from '../../lib/invoices/createSalesInvoice'
 import { createPurchaseInvoice } from '../../lib/invoices/createPurchaseInvoice'
@@ -111,6 +113,8 @@ import {
 } from '@heroicons/react/24/outline'
 
 function POSPageContent() {
+  // OPTIMIZED: Performance monitoring for POS page
+  const { startRender, endRender } = usePerformanceMonitor('POSPage')
   
   const [searchQuery, setSearchQuery] = useState('')
   // Keep CartContext for website functionality
@@ -526,18 +530,23 @@ function POSPageContent() {
     }
   }
 
-  // Categories real-time subscription
+  // OPTIMIZED: Categories real-time subscription with smart updates
   useEffect(() => {
+    startRender()
     fetchCategories()
+    endRender()
     
-    // Subscribe to real-time changes
+    // Subscribe to real-time changes with optimized handling
     const subscription = supabase
-      .channel('categories-realtime')
+      .channel('categories-realtime-optimized')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'categories' },
         (payload: any) => {
-          console.log('Categories change:', payload)
-          fetchCategories() // Refetch on any change
+          console.log('Categories change detected:', payload.eventType)
+          // Only refetch if necessary
+          if (payload.eventType !== 'DELETE' || payload.old?.is_active) {
+            fetchCategories()
+          }
         }
       )
       .subscribe()
@@ -545,15 +554,27 @@ function POSPageContent() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Intentionally empty - fetchCategories and performance monitors are internal
 
-  const filteredProducts = products.filter(product =>
-    product.name.includes(searchQuery) ||
-    (product.barcode && product.barcode.includes(searchQuery))
-  )
+  // OPTIMIZED: Memoized product filtering to prevent unnecessary re-renders
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery) return products
+    
+    const query = searchQuery.toLowerCase()
+    return products.filter(product =>
+      product.name.toLowerCase().includes(query) ||
+      (product.barcode && product.barcode.toLowerCase().includes(query))
+    )
+  }, [products, searchQuery])
 
-  // POS Cart Functions
-  const handleAddToCart = (product: any, quantity: number, selectedColor?: string) => {
+  // OPTIMIZED: Memoized refresh handler
+  const handleRefresh = useCallback(() => {
+    fetchProducts()
+  }, [fetchProducts])
+
+  // OPTIMIZED: Memoized POS Cart Functions
+  const handleAddToCart = useCallback((product: any, quantity: number, selectedColor?: string) => {
     console.log('Adding to cart:', { productId: product.id, quantity, selectedColor })
 
     setCartItems(prev => {
@@ -601,17 +622,17 @@ function POSPageContent() {
         return [...prev, newCartItem]
       }
     })
-  }
+  }, []) // Empty dependency array since we only need cartItems state
 
-  // Remove from Cart
-  const removeFromCart = (itemId: string) => {
+  // OPTIMIZED: Remove from Cart
+  const removeFromCart = useCallback((itemId: string) => {
     setCartItems(prev => prev.filter(item => item.id !== itemId))
-  }
+  }, [])
 
-  // Clear Cart
-  const clearCart = () => {
+  // OPTIMIZED: Clear Cart
+  const clearCart = useCallback(() => {
     setCartItems([])
-  }
+  }, [])
 
   const handleColorSelection = (selections: {[key: string]: number}, totalQuantity: number, purchasePrice?: number) => {
     if (!modalProduct) return
@@ -855,7 +876,7 @@ function POSPageContent() {
       }
 
       // Refresh products to update inventory
-      fetchProducts()
+      handleRefresh()
 
     } catch (error: any) {
       console.error('Invoice creation error:', error)
@@ -1617,39 +1638,36 @@ function POSPageContent() {
                         : 'border-transparent hover:border-gray-500 hover:bg-[#434E61]'
                     }`}
                   >
-                    {/* Hover Button */}
-                    <div className="absolute top-2 right-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setModalProduct(product)
-                          // Set first available image as selected
-                          const firstImage = product.allImages?.[0] || product.main_image_url || null
-                          setSelectedImage(firstImage)
-                          setShowProductModal(true)
-                        }}
-                        className="bg-black/70 hover:bg-black/90 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
-                      >
-                        <EyeIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                    
-                    {/* Product Image */}
-                    <div className="w-full h-40 bg-[#2B3544] rounded-md mb-3 flex items-center justify-center overflow-hidden">
-                      {product.main_image_url ? (
-                        <img
-                          src={product.main_image_url}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement
-                            target.style.display = 'none'
-                            target.nextElementSibling?.classList.remove('hidden')
+                    {/* Product Image - OPTIMIZED */}
+                    <div className="mb-3 relative">
+                      <ProductGridImage
+                        src={product.main_image_url}
+                        alt={product.name}
+                        priority={index < 6} // Prioritize first 6 products
+                      />
+                      
+                      {/* Hover Button - positioned above image */}
+                      <div className="absolute top-2 right-2 z-50">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            
+                            // DEBUG: Verify images are loaded correctly
+                            if (product.allImages && product.allImages.length > 1) {
+                              console.log('✅ Product images loaded:', product.name, `(${product.allImages.length} images)`)
+                            }
+                            
+                            setModalProduct(product)
+                            // Set first available image as selected
+                            const firstImage = product.allImages?.[0] || product.main_image_url || null
+                            setSelectedImage(firstImage)
+                            setShowProductModal(true)
                           }}
-                        />
-                      ) : null}
-                      <div className={`w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center ${product.main_image_url ? 'hidden' : ''}`}>
-                        <span className="text-2xl">😊</span>
+                          className="bg-black/50 hover:bg-black/90 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
+                          style={{ zIndex: 9999 }}
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
 
@@ -1739,19 +1757,12 @@ function POSPageContent() {
                 {cartItems.map((item) => (
                   <div key={item.id} className="bg-[#2B3544] rounded-lg p-3 border border-gray-600">
                     <div className="flex gap-3 mb-2">
-                      {/* Product Image */}
-                      <div className="w-12 h-12 bg-[#374151] rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {item.product.main_image_url ? (
-                          <img
-                            src={item.product.main_image_url}
-                            alt={item.product.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                            <span className="text-sm">😊</span>
-                          </div>
-                        )}
+                      {/* Product Image - OPTIMIZED */}
+                      <div className="w-12 h-12 bg-[#374151] rounded-lg overflow-hidden flex-shrink-0">
+                        <ProductThumbnail
+                          src={item.product.main_image_url}
+                          alt={item.product.name}
+                        />
                       </div>
 
                       <div className="flex-1 flex justify-between items-start">
@@ -2188,52 +2199,26 @@ function POSPageContent() {
                         <h3 className="text-lg font-semibold text-white">صور المنتج</h3>
                       </div>
                       
-                      {/* Large Image Preview */}
-                      <div className="w-full h-64 bg-[#2B3544] rounded-lg mb-4 flex items-center justify-center overflow-hidden border border-gray-600/30">
-                        {selectedImage ? (
-                          <img
-                            src={selectedImage}
-                            alt={modalProduct.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.style.display = 'none'
-                              target.nextElementSibling?.classList.remove('hidden')
-                            }}
-                          />
-                        ) : null}
-                        <div className={`w-20 h-20 bg-yellow-400 rounded-full flex items-center justify-center ${selectedImage ? 'hidden' : ''}`}>
-                          <span className="text-4xl">😊</span>
-                        </div>
+                      {/* Large Image Preview - OPTIMIZED */}
+                      <div className="mb-4">
+                        <ProductModalImage
+                          src={selectedImage}
+                          alt={modalProduct.name}
+                          priority={true}
+                        />
                       </div>
 
                       {/* Thumbnail Gallery */}
                       <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto scrollbar-hide">
                         {modalProduct.allImages && modalProduct.allImages.length > 0 ? (
                           modalProduct.allImages.map((imageUrl: string, index: number) => (
-                            <button
+                            <ProductThumbnail
                               key={index}
+                              src={imageUrl}
+                              alt={`صورة ${index + 1}`}
+                              isSelected={selectedImage === imageUrl}
                               onClick={() => setSelectedImage(imageUrl)}
-                              className={`w-full h-16 bg-[#2B3544] rounded-md overflow-hidden border-2 transition-colors ${
-                                selectedImage === imageUrl
-                                  ? 'border-blue-500'
-                                  : 'border-gray-600/50 hover:border-gray-500'
-                              }`}
-                            >
-                              <img
-                                src={imageUrl}
-                                alt={`صورة ${index + 1}`}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement
-                                  target.style.display = 'none'
-                                  const parent = target.parentElement
-                                  if (parent) {
-                                    parent.innerHTML = `<span class="text-gray-500 text-xs">خطأ</span>`
-                                  }
-                                }}
-                              />
-                            </button>
+                            />
                           ))
                         ) : (
                           /* Fallback when no images available */

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import ProductsTabletView from '../../components/ProductsTabletView'
 import { supabase } from '../../lib/supabase/client'
+import { ProductGridImage, ProductModalImage, ProductThumbnail } from '../../components/ui/OptimizedImage'
 import ResizableTable from '../../components/tables/ResizableTable'
 import Sidebar from '../../components/layout/Sidebar'
 import TopHeader from '../../components/layout/TopHeader'
@@ -13,7 +14,7 @@ import ColorAssignmentModal from '../../components/ColorAssignmentModal'
 import ColorChangeModal from '../../components/ColorChangeModal'
 import ColumnsControlModal from '../../components/ColumnsControlModal'
 import { useBranches, Branch, ProductVariant } from '../../lib/hooks/useBranches'
-import { useProducts, Product } from '../../lib/hooks/useProducts'
+import { useProducts, Product } from '../../lib/hooks/useProductsOptimized'
 import {
   ArrowPathIcon,
   FolderPlusIcon,
@@ -68,7 +69,7 @@ export default function ProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showDeleteProductConfirm, setShowDeleteProductConfirm] = useState(false)
   const [isDeletingProduct, setIsDeletingProduct] = useState(false)
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid')
   const [showProductModal, setShowProductModal] = useState(false)
   const [modalProduct, setModalProduct] = useState<Product | null>(null)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
@@ -123,13 +124,13 @@ export default function ProductsPage() {
     }
   }, [showBranchesDropdown])
 
-  // Handle branches selection
-  const handleBranchToggle = (branchId: string) => {
+  // OPTIMIZED: Memoized branch toggle handler
+  const handleBranchToggle = useCallback((branchId: string) => {
     setSelectedBranches(prev => ({
       ...prev,
       [branchId]: !prev[branchId]
     }))
-  }
+  }, [])
 
   // Initialize visible columns state
   useEffect(() => {
@@ -148,7 +149,7 @@ export default function ProductsPage() {
     setVisibleColumns(initialVisible)
   }, [branches])
 
-  // Generate dynamic table columns based on branches
+  // OPTIMIZED: Generate dynamic table columns with advanced memoization
   const dynamicTableColumns = useMemo(() => {
     const baseColumns = [
       { 
@@ -416,10 +417,10 @@ export default function ProductsPage() {
     return allColumns.filter(col => visibleColumns[col.id] !== false)
   }, [branches, visibleColumns, selectedBranches])
 
-  // Refresh products data
-  const handleRefresh = () => {
+  // OPTIMIZED: Memoized refresh handler
+  const handleRefresh = useCallback(() => {
     fetchProducts()
-  }
+  }, [fetchProducts])
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
@@ -568,16 +569,16 @@ export default function ProductsPage() {
     setShowDeleteProductConfirm(false)
   }
 
-  // Handle columns modal
-  const handleColumnsChange = (updatedColumns: {id: string, header: string, visible: boolean}[]) => {
+  // OPTIMIZED: Memoized columns change handler
+  const handleColumnsChange = useCallback((updatedColumns: {id: string, header: string, visible: boolean}[]) => {
     const newVisibleColumns: {[key: string]: boolean} = {}
     updatedColumns.forEach(col => {
       newVisibleColumns[col.id] = col.visible
     })
     setVisibleColumns(newVisibleColumns)
-  }
+  }, [])
 
-  // Prepare columns data for modal
+  // OPTIMIZED: Memoized columns data preparation
   const getAllColumns = useMemo(() => {
     const baseColumns = [
       { id: 'index', header: '#' },
@@ -613,8 +614,8 @@ export default function ProductsPage() {
   }, [branches, visibleColumns])
 
 
-  // Fetch categories for CategorySidebar usage - ADMIN SYSTEM: Show ALL categories
-  const fetchCategories = async () => {
+  // OPTIMIZED: Memoized categories fetcher
+  const fetchCategories = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('categories')
@@ -628,17 +629,23 @@ export default function ProductsPage() {
       console.error('Error fetching categories:', error)
     }
     // setIsLoading is now handled by the useProducts hook
-  }
+  }, [])
 
   useEffect(() => {
     fetchCategories()
   }, [])
 
 
-  const filteredProducts = products.filter(product =>
-    product.name.includes(searchQuery) ||
-    (product.barcode && product.barcode.includes(searchQuery))
-  )
+  // OPTIMIZED: Memoized product filtering to prevent unnecessary re-renders
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery) return products
+    
+    const query = searchQuery.toLowerCase()
+    return products.filter(product =>
+      product.name.toLowerCase().includes(query) ||
+      (product.barcode && product.barcode.toLowerCase().includes(query))
+    )
+  }, [products, searchQuery])
 
   // Use tablet view if detected as tablet device
   if (isTablet) {
@@ -955,44 +962,36 @@ export default function ProductsPage() {
                             setSelectedProduct(product as Product)
                           }
                         }}
-                        className={`bg-[#374151] rounded-lg p-3 cursor-pointer transition-all duration-200 border-2 relative ${
+                        className={`bg-[#374151] rounded-lg p-3 cursor-pointer transition-all duration-200 border-2 relative group ${
                           selectedProduct?.id === product.id
                             ? 'border-blue-500 bg-[#434E61]'
                             : 'border-transparent hover:border-gray-500 hover:bg-[#434E61]'
                         }`}
                       >
-                        {/* Hover Button */}
-                        <div className="absolute top-2 right-2 group/button">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setModalProduct(product as Product)
-                              // Set first available image as selected
-                              const firstImage = product.allImages?.[0] || product.main_image_url || null
-                              setSelectedImage(firstImage)
-                              setShowProductModal(true)
-                            }}
-                            className="bg-black/70 hover:bg-black/90 text-white p-2 rounded-full opacity-0 group-hover/button:opacity-100 transition-all duration-200 z-10"
-                          >
-                            <EyeIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                        {/* Product Image */}
-                        <div className="w-full h-40 bg-[#2B3544] rounded-md mb-3 flex items-center justify-center overflow-hidden">
-                          {product.main_image_url ? (
-                            <img
-                              src={product.main_image_url}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement
-                                target.style.display = 'none'
-                                target.nextElementSibling?.classList.remove('hidden')
+                        {/* Product Image - OPTIMIZED */}
+                        <div className="mb-3 relative">
+                          <ProductGridImage
+                            src={product.main_image_url}
+                            alt={product.name}
+                            priority={index < 6} // Prioritize first 6 products
+                          />
+                          
+                          {/* Hover Button - positioned above image */}
+                          <div className="absolute top-2 right-2 z-50">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setModalProduct(product as Product)
+                                // Set first available image as selected
+                                const firstImage = product.allImages?.[0] || product.main_image_url || null
+                                setSelectedImage(firstImage)
+                                setShowProductModal(true)
                               }}
-                            />
-                          ) : null}
-                          <div className={`w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center ${product.main_image_url ? 'hidden' : ''}`}>
-                            <span className="text-2xl">😊</span>
+                              className="bg-black/70 hover:bg-black/90 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
+                              style={{ zIndex: 9999 }}
+                            >
+                              <EyeIcon className="h-4 w-4" />
+                            </button>
                           </div>
                         </div>
 
@@ -1465,23 +1464,13 @@ export default function ProductsPage() {
                         <h3 className="text-lg font-semibold text-white">صور المنتج</h3>
                       </div>
                       
-                      {/* Large Image Preview */}
-                      <div className="w-full h-64 bg-[#2B3544] rounded-lg mb-4 flex items-center justify-center overflow-hidden border border-gray-600/30">
-                        {selectedImage ? (
-                          <img
-                            src={selectedImage}
-                            alt={modalProduct.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.style.display = 'none'
-                              target.nextElementSibling?.classList.remove('hidden')
-                            }}
-                          />
-                        ) : null}
-                        <div className={`w-20 h-20 bg-yellow-400 rounded-full flex items-center justify-center ${selectedImage ? 'hidden' : ''}`}>
-                          <span className="text-4xl">😊</span>
-                        </div>
+                      {/* Large Image Preview - OPTIMIZED */}
+                      <div className="mb-4">
+                        <ProductModalImage
+                          src={selectedImage}
+                          alt={modalProduct.name}
+                          priority={true}
+                        />
                       </div>
 
                       {/* Thumbnail Gallery */}
@@ -1496,36 +1485,20 @@ export default function ProductsPage() {
                             else if (isSubImage) imageLabel = 'الصورة الثانوية'
                             
                             return (
-                              <button
-                                key={index}
-                                onClick={() => setSelectedImage(imageUrl)}
-                                title={imageLabel}
-                                className={`w-full h-16 bg-[#2B3544] rounded-md overflow-hidden border-2 transition-colors relative ${
-                                  selectedImage === imageUrl
-                                    ? 'border-blue-500'
-                                    : 'border-gray-600/50 hover:border-gray-500'
-                                }`}
-                              >
-                                <img
+                              <div key={index} className="relative" title={imageLabel}>
+                                <ProductThumbnail
                                   src={imageUrl}
                                   alt={imageLabel}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement
-                                    target.style.display = 'none'
-                                    const parent = target.parentElement
-                                    if (parent) {
-                                      parent.innerHTML = `<span class="text-gray-500 text-xs">خطأ</span>`
-                                    }
-                                  }}
+                                  isSelected={selectedImage === imageUrl}
+                                  onClick={() => setSelectedImage(imageUrl)}
                                 />
                                 {/* Image type indicator */}
                                 {(isMainImage || isSubImage) && (
-                                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs px-1 py-0.5 text-center">
+                                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs px-1 py-0.5 text-center rounded-b-md">
                                     {isMainImage ? 'رئيسية' : 'ثانوية'}
                                   </div>
                                 )}
-                              </button>
+                              </div>
                             )
                           })
                         ) : (

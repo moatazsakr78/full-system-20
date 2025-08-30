@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { MagnifyingGlassIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, PencilSquareIcon, TrashIcon, TableCellsIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, PencilSquareIcon, TrashIcon, TableCellsIcon, CalendarDaysIcon } from '@heroicons/react/24/outline'
 import ResizableTable from './tables/ResizableTable'
 import { supabase } from '../lib/supabase/client'
 import ConfirmDeleteModal from './ConfirmDeleteModal'
+import SimpleDateFilterModal, { DateFilter } from './SimpleDateFilterModal'
 
 interface RecordDetailsModalProps {
   isOpen: boolean
@@ -40,6 +41,10 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
   const [isDeleting, setIsDeleting] = useState(false)
   const [transactionToDelete, setTransactionToDelete] = useState<any>(null)
 
+  // Date filter state
+  const [showDateFilter, setShowDateFilter] = useState(false)
+  const [dateFilter, setDateFilter] = useState<DateFilter>({ type: 'all' })
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (viewMode !== 'split' || activeTab !== 'transactions') return
     setIsDragging(true)
@@ -71,6 +76,78 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
     }
   }, [isDragging, handleMouseMove, handleMouseUp])
 
+  // Helper function to get week start (Saturday) and end (Friday)
+  const getWeekRange = (date: Date, isLastWeek: boolean = false) => {
+    const targetDate = new Date(date)
+    if (isLastWeek) {
+      targetDate.setDate(targetDate.getDate() - 7)
+    }
+    
+    // Find Saturday (start of week in Arabic calendar)
+    const dayOfWeek = targetDate.getDay()
+    const daysToSaturday = dayOfWeek === 6 ? 0 : dayOfWeek + 1
+    
+    const startOfWeek = new Date(targetDate)
+    startOfWeek.setDate(targetDate.getDate() - daysToSaturday)
+    startOfWeek.setHours(0, 0, 0, 0)
+    
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(startOfWeek.getDate() + 6)
+    endOfWeek.setHours(23, 59, 59, 999)
+    
+    return { startOfWeek, endOfWeek }
+  }
+
+  // Apply date filter to query
+  const applyDateFilter = (query: any) => {
+    const now = new Date()
+    
+    switch (dateFilter.type) {
+      case 'today':
+        const startOfDay = new Date(now)
+        startOfDay.setHours(0, 0, 0, 0)
+        const endOfDay = new Date(now)
+        endOfDay.setHours(23, 59, 59, 999)
+        return query.gte('created_at', startOfDay.toISOString()).lte('created_at', endOfDay.toISOString())
+      
+      case 'current_week':
+        const { startOfWeek: currentWeekStart, endOfWeek: currentWeekEnd } = getWeekRange(now)
+        const currentWeekEndDate = now < currentWeekEnd ? now : currentWeekEnd
+        return query.gte('created_at', currentWeekStart.toISOString()).lte('created_at', currentWeekEndDate.toISOString())
+      
+      case 'last_week':
+        const { startOfWeek: lastWeekStart, endOfWeek: lastWeekEnd } = getWeekRange(now, true)
+        return query.gte('created_at', lastWeekStart.toISOString()).lte('created_at', lastWeekEnd.toISOString())
+      
+      case 'current_month':
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+        return query.gte('created_at', startOfMonth.toISOString()).lte('created_at', endOfMonth.toISOString())
+      
+      case 'last_month':
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
+        return query.gte('created_at', lastMonthStart.toISOString()).lte('created_at', lastMonthEnd.toISOString())
+      
+      case 'custom':
+        if (dateFilter.startDate) {
+          const startDate = new Date(dateFilter.startDate)
+          startDate.setHours(0, 0, 0, 0)
+          query = query.gte('created_at', startDate.toISOString())
+        }
+        if (dateFilter.endDate) {
+          const endDate = new Date(dateFilter.endDate)
+          endDate.setHours(23, 59, 59, 999)
+          query = query.lte('created_at', endDate.toISOString())
+        }
+        return query
+      
+      case 'all':
+      default:
+        return query
+    }
+  }
+
   // Fetch sales from Supabase for the specific record
   const fetchSales = async () => {
     if (!record?.id) return
@@ -78,7 +155,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
     try {
       setIsLoadingSales(true)
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('sales')
         .select(`
           id,
@@ -96,6 +173,11 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
           )
         `)
         .eq('record_id', record.id)
+      
+      // Apply date filter
+      query = applyDateFilter(query)
+      
+      const { data, error } = await query
         .order('created_at', { ascending: false })
         .limit(50)
       
@@ -165,7 +247,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
     try {
       setIsLoadingPurchases(true)
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('purchase_invoices')
         .select(`
           id,
@@ -183,6 +265,11 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
           )
         `)
         .eq('record_id', record.id)
+      
+      // Apply date filter
+      query = applyDateFilter(query)
+      
+      const { data, error } = await query
         .order('created_at', { ascending: false })
         .limit(50)
       
@@ -304,7 +391,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
         supabase.removeChannel(purchaseInvoiceItemsChannel)
       }
     }
-  }, [isOpen, record?.id])
+  }, [isOpen, record?.id, dateFilter])
 
   // Create combined transactions array from sales and purchase invoices
   const allTransactions = useMemo(() => {
@@ -1240,6 +1327,32 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
                   </div>
                 </div>
               </div>
+
+              {/* Date Filter Button */}
+              <div className="p-4 border-t border-gray-600">
+                <button
+                  onClick={() => setShowDateFilter(true)}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded font-medium flex items-center justify-center gap-2 transition-colors"
+                >
+                  <CalendarDaysIcon className="h-5 w-5" />
+                  <span>التاريخ</span>
+                </button>
+                
+                {/* Current Filter Display */}
+                {dateFilter.type !== 'all' && (
+                  <div className="mt-2 text-center">
+                    <span className="text-xs text-purple-400">
+                      {dateFilter.type === 'today' && 'عرض فواتير اليوم'}
+                      {dateFilter.type === 'current_week' && 'عرض فواتير الأسبوع الحالي'}
+                      {dateFilter.type === 'last_week' && 'عرض فواتير الأسبوع الماضي'}
+                      {dateFilter.type === 'current_month' && 'عرض فواتير الشهر الحالي'}
+                      {dateFilter.type === 'last_month' && 'عرض فواتير الشهر الماضي'}
+                      {dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate && 
+                        `من ${dateFilter.startDate.toLocaleDateString('ar-SA')} إلى ${dateFilter.endDate.toLocaleDateString('ar-SA')}`}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
             )}
 
@@ -1401,6 +1514,16 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
         title={transactionToDelete?.transactionType === 'purchase' ? 'تأكيد حذف فاتورة الشراء' : 'تأكيد حذف فاتورة البيع'}
         message={transactionToDelete?.transactionType === 'purchase' ? 'هل أنت متأكد أنك تريد حذف هذه فاتورة الشراء؟' : 'هل أنت متأكد أنك تريد حذف هذه فاتورة البيع؟'}
         itemName={transactionToDelete ? `فاتورة رقم: ${transactionToDelete.invoice_number} (${transactionToDelete.transactionType === 'purchase' ? 'شراء' : 'بيع'})` : ''}
+      />
+
+      {/* Date Filter Modal */}
+      <SimpleDateFilterModal
+        isOpen={showDateFilter}
+        onClose={() => setShowDateFilter(false)}
+        onDateFilterChange={(filter) => {
+          setDateFilter(filter)
+        }}
+        currentFilter={dateFilter}
       />
     </>
   )

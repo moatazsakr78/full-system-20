@@ -80,15 +80,20 @@ export const uploadProductImage = async (
   path?: string
 ): Promise<{ data: { path: string } | null; error: Error | null }> => {
   try {
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+    // ENHANCED: Use versioned filename generation to prevent conflicts
+    const fileExt = file.name.split('.').pop() || 'jpg'
+    const timestamp = Date.now()
+    const uuid = Math.random().toString(36).substring(2, 15)
+    
+    // Generate versioned filename: timestamp_uuid.extension
+    const fileName = `${timestamp}_${uuid}.${fileExt}`
     const filePath = path ? `${path}/${fileName}` : fileName
 
     const { data, error } = await supabaseAdmin.storage
       .from(PRODUCT_STORAGE_BUCKETS[bucket])
       .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
+        cacheControl: '31536000', // 1 year cache (enhanced)
+        upsert: false // NEVER overwrite existing files
       })
 
     if (error) {

@@ -11,6 +11,8 @@ interface DashboardLayoutProps {
   showSearch?: boolean
   actions?: React.ReactNode
   showSidebar?: boolean
+  showTopHeader?: boolean
+  showTopBar?: boolean
 }
 
 export default function DashboardLayout({ 
@@ -18,7 +20,9 @@ export default function DashboardLayout({
   title, 
   showSearch = true, 
   actions,
-  showSidebar = true
+  showSidebar = true,
+  showTopHeader = true,
+  showTopBar = true
 }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
@@ -28,14 +32,18 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-[#2B3544]">
-      <TopHeader onMenuClick={toggleSidebar} isMenuOpen={isSidebarOpen} />
+      {showTopHeader && (
+        <TopHeader onMenuClick={toggleSidebar} isMenuOpen={isSidebarOpen} />
+      )}
       
       {showSidebar && (
         <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
       )}
       
-      <div className="pt-12">
-        <TopBar title={title} showSearch={showSearch} actions={actions} />
+      <div className={showTopHeader ? "pt-12" : ""}>
+        {showTopBar && (
+          <TopBar title={title} showSearch={showSearch} actions={actions} />
+        )}
         
         <main className="p-0">
           {children}

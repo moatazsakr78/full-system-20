@@ -9,41 +9,75 @@ import {
   ShoppingCartIcon,
   UserGroupIcon,
   ArchiveBoxIcon,
-  CurrencyDollarIcon
+  CurrencyDollarIcon,
+  ChevronDownIcon,
+  DocumentTextIcon,
+  ArrowsUpDownIcon,
+  FunnelIcon,
+  CalendarDaysIcon,
+  PresentationChartBarIcon,
+  DocumentChartBarIcon,
+  ClockIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 
 export default function ReportsPage() {
   
   return (
-    <DashboardLayout>
+    <DashboardLayout showSidebar={true} showTopHeader={true} showTopBar={false}>
       <div className="flex-1 flex flex-col h-full bg-[#2B3544]">
-        {/* Top Action Buttons Toolbar - Full Width */}
+        {/* Top Action Buttons Toolbar */}
         <div className="bg-[#374151] border-b border-gray-600 px-4 py-2 w-full">
           <div className="flex items-center justify-start gap-1">
             <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
-              <ChartBarIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">تقرير جديد</span>
+              <DocumentTextIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">التقارير</span>
             </button>
+
+            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+              <ArrowsUpDownIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">ترتيب</span>
+            </button>
+
             <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
               <DocumentArrowDownIcon className="h-5 w-5 mb-1" />
               <span className="text-sm">تصدير</span>
             </button>
+
+            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+              <FunnelIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">فلترة</span>
+            </button>
+
+            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+              <CalendarDaysIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">تواريخ</span>
+            </button>
+
+            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+              <PresentationChartBarIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">عرض بياني</span>
+            </button>
+
             <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
               <PrinterIcon className="h-5 w-5 mb-1" />
               <span className="text-sm">طباعة</span>
             </button>
-          </div>
-        </div>
 
-        {/* Second Toolbar - Title and Info */}
-        <div className="bg-[#374151] border-b border-gray-600 px-6 py-3 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h2 className="text-white font-medium">التقارير</h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-400">إجمالي المبيعات: ₾ 45,230.50</span>
-            </div>
+            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+              <DocumentChartBarIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">تقرير مفصل</span>
+            </button>
+
+            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+              <ClockIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">تقارير دورية</span>
+            </button>
+
+            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+              <ArrowPathIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">تحديث</span>
+            </button>
           </div>
         </div>
 
