@@ -201,7 +201,7 @@ export default function MobileHome({
   }
 
   return (
-    <div className="min-h-screen text-gray-800" style={{backgroundColor: '#c0c0c0'}}>
+    <div className="min-h-screen text-gray-800 bg-custom-gray">
       {/* Mobile Header */}
       <header className="border-b border-gray-700 py-2 sticky top-0 z-50" style={{backgroundColor: '#5d1f1f'}}>
         <div className="px-4 flex items-center justify-between">

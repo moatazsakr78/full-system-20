@@ -252,17 +252,17 @@ export default function InteractiveProductCard({
           </p>
         </div>
         
-        {/* Color Options - Show container for colors, or empty space for alignment */}
+        {/* Color Options - Horizontal Scroll for colors */}
         {product.colors && product.colors.length > 0 ? (
           <div className={`${deviceType === 'tablet' ? 'h-10' : 'h-8'} mb-1 flex items-center`}>
-            <div className={`flex flex-wrap ${deviceType === 'tablet' ? 'gap-2.5' : 'gap-2'}`}>
+            <div className={`flex overflow-x-auto scrollbar-hide ${deviceType === 'tablet' ? 'gap-2.5' : 'gap-2'} pb-1`}>
               {product.colors.map((color) => (
                 <button
                   key={color.id}
                   onClick={(e) => handleColorSelect(color, e)}
                   className={`${
                     deviceType === 'tablet' ? 'w-7 h-7' : 'w-6 h-6'
-                  } rounded-full border-2 transition-all duration-200 ${
+                  } rounded-full border-2 transition-all duration-200 flex-shrink-0 ${
                     selectedColor?.id === color.id 
                       ? 'border-gray-800 scale-110 shadow-md' 
                       : 'border-gray-300 hover:border-gray-500'
