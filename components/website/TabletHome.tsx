@@ -13,6 +13,7 @@ import CategoryCarousel from './CategoryCarousel';
 import FeaturedProductsCarousel from './FeaturedProductsCarousel';
 import ProductDetailsModal from '../../app/components/ProductDetailsModal';
 import CartModal from '../../app/components/CartModal';
+import SearchOverlay from './SearchOverlay';
 import { useCart } from '../../lib/contexts/CartContext';
 import { useCartBadge } from '../../lib/hooks/useCartBadge';
 
@@ -39,6 +40,7 @@ export default function TabletHome({
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
+  const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
   const [websiteProducts, setWebsiteProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   
@@ -259,9 +261,15 @@ export default function TabletHome({
                     e.target.style.boxShadow = 'none';
                   }}
                 />
-                <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <button
+                  onClick={() => setIsSearchOverlayOpen(true)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-red-600 transition-colors"
+                  title="فتح البحث المتقدم"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </button>
               </div>
             </div>
             
@@ -320,7 +328,7 @@ export default function TabletHome({
       )}
 
       {/* Main Tablet Header */}
-      <header className="border-b border-gray-700 py-0 relative z-40" style={{backgroundColor: '#5d1f1f'}}>
+      <header className="fixed top-0 left-0 right-0 border-b border-gray-700 py-0 z-40" style={{backgroundColor: '#5d1f1f'}}>
         <div className="relative flex items-center min-h-[75px]">
           {/* Main Content Container */}
           <div className="max-w-[85%] mx-auto px-4 flex items-center justify-between min-h-[75px] w-full">
@@ -348,9 +356,15 @@ export default function TabletHome({
                   e.target.style.boxShadow = 'none';
                 }}
               />
-              <svg className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <button
+                onClick={() => setIsSearchOverlayOpen(true)}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-red-600 transition-colors"
+                title="فتح البحث المتقدم"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
             </div>
           </div>
           
@@ -407,7 +421,7 @@ export default function TabletHome({
       </header>
 
       {/* Tablet Main Content */}
-      <main className="max-w-[85%] mx-auto px-4 py-7">
+      <main className="max-w-[85%] mx-auto px-4 py-7" style={{ marginTop: '75px' }}>
 
         {/* Categories Section - Now First Section with Horizontal Scroll */}
         <section id="categories" className="mb-7">
@@ -528,6 +542,19 @@ export default function TabletHome({
       <CartModal
         isOpen={isCartModalOpen}
         onClose={() => setIsCartModalOpen(false)}
+      />
+
+      {/* Search Overlay */}
+      <SearchOverlay
+        isOpen={isSearchOverlayOpen}
+        onClose={() => setIsSearchOverlayOpen(false)}
+        products={websiteProducts}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onProductSelect={(product) => {
+          setSelectedProductId(String(product.id));
+          setIsProductModalOpen(true);
+        }}
       />
 
       {/* Success Message Toast */}

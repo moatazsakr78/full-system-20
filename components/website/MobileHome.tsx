@@ -31,12 +31,11 @@ export default function MobileHome({
 }: MobileHomeProps) {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('الكل');
-  const [isSearchSticky, setIsSearchSticky] = useState(false);
-  const [isSearchVisible, setIsSearchVisible] = useState(true);
-  const [isSearchCompact, setIsSearchCompact] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
@@ -136,34 +135,32 @@ export default function MobileHome({
     setIsClient(true);
   }, []);
 
-  // Handle scroll for sticky search and show/hide
-  useEffect(() => {
-    if (!isClient) return;
-    
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      // Show/hide search based on scroll direction
-      if (currentScrollY > lastScrollY && currentScrollY > 50) {
-        // Scrolling down - hide search completely
-        setIsSearchVisible(false);
-      } else if (currentScrollY < lastScrollY) {
-        // Scrolling up - show search immediately
-        setIsSearchVisible(true);
-      }
-      
-      // Determine if search should be sticky and compact
-      const shouldBeSticky = currentScrollY > 80;
-      const shouldBeCompact = currentScrollY > 20; // Compact when scrolled a bit
-      
-      setLastScrollY(currentScrollY);
-      setIsSearchSticky(shouldBeSticky);
-      setIsSearchCompact(shouldBeCompact);
-    };
+  // Handle menu toggle with animation
+  const toggleMenu = () => {
+    if (isMenuOpen) {
+      // Close menu
+      setIsMenuOpen(false);
+      setTimeout(() => setIsMenuVisible(false), 300); // Wait for animation to complete
+    } else {
+      // Open menu
+      setIsMenuVisible(true);
+      setTimeout(() => setIsMenuOpen(true), 10); // Small delay to allow render
+    }
+  };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [isClient, lastScrollY]);
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+    setTimeout(() => setIsMenuVisible(false), 300);
+  };
+
+  // Handle search toggle
+  const toggleSearch = () => {
+    setIsSearchActive(!isSearchActive);
+    setIsSearchVisible(!isSearchVisible);
+    if (isSearchActive) {
+      setSearchQuery(''); // Clear search when closing
+    }
+  };
 
   const filteredProducts = websiteProducts.filter(product => {
     const matchesSearch = searchQuery === '' || 
@@ -203,138 +200,284 @@ export default function MobileHome({
   return (
     <div className="min-h-screen text-gray-800 bg-custom-gray">
       {/* Mobile Header */}
-      <header className="border-b border-gray-700 py-2 sticky top-0 z-50" style={{backgroundColor: '#5d1f1f'}}>
-        <div className="px-4 flex items-center justify-between">
-          {/* Left - Menu Button and Logo */}
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 hover:bg-red-600 rounded-lg transition-colors"
-            >
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            
-            {/* Logo and Text */}
+      <header className="border-b border-gray-700 py-2 fixed top-0 left-0 right-0 z-50" style={{backgroundColor: '#5d1f1f'}}>
+        <div className="px-4 flex items-center justify-between w-full">
+          {/* Complete horizontal layout from right to left */}
+          <div className="flex items-center gap-2 w-full justify-between">
+            {/* Right Side - Menu, Logo, Logo Text */}
             <div className="flex items-center gap-2">
+              {/* Menu Button - Far Right */}
+              <button 
+                onClick={toggleMenu}
+                className="p-2 hover:bg-red-600 rounded-lg transition-colors"
+              >
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              
+              {/* Logo */}
               <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-14 w-14 object-contain" />
+              
+              {/* Logo Text */}
               <div className="flex flex-col leading-tight">
                 <span className="text-white text-lg font-bold">El Farouk</span>
                 <span className="text-white text-lg font-bold">Group</span>
               </div>
             </div>
-          </div>
-          
-          {/* Right - User and Cart */}
-          <div className="flex items-center gap-2">
-            {/* User Profile Icon */}
-            <AuthButtons compact mobileIconOnly />
-            
-            {/* Cart Button */}
-            <button 
-              onClick={() => setIsCartModalOpen(true)}
-              className="relative p-2 hover:bg-red-600 rounded-lg transition-colors"
-            >
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
-              </svg>
-              {cartBadgeCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-white text-red-600 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartBadgeCount}
-                </span>
-              )}
-            </button>
+
+            {/* Left Side - Search, Cart, Account */}
+            <div className="flex items-center gap-2">
+              {/* Search Toggle Button */}
+              <button 
+                onClick={toggleSearch}
+                className={`p-2 hover:bg-red-600 rounded-lg transition-colors ${isSearchActive ? 'bg-white' : ''}`}
+              >
+                <svg className={`w-6 h-6 ${isSearchActive ? 'text-black' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+              
+              {/* Cart Button */}
+              <button 
+                onClick={() => setIsCartModalOpen(true)}
+                className="relative p-2 hover:bg-red-600 rounded-lg transition-colors"
+              >
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
+                </svg>
+                {cartBadgeCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-white text-red-600 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartBadgeCount}
+                  </span>
+                )}
+              </button>
+              
+              {/* Account Icon - Far Left */}
+              <AuthButtons compact mobileIconOnly />
+            </div>
           </div>
         </div>
 
-        {/* Mobile Menu Overlay */}
-        {isMenuOpen && (
+        {/* Mobile Menu Overlay - Advanced Menu like Desktop/Tablet */}
+        {isMenuVisible && (
           <>
-            <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setIsMenuOpen(false)} />
-            <div className="absolute top-full right-0 left-0 bg-gray-700 border-b border-gray-600 z-50">
-              <nav className="px-4 py-3 space-y-1">
-                {userInfo.name && (
-                  <div className="py-2 px-3 text-sm text-gray-300 border-b border-gray-600 mb-2">
-                    مرحباً، {userInfo.name}
-                  </div>
-                )}
-                <a href="#products" className="block py-3 px-3 text-gray-300 hover:text-red-400 hover:bg-gray-600 rounded">المنتجات</a>
-                <a href="#categories" className="block py-3 px-3 text-gray-300 hover:text-red-400 hover:bg-gray-600 rounded">الفئات</a>
-                <a href="#offers" className="block py-3 px-3 text-gray-300 hover:text-red-400 hover:bg-gray-600 rounded">العروض</a>
-                <a href="#about" className="block py-3 px-3 text-gray-300 hover:text-red-400 hover:bg-gray-600 rounded">عن المتجر</a>
-              </nav>
+            <div className="fixed top-[72px] right-0 bottom-0 left-0 bg-black bg-opacity-50 z-40" onClick={closeMenu} />
+            <div className={`fixed top-[72px] right-0 h-[calc(100vh-72px)] w-80 bg-[#eaeaea] border-l border-gray-400 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${
+              isMenuOpen ? 'translate-x-0' : 'translate-x-full'
+            }`}>
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-red-600 bg-[#5d1f1f]">
+                <h2 className="text-lg font-bold text-white">القائمة الرئيسية</h2>
+                <button
+                  onClick={closeMenu}
+                  className="p-2 text-gray-200 hover:text-white hover:bg-gray-600 rounded-full transition-colors"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Menu Items */}
+              <div className="p-3 overflow-y-auto scrollbar-hide h-[calc(100%-140px)]">
+                <div className="space-y-1">
+                  
+                  {/* Admin-specific buttons */}
+                  {isAdmin && (
+                    <>
+                      {/* Customer Orders (Admin Only) */}
+                      <button
+                        onClick={() => {
+                          window.location.href = '/customer-orders';
+                          closeMenu();
+                        }}
+                        className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                      >
+                        <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                          <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 text-right">
+                          <h3 className="font-semibold text-base text-black">طلبات العملاء</h3>
+                          <p className="text-xs text-gray-600">إدارة ومراجعة طلبات جميع العملاء</p>
+                        </div>
+                      </button>
+
+                      {/* Manage Products */}
+                      <button
+                        onClick={() => {
+                          window.location.href = '/admin/products';
+                          closeMenu();
+                        }}
+                        className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                      >
+                        <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                          <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 text-right">
+                          <h3 className="font-semibold text-base text-black">إدارة المنتجات</h3>
+                          <p className="text-xs text-gray-600">إضافة وتعديل وحذف المنتجات</p>
+                        </div>
+                      </button>
+
+                      {/* Store Management */}
+                      <button
+                        onClick={() => {
+                          alert('سيتم إضافة صفحة إدارة المتجر قريباً');
+                          closeMenu();
+                        }}
+                        className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                      >
+                        <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                          <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 text-right">
+                          <h3 className="font-semibold text-base text-black">إدارة المتجر</h3>
+                          <p className="text-xs text-gray-600">إعدادات وإدارة المتجر العامة</p>
+                        </div>
+                      </button>
+
+                      {/* Shipping Details */}
+                      <button
+                        onClick={() => {
+                          window.location.href = '/shipping';
+                          closeMenu();
+                        }}
+                        className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                      >
+                        <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                          <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 text-right">
+                          <h3 className="font-semibold text-base text-black">تفاصيل الشحن</h3>
+                          <p className="text-xs text-gray-600">إدارة شركات الشحن وأسعار المحافظات</p>
+                        </div>
+                      </button>
+                    </>
+                  )}
+
+                  {/* Regular user buttons (hidden for admins) */}
+                  {!isAdmin && (
+                    <>
+                      {/* Profile */}
+                      <button
+                        onClick={() => {
+                          alert('سيتم إضافة صفحة الملف الشخصي قريباً');
+                          closeMenu();
+                        }}
+                        className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                      >
+                        <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                          <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 text-right">
+                          <h3 className="font-semibold text-base text-black">الملف الشخصي</h3>
+                          <p className="text-xs text-gray-600">إعدادات الحساب والمعلومات الشخصية</p>
+                        </div>
+                      </button>
+
+                      {/* Favorites */}
+                      <button
+                        onClick={() => {
+                          alert('سيتم إضافة صفحة المفضلة قريباً');
+                          closeMenu();
+                        }}
+                        className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                      >
+                        <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                          <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 text-right">
+                          <h3 className="font-semibold text-base text-black">المفضلة</h3>
+                          <p className="text-xs text-gray-600">المنتجات والعناصر المفضلة لديك</p>
+                        </div>
+                      </button>
+
+                      {/* Orders List */}
+                      <button
+                        onClick={() => {
+                          window.location.href = '/my-orders';
+                          closeMenu();
+                        }}
+                        className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                      >
+                        <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                          <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 text-right">
+                          <h3 className="font-semibold text-base text-black">قائمة الطلبات</h3>
+                          <p className="text-xs text-gray-600">عرض وإدارة جميع الطلبات</p>
+                        </div>
+                      </button>
+                    </>
+                  )}
+
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-400 bg-[#eaeaea]">
+                <p className="text-center text-black text-xs">
+                  El Farouk Group
+                </p>
+              </div>
             </div>
           </>
         )}
       </header>
 
-      {/* Dynamic Search Bar */}
-      <div className={`${isSearchSticky ? 'fixed left-0 right-0 z-40' : ''} bg-white border-b border-gray-200 transition-all duration-300 ease-in-out overflow-hidden`}
+      {/* Search Bar - Only visible when search icon is active */}
+      <div className={`bg-white border-b border-gray-200 transition-all duration-300 ease-in-out overflow-hidden`}
            style={{
-             top: isSearchSticky ? '56px' : 'auto',
              transform: isSearchVisible ? 'translateY(0)' : 'translateY(-100%)',
              opacity: isSearchVisible ? 1 : 0,
-             visibility: isSearchVisible ? 'visible' : 'hidden'
+             visibility: isSearchVisible ? 'visible' : 'hidden',
+             height: isSearchVisible ? 'auto' : '0'
            }}>
-        
-        {isSearchCompact ? (
-          /* Compact Search - Same as Full Search but with Different Placeholder */
-          <div className="px-4 py-2">
-            <div className="flex items-center gap-3 bg-gray-100 border border-gray-300 rounded-full px-5 py-2.5">
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input 
-                type="text" 
-                placeholder="البحث..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent outline-none text-base text-gray-700 placeholder-gray-500 font-medium focus:placeholder-gray-400"
-              />
-              {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery('')}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
+        <div className="px-4 py-2">
+          <div className="flex items-center gap-3 bg-gray-100 border border-gray-300 rounded-full px-5 py-2.5">
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input 
+              type="text" 
+              placeholder="ابحث عن المنتجات..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 bg-transparent outline-none text-base text-gray-700 placeholder-gray-500 font-medium focus:placeholder-gray-400"
+              autoFocus={isSearchVisible}
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
-        ) : (
-          /* Full Search - Enhanced Visibility */
-          <div className="px-4 py-2">
-            <div className="flex items-center gap-3 bg-gray-100 border border-gray-300 rounded-full px-5 py-2.5">
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input 
-                type="text" 
-                placeholder="ابحث عن المنتجات..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent outline-none text-base text-gray-700 placeholder-gray-500 font-medium focus:placeholder-gray-400"
-              />
-              {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery('')}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Mobile Main Content */}
-      <main className="px-3 py-4">
+      <main className="px-3 py-4 pt-20">
 
         {/* Featured Categories - Now First Section with Horizontal Scroll */}
         <section id="categories" className="mb-6">
