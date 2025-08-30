@@ -7,9 +7,10 @@ import { useUserProfile } from '@/lib/hooks/useUserProfile';
 interface AuthButtonsProps {
   onAuthSuccess?: () => void;
   compact?: boolean;
+  mobileIconOnly?: boolean;
 }
 
-export default function AuthButtons({ onAuthSuccess, compact = false }: AuthButtonsProps) {
+export default function AuthButtons({ onAuthSuccess, compact = false, mobileIconOnly = false }: AuthButtonsProps) {
   const { user, loading, isAuthenticated, signOut } = useAuth();
   const { profile, isAdmin, loading: profileLoading } = useUserProfile();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -92,31 +93,35 @@ export default function AuthButtons({ onAuthSuccess, compact = false }: AuthButt
         {/* User Avatar & Name - Clickable */}
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className={`flex items-center gap-2 hover:bg-red-700 px-2 py-1 rounded-lg transition-colors ${compact ? 'gap-1' : 'gap-2'}`}
+          className={`flex items-center hover:bg-red-700 p-2 rounded-lg transition-colors ${mobileIconOnly ? 'gap-0' : (compact ? 'gap-1' : 'gap-2')}`}
         >
           {user.avatar ? (
             <img
               src={user.avatar}
               alt={user.name || 'المستخدم'}
-              className={`rounded-full ${compact ? 'w-6 h-6' : 'w-8 h-8'}`}
+              className={`rounded-full ${compact || mobileIconOnly ? 'w-8 h-8' : 'w-8 h-8'}`}
             />
           ) : (
-            <div className={`bg-white text-red-600 rounded-full flex items-center justify-center font-bold ${compact ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'}`}>
+            <div className={`bg-white text-red-600 rounded-full flex items-center justify-center font-bold ${compact || mobileIconOnly ? 'w-8 h-8 text-sm' : 'w-8 h-8 text-sm'}`}>
               {(user.name || user.email || 'U').charAt(0).toUpperCase()}
             </div>
           )}
-          <span className={`text-white ${compact ? 'text-sm' : 'text-base'}`}>
-            مرحباً، {user.name || user.email?.split('@')[0]}
-          </span>
-          {/* Dropdown Arrow */}
-          <svg 
-            className={`w-4 h-4 text-white transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          {!mobileIconOnly && (
+            <>
+              <span className={`text-white ${compact ? 'text-sm' : 'text-base'}`}>
+                مرحباً، {user.name || user.email?.split('@')[0]}
+              </span>
+              {/* Dropdown Arrow */}
+              <svg 
+                className={`w-4 h-4 text-white transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </>
+          )}
         </button>
 
         {/* Dropdown Menu */}

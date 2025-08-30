@@ -34,6 +34,9 @@ export default function MobileHome({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('الكل');
   const [isSearchSticky, setIsSearchSticky] = useState(false);
+  const [isSearchVisible, setIsSearchVisible] = useState(true);
+  const [isSearchCompact, setIsSearchCompact] = useState(false);
+  const [lastScrollY, setLastScrollY] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
@@ -133,17 +136,34 @@ export default function MobileHome({
     setIsClient(true);
   }, []);
 
-  // Handle scroll for sticky search
+  // Handle scroll for sticky search and show/hide
   useEffect(() => {
     if (!isClient) return;
     
     const handleScroll = () => {
-      setIsSearchSticky(window.scrollY > 120);
+      const currentScrollY = window.scrollY;
+      
+      // Show/hide search based on scroll direction
+      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        // Scrolling down - hide search completely
+        setIsSearchVisible(false);
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up - show search immediately
+        setIsSearchVisible(true);
+      }
+      
+      // Determine if search should be sticky and compact
+      const shouldBeSticky = currentScrollY > 80;
+      const shouldBeCompact = currentScrollY > 20; // Compact when scrolled a bit
+      
+      setLastScrollY(currentScrollY);
+      setIsSearchSticky(shouldBeSticky);
+      setIsSearchCompact(shouldBeCompact);
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [isClient]);
+  }, [isClient, lastScrollY]);
 
   const filteredProducts = websiteProducts.filter(product => {
     const matchesSearch = searchQuery === '' || 
@@ -183,38 +203,48 @@ export default function MobileHome({
   return (
     <div className="min-h-screen text-gray-800" style={{backgroundColor: '#c0c0c0'}}>
       {/* Mobile Header */}
-      <header className="border-b border-gray-700 py-3 sticky top-0 z-50" style={{backgroundColor: '#5d1f1f'}}>
-        <div className="px-3 flex items-center justify-between">
-          <button 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="p-2 hover:bg-gray-700 rounded-lg"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          
-          <div className="flex items-center gap-2">
-            <img src="/assets/logo/El Farouk Group2.png" alt="El Farouk Group" className="h-8 w-8 object-contain" />
-            <h1 className="text-lg font-bold text-white">El Farouk Group</h1>
+      <header className="border-b border-gray-700 py-2 sticky top-0 z-50" style={{backgroundColor: '#5d1f1f'}}>
+        <div className="px-4 flex items-center justify-between">
+          {/* Left - Menu Button and Logo */}
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 hover:bg-red-600 rounded-lg transition-colors"
+            >
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            
+            {/* Logo and Text */}
+            <div className="flex items-center gap-2">
+              <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-14 w-14 object-contain" />
+              <div className="flex flex-col leading-tight">
+                <span className="text-white text-lg font-bold">El Farouk</span>
+                <span className="text-white text-lg font-bold">Group</span>
+              </div>
+            </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <div className="mr-1">
-              <AuthButtons compact />
-            </div>
+          {/* Right - User and Cart */}
+          <div className="flex items-center gap-2">
+            {/* User Profile Icon */}
+            <AuthButtons compact mobileIconOnly />
             
-            
-            <div className="ml-1">
-              <button 
-                onClick={() => setIsCartModalOpen(true)}
-                className="relative p-2 hover:bg-gray-700 rounded-lg"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
-                </svg>
-              </button>
-            </div>
+            {/* Cart Button */}
+            <button 
+              onClick={() => setIsCartModalOpen(true)}
+              className="relative p-2 hover:bg-red-600 rounded-lg transition-colors"
+            >
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
+              </svg>
+              {cartBadgeCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-white text-red-600 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartBadgeCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -239,26 +269,72 @@ export default function MobileHome({
         )}
       </header>
 
-      {/* Sticky Search Bar */}
-      <div className={`${isSearchSticky ? 'fixed top-14 left-0 right-0 bg-gray-800 border-b border-gray-600 py-3 z-40' : 'bg-gray-800 border-b border-gray-700 py-3'} transition-all duration-300`}>
-        <div className="px-3">
-          <div className="relative">
-            <input 
-              type="text" 
-              placeholder="ابحث عن المنتجات..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 pr-10 text-white placeholder-gray-400 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
-            />
-            <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+      {/* Dynamic Search Bar */}
+      <div className={`${isSearchSticky ? 'fixed left-0 right-0 z-40' : ''} bg-white border-b border-gray-200 transition-all duration-300 ease-in-out overflow-hidden`}
+           style={{
+             top: isSearchSticky ? '56px' : 'auto',
+             transform: isSearchVisible ? 'translateY(0)' : 'translateY(-100%)',
+             opacity: isSearchVisible ? 1 : 0,
+             visibility: isSearchVisible ? 'visible' : 'hidden'
+           }}>
+        
+        {isSearchCompact ? (
+          /* Compact Search - Same as Full Search but with Different Placeholder */
+          <div className="px-4 py-2">
+            <div className="flex items-center gap-3 bg-gray-100 border border-gray-300 rounded-full px-5 py-2.5">
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input 
+                type="text" 
+                placeholder="البحث..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent outline-none text-base text-gray-700 placeholder-gray-500 font-medium focus:placeholder-gray-400"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Full Search - Enhanced Visibility */
+          <div className="px-4 py-2">
+            <div className="flex items-center gap-3 bg-gray-100 border border-gray-300 rounded-full px-5 py-2.5">
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input 
+                type="text" 
+                placeholder="ابحث عن المنتجات..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent outline-none text-base text-gray-700 placeholder-gray-500 font-medium focus:placeholder-gray-400"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Mobile Main Content */}
-      <main className="px-3 py-4 pb-20">
+      <main className="px-3 py-4">
 
         {/* Quick Categories - Horizontal Scroll */}
         <section className="mb-4">
@@ -369,42 +445,6 @@ export default function MobileHome({
         </section>
       </main>
 
-      {/* Fixed Bottom Navigation (Mobile) */}
-      <nav className="fixed bottom-0 left-0 right-0 px-4 py-2 z-40" style={{backgroundColor: '#4D4D4D', borderTop: '1px solid #666'}}>
-        <div className={`flex items-center ${isAdmin ? 'justify-between' : 'justify-around'}`}>
-          <button className="flex flex-col items-center gap-1 p-2 text-red-400">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            <span className="text-xs">الرئيسية</span>
-          </button>
-          
-          <button className="flex flex-col items-center gap-1 p-2 text-gray-400">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <span className="text-xs">البحث</span>
-          </button>
-          
-          
-          <button 
-            onClick={() => setIsCartModalOpen(true)}
-            className="flex flex-col items-center gap-1 p-2 text-gray-400 relative"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
-            </svg>
-            <span className="text-xs">السلة ({cartBadgeCount})</span>
-          </button>
-          
-          <button className="flex flex-col items-center gap-1 p-2 text-gray-400">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <span className="text-xs">الحساب</span>
-          </button>
-        </div>
-      </nav>
 
       {/* Product Details Modal */}
       <ProductDetailsModal
