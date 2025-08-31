@@ -22,6 +22,12 @@ export default function InteractiveProductCard({
   const [selectedColor, setSelectedColor] = useState<ProductColor | null>(null);
   const imageRef = useRef<HTMLDivElement>(null);
   
+  // Mobile-specific states
+  const [showQuantityModal, setShowQuantityModal] = useState(false);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [quantity, setQuantity] = useState('1');
+  const [note, setNote] = useState('');
+  
   // Create array of all available images (main image + additional images)
   const allImages = product.images && product.images.length > 0 
     ? [product.image, ...product.images].filter(Boolean) as string[]
@@ -299,37 +305,213 @@ export default function InteractiveProductCard({
         </div>
       </div>
       
-      <button 
-        onClick={async (e) => {
-          e.stopPropagation();
-          // If no color is selected and colors are available, select the highest quantity color
-          const productToAdd = { 
-            ...product, 
-            selectedColor: selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : null)
-          };
-          await onAddToCart(productToAdd);
-        }}
-        className={`w-full mt-3 rounded-lg font-medium transition-colors text-white ${
-          deviceType === 'mobile' 
-            ? 'p-1.5 text-xs' 
-            : 'px-4 py-2 text-sm'
-        }`}
-        style={{backgroundColor: '#5D1F1F'}}
-        onMouseEnter={(e) => {
-          (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
-        }}
-        onMouseLeave={(e) => {
-          (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
-        }}
-      >
-        {deviceType === 'mobile' ? (
-          <svg className="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-        ) : (
-          'أضف للسلة'
-        )}
-      </button>
+      {/* Desktop/Tablet Button */}
+      {deviceType !== 'mobile' && (
+        <button 
+          onClick={async (e) => {
+            e.stopPropagation();
+            const productToAdd = { 
+              ...product, 
+              selectedColor: selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : null)
+            };
+            await onAddToCart(productToAdd);
+          }}
+          className={`w-full mt-3 rounded-lg font-medium transition-colors text-white px-4 py-2 text-sm`}
+          style={{backgroundColor: '#5D1F1F'}}
+          onMouseEnter={(e) => {
+            (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+          }}
+          onMouseLeave={(e) => {
+            (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+          }}
+        >
+          أضف للسلة
+        </button>
+      )}
+      
+      {/* Mobile Buttons */}
+      {deviceType === 'mobile' && (
+        <div className="flex gap-1 mt-3">
+          {/* Add Button (80% width) */}
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowQuantityModal(true);
+            }}
+            className="flex-[4] rounded-lg font-medium transition-colors text-white p-1.5 text-xs"
+            style={{backgroundColor: '#5D1F1F'}}
+            onMouseEnter={(e) => {
+              (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+            }}
+          >
+            إضافة
+          </button>
+          
+          {/* Note Button (20% width) with gray color like in the image */}
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowNoteModal(true);
+            }}
+            className="flex-1 rounded-lg font-medium transition-colors p-1.5"
+            style={{backgroundColor: '#D1D5DB', color: '#374151'}}
+            onMouseEnter={(e) => {
+              (e.target as HTMLButtonElement).style.backgroundColor = '#9CA3AF';
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLButtonElement).style.backgroundColor = '#D1D5DB';
+            }}
+            title="إضافة ملاحظة"
+          >
+            <svg className="w-3 h-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+        </div>
+      )}
+      
+      {/* Quantity Modal */}
+      {showQuantityModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+             onClick={(e) => {
+               if (e.target === e.currentTarget) {
+                 setShowQuantityModal(false);
+               }
+             }}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-bold text-center mb-6 text-gray-800">تحديد الكمية</h3>
+            
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <button 
+                onClick={() => {
+                  const newValue = Math.max(1, parseInt(quantity) - 1).toString();
+                  setQuantity(newValue);
+                }}
+                className="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-xl font-bold transition-colors"
+              >
+                -
+              </button>
+              
+              <input 
+                type="text" 
+                value={quantity}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  if (value === '' || parseInt(value) >= 1) {
+                    setQuantity(value || '1');
+                  }
+                }}
+                className="w-20 h-12 text-center text-xl font-bold border-2 border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
+                style={{ color: '#3B82F6' }}
+                autoFocus
+                onFocus={(e) => e.target.select()}
+              />
+              
+              <button 
+                onClick={() => {
+                  const newValue = (parseInt(quantity) + 1).toString();
+                  setQuantity(newValue);
+                }}
+                className="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-xl font-bold transition-colors"
+              >
+                +
+              </button>
+            </div>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowQuantityModal(false);
+                }}
+                className="flex-1 py-3 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg font-medium transition-colors"
+              >
+                إلغاء
+              </button>
+              <button 
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const productToAdd = { 
+                    ...product, 
+                    selectedColor: selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : null)
+                  };
+                  for (let i = 0; i < parseInt(quantity); i++) {
+                    await onAddToCart(productToAdd);
+                  }
+                  setShowQuantityModal(false);
+                  setQuantity('1');
+                }}
+                className="flex-1 py-3 text-white rounded-lg font-medium transition-colors"
+                style={{backgroundColor: '#5D1F1F'}}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+                }}
+              >
+                إضافة للطلب
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Note Modal */}
+      {showNoteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+             onClick={(e) => {
+               if (e.target === e.currentTarget) {
+                 setShowNoteModal(false);
+               }
+             }}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-bold text-center mb-6 text-gray-800">إضافة ملاحظة</h3>
+            
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="أدخل ملاحظتك هنا..."
+              className="w-full h-32 p-4 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 resize-none text-right"
+              style={{ fontFamily: 'Cairo, sans-serif' }}
+            />
+            
+            <div className="flex gap-3 mt-4">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowNoteModal(false);
+                }}
+                className="flex-1 py-3 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg font-medium transition-colors"
+              >
+                إلغاء
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Here you would save the note with the product
+                  console.log('Note saved:', note, 'for product:', product.name);
+                  setShowNoteModal(false);
+                  setNote('');
+                }}
+                className="flex-1 py-3 text-white rounded-lg font-medium transition-colors"
+                style={{backgroundColor: '#5D1F1F'}}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
+                }}
+              >
+                حفظ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
