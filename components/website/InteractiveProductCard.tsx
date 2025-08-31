@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Product, ProductColor } from './shared/types';
+import { useCart } from '../../lib/contexts/CartContext';
 
 interface InteractiveProductCardProps {
   product: Product;
@@ -27,6 +28,9 @@ export default function InteractiveProductCard({
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [quantity, setQuantity] = useState('1');
   const [note, setNote] = useState('');
+  
+  // Get cart functions for direct access
+  const { addToCart: directAddToCart } = useCart();
   
   // Create array of all available images (main image + additional images)
   const allImages = product.images && product.images.length > 0 
@@ -438,9 +442,19 @@ export default function InteractiveProductCard({
                     ...product, 
                     selectedColor: selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : null)
                   };
-                  for (let i = 0; i < parseInt(quantity); i++) {
-                    await onAddToCart(productToAdd);
+                  
+                  const selectedColorName = productToAdd.selectedColor?.name || undefined;
+                  const quantityToAdd = parseInt(quantity);
+                  
+                  try {
+                    console.log('🛒 Adding to cart:', quantityToAdd, 'units of product:', product.name);
+                    // Use directAddToCart with the full quantity at once - much faster!
+                    await directAddToCart(String(product.id), quantityToAdd, product.price, selectedColorName);
+                    console.log('✅ Successfully added', quantityToAdd, 'units to cart');
+                  } catch (error) {
+                    console.error('❌ Error adding to cart:', error);
                   }
+                  
                   setShowQuantityModal(false);
                   setQuantity('1');
                 }}
