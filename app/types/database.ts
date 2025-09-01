@@ -1525,6 +1525,17 @@ export type Database = {
         }
         Returns: string
       }
+      create_invoice: {
+        Args: {
+          p_order_number: string
+          p_paid_amount: number
+          p_branch_id: string
+          p_record_id: string
+          p_notes?: string
+          p_next_status?: string
+        }
+        Returns: Json
+      }
       generate_invoice_number: {
         Args: Record<PropertyKey, never>
         Returns: string

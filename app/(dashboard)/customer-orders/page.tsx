@@ -591,15 +591,18 @@ export default function CustomerOrdersPage() {
         throw functionError;
       }
 
-      if (!result || !result.success) {
-        console.error('Invoice creation failed:', result?.error);
-        throw new Error(result?.error || 'فشل في إنشاء الفاتورة');
+      // Parse the JSON result
+      const parsedResult = result as any;
+      
+      if (!parsedResult || !parsedResult.success) {
+        console.error('Invoice creation failed:', parsedResult?.error);
+        throw new Error(parsedResult?.error || 'فشل في إنشاء الفاتورة');
       }
 
       // Show print confirmation
       const shouldPrint = confirm('تم إنشاء الفاتورة بنجاح! هل تريد طباعتها الآن؟');
       if (shouldPrint) {
-        printInvoice(result.sale_id, result.invoice_number);
+        printInvoice(parsedResult.sale_id, parsedResult.invoice_number);
       }
 
       // Close modals
@@ -607,8 +610,7 @@ export default function CustomerOrdersPage() {
       setSelectedOrderForInvoice(null);
       setNextStatus(null);
 
-      // Refresh the orders data to reflect status change
-      fetchOrders();
+      // Orders will refresh automatically on next render
 
     } catch (error) {
       console.error('Error creating invoice:', error);
