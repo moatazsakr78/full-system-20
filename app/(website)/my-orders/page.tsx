@@ -423,11 +423,11 @@ export default function OrdersPage() {
                     onClick={() => toggleOrderExpansion(order.id)}
                   >
                     
-                    {/* Customer Information Section */}
-                    <div className="py-3 md:py-4">
+                    {/* Mobile View: Stacked Layout */}
+                    <div className="md:hidden py-3">
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="text-sm font-semibold text-blue-600">معلومات الطلب</h4>
-                          {/* Collapse/Expand Arrow */}
+                        {/* Collapse/Expand Arrow */}
                         <svg 
                           className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${
                             isExpanded ? 'rotate-90' : 'rotate-0'
@@ -467,6 +467,59 @@ export default function OrdersPage() {
                         <div className="flex justify-between font-semibold text-base pt-1 border-t border-gray-200">
                           <span className="text-gray-800">الإجمالي:</span>
                           <span className="text-gray-800">{order.total.toFixed(2)} ريال</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Desktop/Tablet View: Side by Side Layout */}
+                    <div className="hidden md:block py-4">
+                      <div className="grid grid-cols-3 gap-8">
+                        {/* Customer Information - Left Side (takes more space) */}
+                        <div className="col-span-2">
+                          <h5 className="text-lg font-semibold text-blue-600 mb-4">معلومات العميل</h5>
+                          <div className="space-y-3 text-lg">
+                            <p className="text-gray-700">الاسم: محمد أحمد</p>
+                            <p className="text-gray-700">الهاتف: 011-1234567</p>
+                            <p className="text-gray-700">العنوان: السيوف شماعة</p>
+                          </div>
+                        </div>
+
+                        {/* Financial Details + Arrow - Right Side (compact) */}
+                        <div className="flex flex-col">
+                          {/* Title aligned with Customer Info title */}
+                          <div className="flex justify-between items-center mb-4">
+                            <h5 className="text-lg font-semibold text-blue-600">التفاصيل المالية</h5>
+                            {/* Collapse/Expand Arrow */}
+                            <svg 
+                              className={`w-6 h-6 text-gray-500 transform transition-transform duration-200 ${
+                                isExpanded ? 'rotate-90' : 'rotate-0'
+                              }`} 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                          
+                          <div className="space-y-2 text-base bg-gray-50 rounded-lg p-4">
+                            {order.subtotal && (
+                              <div className="flex justify-between items-center gap-4">
+                                <span className="text-gray-600 text-base">مبلغ الفاتورة:</span>
+                                <span className="text-gray-800 font-medium whitespace-nowrap text-base">{order.subtotal.toFixed(2)} ريال</span>
+                              </div>
+                            )}
+                            {order.shipping && (
+                              <div className="flex justify-between items-center gap-4">
+                                <span className="text-gray-600 text-base">الشحن:</span>
+                                <span className="text-gray-800 font-medium whitespace-nowrap text-base">{order.shipping.toFixed(2)} ريال</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between items-center gap-4 font-semibold text-lg pt-2 border-t border-gray-200">
+                              <span className="text-gray-800">المبلغ الإجمالي:</span>
+                              <span className="text-gray-800 whitespace-nowrap">{order.total.toFixed(2)} ريال</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -533,20 +586,20 @@ export default function OrdersPage() {
                             <table className="w-full">
                               <thead style={{backgroundColor: '#f8f8f8'}}>
                                 <tr className="text-right">
-                                  <th className="px-4 py-3 text-sm font-semibold text-gray-800">المنتج</th>
-                                  <th className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">السعر</th>
-                                  <th className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">الكمية</th>
-                                  <th className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">الإجمالي</th>
-                                  <th className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">ملاحظات</th>
-                                  <th className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">الأوزان</th>
+                                  <th className="px-6 py-4 text-base font-semibold text-gray-800">المنتج</th>
+                                  <th className="px-6 py-4 text-base font-semibold text-gray-800 text-center">السعر</th>
+                                  <th className="px-6 py-4 text-base font-semibold text-gray-800 text-center">الكمية</th>
+                                  <th className="px-6 py-4 text-base font-semibold text-gray-800 text-center">الإجمالي</th>
+                                  <th className="px-6 py-4 text-base font-semibold text-gray-800 text-center">ملاحظات</th>
+                                  <th className="px-6 py-4 text-base font-semibold text-gray-800 text-center">الأوزان</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-200">
                                 {order.items.map((item, index) => (
                                   <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                                    <td className="px-4 py-3">
-                                      <div className="flex gap-3 items-center">
-                                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <td className="px-6 py-4">
+                                      <div className="flex gap-4 items-center">
+                                        <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
                                           {item.image ? (
                                             <img 
                                               src={item.image} 
@@ -554,34 +607,34 @@ export default function OrdersPage() {
                                               className="w-full h-full object-cover rounded-lg"
                                             />
                                           ) : (
-                                            <span className="text-gray-400 text-sm">📦</span>
+                                            <span className="text-gray-400 text-lg">📦</span>
                                           )}
                                         </div>
                                         <div>
-                                          <h6 className="font-medium text-gray-800 text-sm">{item.name}</h6>
+                                          <h6 className="font-medium text-gray-800 text-base">{item.name}</h6>
                                           {item.barcode && (
-                                            <p className="text-xs text-gray-500">كود: {item.barcode}</p>
+                                            <p className="text-sm text-gray-500">كود: {item.barcode}</p>
                                           )}
                                         </div>
                                       </div>
                                     </td>
-                                    <td className="px-4 py-3 text-center">
-                                      <span className="text-sm font-medium text-gray-800">
+                                    <td className="px-6 py-4 text-center">
+                                      <span className="text-base font-medium text-gray-800">
                                         {item.price?.toFixed(2) || '0.00'} ريال
                                       </span>
                                     </td>
-                                    <td className="px-4 py-3 text-center">
-                                      <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
+                                    <td className="px-6 py-4 text-center">
+                                      <span className="inline-flex items-center justify-center w-10 h-10 bg-blue-100 text-blue-800 rounded-full text-base font-bold">
                                         {item.quantity}
                                       </span>
                                     </td>
-                                    <td className="px-4 py-3 text-center">
-                                      <span className="text-sm font-bold text-gray-800">
+                                    <td className="px-6 py-4 text-center">
+                                      <span className="text-base font-bold text-gray-800">
                                         {((item.quantity * (item.price || 0))).toFixed(2)} ريال
                                       </span>
                                     </td>
-                                    <td className="px-4 py-3 text-center text-sm text-gray-600">-</td>
-                                    <td className="px-4 py-3 text-center text-sm text-gray-600">-</td>
+                                    <td className="px-6 py-4 text-center text-base text-gray-600">-</td>
+                                    <td className="px-6 py-4 text-center text-base text-gray-600">-</td>
                                   </tr>
                                 ))}
                               </tbody>
