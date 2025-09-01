@@ -1489,13 +1489,13 @@ export default function CustomerOrdersPage() {
                       <div className="pt-4">
                         <h4 className="text-sm font-semibold text-blue-600 mb-3">عناصر الطلب</h4>
                         
-                        {/* Items as Cards */}
-                        <div className="space-y-3">
+                        {/* Mobile View: Items as Cards */}
+                        <div className="md:hidden space-y-3">
                           {order.items.map((item) => (
                             <div key={item.id} className="bg-gray-50 rounded-lg p-3">
                               <div className="flex gap-3">
                                 {/* Product Image */}
-                                <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
                                   {item.image ? (
                                     <img 
                                       src={item.image} 
@@ -1545,6 +1545,70 @@ export default function CustomerOrdersPage() {
                               </div>
                             </div>
                           ))}
+                        </div>
+
+                        {/* Desktop/Tablet View: Items as Table */}
+                        <div className="hidden md:block bg-gray-50 rounded-lg overflow-hidden">
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead style={{backgroundColor: '#f8f8f8'}}>
+                                <tr className="text-right">
+                                  <th className="px-4 py-3 text-sm font-semibold text-gray-800">المنتج</th>
+                                  <th className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">السعر</th>
+                                  <th className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">الكمية</th>
+                                  <th className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">الإجمالي</th>
+                                  <th className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">ملاحظات</th>
+                                  <th className="px-4 py-3 text-sm font-semibold text-gray-800 text-center">الأوزان</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200">
+                                {order.items.map((item, index) => (
+                                  <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                                    <td className="px-4 py-3">
+                                      <div className="flex gap-3 items-center">
+                                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                          {item.image ? (
+                                            <img 
+                                              src={item.image} 
+                                              alt={item.name}
+                                              className="w-full h-full object-cover rounded-lg"
+                                            />
+                                          ) : (
+                                            <span className="text-gray-400 text-sm">📦</span>
+                                          )}
+                                        </div>
+                                        <div>
+                                          <h6 className="font-medium text-gray-800 text-sm">{item.name}</h6>
+                                          {item.barcode && (
+                                            <p className="text-xs text-gray-500">كود: {item.barcode}</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      <span className="text-sm font-medium text-gray-800">
+                                        {item.price?.toFixed(0) || '0'} جنيه
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
+                                        {item.quantity}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      <span className="text-sm font-bold text-gray-800">
+                                        {((item.quantity * (item.price || 0))).toFixed(0)} جنيه
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-center text-sm text-gray-600">
+                                      {item.notes || '-'}
+                                    </td>
+                                    <td className="px-4 py-3 text-center text-sm text-gray-600">-</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     </div>

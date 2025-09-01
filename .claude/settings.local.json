@@ -154,7 +154,13 @@
       "Read(c:\\Users\\pc\\Desktop\\claude code\\project-images\\sub-images/**)",
       "Read(c:\\Users\\pc\\Desktop\\claude code\\project-images\\sub-images/**)",
       "Read(c:\\Users\\pc\\Desktop\\claude code\\project-images\\sub-images/**)",
-      "Bash(start http://localhost:3001/customer-orders)"
+      "Bash(start http://localhost:3001/customer-orders)",
+      "Read(c:\\Users\\pc\\Desktop\\claude code\\project-images\\sub-images/**)",
+      "Read(c:\\Users\\pc\\Desktop\\claude code\\project-images\\sub-images/**)",
+      "Read(c:\\Users\\pc\\Desktop\\claude code\\project-images\\sub-images/**)",
+      "Read(c:\\Users\\pc\\Desktop\\claude code\\project-images\\sub-images/**)",
+      "Bash(start http://localhost:3003/my-orders)",
+      "Bash(start http://localhost:3003/customer-orders)"
     ],
     "deny": [],
     "additionalDirectories": [
