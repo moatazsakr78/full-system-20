@@ -556,7 +556,7 @@ export default function CustomerOrdersPage() {
     }
   };
 
-  // Create invoice
+  // Create invoice using database function to bypass RLS
   const createInvoice = async () => {
     if (!selectedOrderForInvoice || !nextStatus) return;
 
@@ -575,80 +575,40 @@ export default function CustomerOrdersPage() {
     try {
       const { supabase } = await import('../../lib/supabase/client');
 
-      // Find customer ID from orders table
-      const { data: orderData } = await supabase
-        .from('orders')
-        .select('customer_id, customer_name')
-        .eq('order_number', selectedOrderForInvoice.id)
-        .single();
+      // Use database function to create invoice - bypasses RLS policies
+      const { data: result, error: functionError } = await supabase
+        .rpc('create_invoice', {
+          p_order_number: selectedOrderForInvoice.id,
+          p_paid_amount: invoiceData.paidAmount,
+          p_branch_id: invoiceData.selectedBranch,
+          p_record_id: invoiceData.selectedRecord,
+          p_notes: invoiceData.notes || `فاتورة للطلب رقم: ${selectedOrderForInvoice.id}`,
+          p_next_status: nextStatus
+        });
 
-      // Generate invoice number
-      const invoiceNumber = 'INV-' + Date.now().toString().slice(-8);
-
-      // Create sale (invoice)
-      const invoiceAmount = selectedOrderForInvoice.subtotal || selectedOrderForInvoice.total;
-      const { data: saleData, error: saleError } = await supabase
-        .from('sales')
-        .insert({
-          invoice_number: invoiceNumber,
-          total_amount: invoiceAmount, // Use subtotal (invoice amount) if available, fallback to total
-          tax_amount: 0,
-          discount_amount: 0,
-          payment_method: 'cash',
-          branch_id: invoiceData.selectedBranch,
-          customer_id: orderData?.customer_id,
-          record_id: invoiceData.selectedRecord,
-          notes: invoiceData.notes || `فاتورة للطلب رقم: ${selectedOrderForInvoice.id}`,
-          invoice_type: 'Sale Invoice' as any,
-          time: new Date().toTimeString().split(' ')[0]
-        })
-        .select('id')
-        .single();
-
-      if (saleError) {
-        console.error('Error creating sale:', saleError);
-        throw saleError;
+      if (functionError) {
+        console.error('Error calling create_invoice function:', functionError);
+        throw functionError;
       }
 
-      // Get order items with product_ids
-      const { data: orderItemsData } = await supabase
-        .from('order_items')
-        .select('id, product_id, quantity, unit_price')
-        .eq('order_id', selectedOrderForInvoice.orderId || selectedOrderForInvoice.id);
-
-      // Create sale items using the correct product_ids
-      const saleItems = (orderItemsData || []).map(orderItem => ({
-        sale_id: saleData.id,
-        product_id: orderItem.product_id,
-        quantity: orderItem.quantity,
-        unit_price: orderItem.unit_price,
-        cost_price: orderItem.unit_price * 0.7,
-        discount: 0
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('sale_items')
-        .insert(saleItems);
-
-      if (itemsError) {
-        console.error('Error creating sale items:', itemsError);
-        await supabase.from('sales').delete().eq('id', saleData.id);
-        throw itemsError;
+      if (!result || !result.success) {
+        console.error('Invoice creation failed:', result?.error);
+        throw new Error(result?.error || 'فشل في إنشاء الفاتورة');
       }
-
-      // Update order status
-      await updateOrderStatus(selectedOrderForInvoice.id, nextStatus);
 
       // Show print confirmation
       const shouldPrint = confirm('تم إنشاء الفاتورة بنجاح! هل تريد طباعتها الآن؟');
       if (shouldPrint) {
-        printInvoice(saleData.id, invoiceNumber);
+        printInvoice(result.sale_id, result.invoice_number);
       }
 
       // Close modals
       setShowCreateInvoiceModal(false);
       setSelectedOrderForInvoice(null);
       setNextStatus(null);
+
+      // Refresh the orders data to reflect status change
+      fetchOrders();
 
     } catch (error) {
       console.error('Error creating invoice:', error);
