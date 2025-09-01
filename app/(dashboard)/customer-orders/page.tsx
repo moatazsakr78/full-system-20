@@ -1109,35 +1109,42 @@ export default function CustomerOrdersPage() {
 
       {/* Store Header (Red) */}
       <header className="border-b border-gray-700 py-0 relative z-40" style={{backgroundColor: '#5d1f1f'}}>
-        <div className="relative flex items-center min-h-[80px]">
-          <div className="max-w-[80%] mx-auto px-4 flex items-center justify-between min-h-[80px] w-full">
-            <div className="flex items-center gap-8">
-              <button
-                onClick={() => window.history.back()}
-                className="flex items-center gap-2 text-white hover:text-gray-300 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                <span>العودة</span>
-              </button>
-              
-              <div className="flex items-center gap-3">
-                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-20 w-20 object-contain" />
-                <h1 className="text-xl font-bold text-white">قائمة الطلبات - El Farouk Group</h1>
-              </div>
+        <div className="relative flex items-center min-h-[60px] md:min-h-[80px]">
+          <div className="max-w-[95%] md:max-w-[80%] mx-auto px-2 md:px-4 flex items-center justify-between min-h-[60px] md:min-h-[80px] w-full">
+            
+            {/* زر العودة - اليسار */}
+            <button
+              onClick={() => window.history.back()}
+              className="flex items-center p-2 text-white hover:text-gray-300 transition-colors"
+            >
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* النص الرئيسي - الوسط */}
+            <div className="absolute left-1/2 transform -translate-x-1/2">
+              <h1 className="text-lg md:text-2xl font-bold text-white text-center whitespace-nowrap">
+                قائمة الطلبات
+              </h1>
             </div>
+
+            {/* اللوجو - اليمين */}
+            <div className="flex items-center">
+              <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-12 w-12 md:h-16 md:w-16 object-contain" />
+            </div>
+
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-[80%] mx-auto px-4 py-8">
+      <main className="max-w-[98%] md:max-w-[80%] mx-auto px-2 md:px-4 py-4 md:py-8">
         {/* Tabs */}
-        <div className="flex mb-8 bg-white rounded-lg overflow-hidden shadow-lg">
+        <div className="flex flex-wrap md:flex-nowrap mb-4 md:mb-8 bg-white rounded-lg overflow-hidden shadow-lg">
           <button
             onClick={() => setActiveTab('all')}
-            className={`flex-1 py-4 px-6 font-semibold transition-colors ${
+            className={`flex-1 min-w-0 py-2 md:py-4 px-2 md:px-6 text-sm md:text-base font-semibold transition-colors ${
               activeTab === 'all'
                 ? 'text-white'
                 : 'text-gray-600 hover:text-gray-800'
@@ -1150,7 +1157,7 @@ export default function CustomerOrdersPage() {
           </button>
           <button
             onClick={() => setActiveTab('preparation')}
-            className={`flex-1 py-4 px-6 font-semibold transition-colors ${
+            className={`flex-1 min-w-0 py-2 md:py-4 px-2 md:px-6 text-sm md:text-base font-semibold transition-colors ${
               activeTab === 'preparation'
                 ? 'text-white'
                 : 'text-gray-600 hover:text-gray-800'
@@ -1163,7 +1170,7 @@ export default function CustomerOrdersPage() {
           </button>
           <button
             onClick={() => setActiveTab('followup')}
-            className={`flex-1 py-4 px-6 font-semibold transition-colors ${
+            className={`flex-1 min-w-0 py-2 md:py-4 px-2 md:px-6 text-sm md:text-base font-semibold transition-colors ${
               activeTab === 'followup'
                 ? 'text-white'
                 : 'text-gray-600 hover:text-gray-800'
@@ -1176,7 +1183,7 @@ export default function CustomerOrdersPage() {
           </button>
           <button
             onClick={() => setActiveTab('completed')}
-            className={`flex-1 py-4 px-6 font-semibold transition-colors ${
+            className={`flex-1 min-w-0 py-2 md:py-4 px-2 md:px-6 text-sm md:text-base font-semibold transition-colors ${
               activeTab === 'completed'
                 ? 'text-white'
                 : 'text-gray-600 hover:text-gray-800'
@@ -1189,7 +1196,7 @@ export default function CustomerOrdersPage() {
           </button>
           <button
             onClick={() => setActiveTab('issues')}
-            className={`flex-1 py-4 px-6 font-semibold transition-colors ${
+            className={`flex-1 min-w-0 py-2 md:py-4 px-2 md:px-6 text-sm md:text-base font-semibold transition-colors ${
               activeTab === 'issues'
                 ? 'text-white'
                 : 'text-gray-600 hover:text-gray-800'
@@ -1203,36 +1210,36 @@ export default function CustomerOrdersPage() {
         </div>
 
         {/* Date Filter (for both tabs) */}
-        <div className="bg-white rounded-lg p-6 mb-6 shadow-lg">
-          <h3 className="text-lg font-semibold mb-4 text-gray-800">فلتر التاريخ</h3>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-600 mb-1">من تاريخ</label>
+        <div className="bg-white rounded-lg p-3 md:p-6 mb-4 md:mb-6 shadow-lg">
+          <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 text-gray-800">فلتر التاريخ</h3>
+          <div className="flex flex-wrap gap-2 md:gap-4">
+            <div className="flex flex-col flex-1 min-w-[140px]">
+              <label className="text-xs md:text-sm text-gray-600 mb-1">من تاريخ</label>
               <input
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
+                className="px-2 md:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 text-sm md:text-base"
                 style={{"--tw-ring-color": "#5D1F1F"} as React.CSSProperties}
               />
             </div>
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-600 mb-1">إلى تاريخ</label>
+            <div className="flex flex-col flex-1 min-w-[140px]">
+              <label className="text-xs md:text-sm text-gray-600 mb-1">إلى تاريخ</label>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
+                className="px-2 md:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 text-sm md:text-base"
                 style={{"--tw-ring-color": "#5D1F1F"} as React.CSSProperties}
               />
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end w-full md:w-auto mt-2 md:mt-0">
               <button
                 onClick={() => {
                   setDateFrom('');
                   setDateTo('');
                 }}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                className="w-full md:w-auto px-3 md:px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm md:text-base"
               >
                 مسح الفلتر
               </button>
@@ -1241,18 +1248,18 @@ export default function CustomerOrdersPage() {
         </div>
 
         {/* Orders List */}
-        <div className="space-y-4">
+        <div className="space-y-2 md:space-y-4">
           {filteredOrders.length === 0 ? (
-            <div className="bg-white rounded-lg p-8 shadow-lg text-center">
-              <div className="text-gray-400 text-6xl mb-4">📦</div>
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">
+            <div className="bg-white rounded-lg p-4 md:p-8 shadow-lg text-center">
+              <div className="text-gray-400 text-4xl md:text-6xl mb-2 md:mb-4">📦</div>
+              <h3 className="text-lg md:text-xl font-semibold text-gray-600 mb-1 md:mb-2">
                 {activeTab === 'all' && 'لا توجد طلبات'}
                 {activeTab === 'preparation' && 'لا توجد طلبات قيد التحضير'}
                 {activeTab === 'followup' && 'لا توجد طلبات في المتابعة'}
                 {activeTab === 'completed' && 'لا توجد طلبات مكتملة'}
                 {activeTab === 'issues' && 'لا توجد طلبات بها مشاكل'}
               </h3>
-              <p className="text-gray-500">
+              <p className="text-sm md:text-base text-gray-500">
                 {activeTab === 'all' && 'لا توجد طلبات في قاعدة البيانات'}
                 {activeTab === 'preparation' && 'جميع الطلبات تم تحضيرها'}
                 {activeTab === 'followup' && 'لا توجد طلبات تحتاج متابعة'}
@@ -1265,107 +1272,137 @@ export default function CustomerOrdersPage() {
               const isExpanded = expandedOrders.has(order.id);
               return (
                 <div key={order.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
-                  {/* Status Tag - Moved to top */}
-                  <div className="px-6 pt-4">
-                    <div className="flex gap-3">
-                      <span
-                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-base font-bold cursor-pointer ${
-                          order.status === 'ready_for_pickup' ? 'text-green-800' : 'text-white'
-                        }`}
-                        style={{ backgroundColor: statusColors[order.status] }}
-                        onContextMenu={(e) => {
-                          console.log('Right-click on order:', order.id, 'status:', order.status);
-                          // Show context menu for all orders except delivered, cancelled, and issue
-                          if (!['cancelled', 'issue', 'delivered'].includes(order.status)) {
-                            console.log('Showing context menu for order:', order.id);
-                            handleStatusRightClick(e, order.id);
-                          } else {
-                            console.log('Context menu blocked for status:', order.status);
-                            e.preventDefault(); // Still prevent default browser context menu
+                  {/* Status Tag with Order Info */}
+                  <div className="px-3 md:px-6 pt-3 md:pt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      {/* Left Side: Status Tag + Time Remaining */}
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1 md:py-2 rounded-full text-sm md:text-base font-semibold cursor-pointer ${
+                            order.status === 'ready_for_pickup' ? 'text-green-800' : 'text-white'
+                          }`}
+                          style={{ backgroundColor: statusColors[order.status] }}
+                          onContextMenu={(e) => {
+                            console.log('Right-click on order:', order.id, 'status:', order.status);
+                            // Show context menu for all orders except delivered, cancelled, and issue
+                            if (!['cancelled', 'issue', 'delivered'].includes(order.status)) {
+                              console.log('Showing context menu for order:', order.id);
+                              handleStatusRightClick(e, order.id);
+                            } else {
+                              console.log('Context menu blocked for status:', order.status);
+                              e.preventDefault(); // Still prevent default browser context menu
+                            }
+                          }}
+                          title={
+                            !['cancelled', 'issue', 'delivered'].includes(order.status) 
+                              ? "انقر بالزر الأيمن لتغيير الحالة إلى (ملغي) أو (مشكله)" 
+                              : "لا يمكن تغيير حالة هذا الطلب"
                           }
-                        }}
-                        title={
-                          !['cancelled', 'issue', 'delivered'].includes(order.status) 
-                            ? "انقر بالزر الأيمن لتغيير الحالة إلى (ملغي) أو (مشكله)" 
-                            : "لا يمكن تغيير حالة هذا الطلب"
-                        }
-                      >
-                        <span>{statusIcons[order.status]}</span>
-                        {statusTranslations[order.status]}
-                      </span>
+                        >
+                          <span className="text-sm md:text-base">{statusIcons[order.status]}</span>
+                          <span className="text-sm md:text-base">{statusTranslations[order.status]}</span>
+                        </span>
 
-                      {/* Time Remaining Indicator for Auto-Actions */}
-                      {(() => {
-                        const timeRemaining = getTimeRemaining(order);
-                        if (timeRemaining) {
-                          return (
-                            <div 
-                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                                timeRemaining.type === 'deletion' 
-                                  ? 'bg-red-100 text-red-800 border border-red-200' 
-                                  : 'bg-blue-100 text-blue-800 border border-blue-200'
-                              }`}
-                              title={timeRemaining.text}
-                            >
-                              <span>{timeRemaining.type === 'deletion' ? '🗑️' : '📦'}</span>
-                              <span>
-                                {timeRemaining.time} {timeRemaining.unit === 'hours' ? 'س' : 'ي'}
-                              </span>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
+                        {/* Time Remaining Indicator for Auto-Actions */}
+                        {(() => {
+                          const timeRemaining = getTimeRemaining(order);
+                          if (timeRemaining) {
+                            return (
+                              <div 
+                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                                  timeRemaining.type === 'deletion' 
+                                    ? 'bg-red-100 text-red-800 border border-red-200' 
+                                    : 'bg-blue-100 text-blue-800 border border-blue-200'
+                                }`}
+                                title={timeRemaining.text}
+                              >
+                                <span>{timeRemaining.type === 'deletion' ? '🗑️' : '📦'}</span>
+                                <span>
+                                  {timeRemaining.time} {timeRemaining.unit === 'hours' ? 'س' : 'ي'}
+                                </span>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                      
+                      {/* Right Side: Order Number and Date */}
+                      <div className="flex flex-col items-end text-right">
+                        <span className="text-sm md:text-base font-medium text-gray-800">طلب رقم: {order.id}</span>
+                        <span className="text-xs md:text-sm text-gray-600">{new Date(order.date).toLocaleDateString('ar-SA')}</span>
+                      </div>
                     </div>
                   </div>
 
 
-                  {/* Order Header - Always Visible */}
+                  {/* Order Content - Always Visible */}
                   <div 
-                    className="flex justify-between items-center p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="px-3 md:px-6 cursor-pointer hover:bg-gray-50 transition-colors"
                     onClick={() => toggleOrderExpansion(order.id)}
-                    onContextMenu={(e) => {
-                      // Prevent the div's context menu and let child elements handle it
-                      e.preventDefault();
-                    }}
                   >
-                    <div className="flex items-center gap-4">
-                      {/* Collapse/Expand Arrow */}
-                      <svg 
-                        className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${
-                          isExpanded ? 'rotate-90' : 'rotate-0'
-                        }`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                      
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-800">طلب رقم: {order.id}</h3>
-                        <p className="text-gray-600">التاريخ: {new Date(order.date).toLocaleDateString('ar-SA')}</p>
-                        <p className="text-blue-600 font-medium">العميل: {order.customerName}</p>
+                    
+                    {/* Customer Information Section */}
+                    <div className="py-3 md:py-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-semibold text-blue-600">معلومات العميل</h4>
+                        {/* Collapse/Expand Arrow */}
+                        <svg 
+                          className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${
+                            isExpanded ? 'rotate-90' : 'rotate-0'
+                          }`} 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-gray-800 font-medium text-base">الاسم: {order.customerName}</p>
                         {order.customerPhone && (
-                          <p className="text-gray-500 text-sm">الهاتف: {order.customerPhone}</p>
+                          <p className="text-gray-600 text-sm">الهاتف: {order.customerPhone}</p>
+                        )}
+                        {order.customerAddress && (
+                          <p className="text-gray-600 text-sm">العنوان: {order.customerAddress}</p>
                         )}
                       </div>
                     </div>
-                    
-                    <div className="text-left">
-                      {/* Display detailed breakdown if subtotal and shipping are available */}
-                      {order.subtotal !== null && order.subtotal !== undefined && order.shipping !== null && order.shipping !== undefined ? (
-                        <div className="mb-2">
-                          <div className="text-sm font-normal text-gray-600">مبلغ الفاتورة: {order.subtotal!.toFixed(2)} ريال</div>
-                          <div className="text-sm font-normal text-gray-600">الشحن: {order.shipping!.toFixed(2)} ريال</div>
-                          <div className="text-xl font-bold text-gray-800">الإجمالي: {order.total.toFixed(2)} ريال</div>
-                        </div>
-                      ) : (
-                        <p className="text-xl font-bold text-gray-800 mb-2">{order.total.toFixed(2)} ريال</p>
-                      )}
-                      
-                      {/* Action Buttons - Moved to right side */}
-                      <div className="flex flex-col gap-2">
+
+                    {/* Divider */}
+                    <div className="border-t border-gray-200"></div>
+
+                    {/* Financial Information Section */}
+                    <div className="py-3 md:py-4">
+                      <h4 className="text-sm font-semibold text-blue-600 mb-2">التفاصيل المالية</h4>
+                      <div className="space-y-1">
+                        {order.subtotal !== null && order.subtotal !== undefined && order.shipping !== null && order.shipping !== undefined ? (
+                          <>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">مبلغ الفاتورة:</span>
+                              <span className="text-gray-800 font-medium">{order.subtotal!.toFixed(2)} ريال</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">الشحن:</span>
+                              <span className="text-gray-800 font-medium">{order.shipping!.toFixed(2)} ريال</span>
+                            </div>
+                            <div className="flex justify-between border-t border-gray-200 pt-1 mt-2">
+                              <span className="text-gray-800 font-semibold">الإجمالي:</span>
+                              <span className="text-gray-800 font-bold text-lg">{order.total.toFixed(2)} ريال</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex justify-between">
+                            <span className="text-gray-800 font-semibold">المبلغ الإجمالي:</span>
+                            <span className="text-gray-800 font-bold text-lg">{order.total.toFixed(2)} ريال</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons Section */}
+                    <div className="pb-3 md:pb-4" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex flex-wrap gap-2">
                         {/* Start Preparation Button - Only for pending orders */}
                         {order.status === 'pending' && (
                           <button
@@ -1486,76 +1523,67 @@ export default function CustomerOrdersPage() {
 
                   {/* Order Items - Collapsible */}
                   {isExpanded && (
-                    <div className="px-6 pb-6 border-t border-gray-200">
-                      {/* Customer Address */}
-                      {order.customerAddress && (
-                        <div className="pt-4 pb-2">
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">العنوان:</span> {order.customerAddress}
-                          </p>
+                    <div className="px-3 md:px-6 pb-4 md:pb-6 border-t border-gray-200">
+                      <div className="pt-4">
+                        <h4 className="text-sm font-semibold text-blue-600 mb-3">عناصر الطلب</h4>
+                        
+                        {/* Items as Cards */}
+                        <div className="space-y-3">
+                          {order.items.map((item) => (
+                            <div key={item.id} className="bg-gray-50 rounded-lg p-3">
+                              <div className="flex gap-3">
+                                {/* Product Image */}
+                                <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                  {item.image ? (
+                                    <img 
+                                      src={item.image} 
+                                      alt={item.name}
+                                      className="w-full h-full object-cover rounded-lg"
+                                    />
+                                  ) : (
+                                    <span className="text-gray-400 text-xl">📦</span>
+                                  )}
+                                </div>
+
+                                {/* Product Details */}
+                                <div className="flex-1 min-w-0">
+                                  {/* Product Name */}
+                                  <h5 className="font-semibold text-gray-800 text-sm mb-1 line-clamp-2">{item.name}</h5>
+                                  {item.barcode && (
+                                    <p className="text-xs text-gray-500 mb-2">كود: {item.barcode}</p>
+                                  )}
+                                  
+                                  {/* Price and Quantity Info */}
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-xs text-gray-600">السعر:</span>
+                                      <span className="text-sm font-medium text-gray-800">{item.price?.toFixed(0) || '0'} جنيه</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-xs text-gray-600">الكمية:</span>
+                                      <span className="text-sm font-bold text-blue-600">{item.quantity}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center border-t border-gray-200 pt-1">
+                                      <span className="text-xs text-gray-800 font-medium">الإجمالي:</span>
+                                      <span className="text-sm font-bold text-gray-800">
+                                        {((item.quantity * (item.price || 0))).toFixed(0)} جنيه
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Notes */}
+                                  {item.notes && (
+                                    <div className="mt-2 pt-2 border-t border-gray-200">
+                                      <p className="text-xs text-gray-600">
+                                        <span className="font-medium">ملاحظات:</span> {item.notes}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      )}
-                      
-                      {/* Table Header */}
-                      <div className="grid grid-cols-6 gap-4 p-3 bg-gray-100 rounded-lg font-semibold text-gray-700 text-sm">
-                        <div className="text-right">المنتج</div>
-                        <div className="text-center">السعر</div>
-                        <div className="text-center">الكمية</div>
-                        <div className="text-center">الإجمالي</div>
-                        <div className="text-center">ملاحظات</div>
-                        <div className="text-center">الألوان</div>
-                      </div>
-
-                      {/* Items */}
-                      <div className="pt-4 space-y-3">
-                        {order.items.map((item) => (
-                          <div key={item.id} className="grid grid-cols-6 gap-4 p-3 bg-gray-50 rounded-lg items-center">
-                            {/* Product Image and Name */}
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                                {item.image ? (
-                                  <img 
-                                    src={item.image} 
-                                    alt={item.name}
-                                    className="w-full h-full object-cover rounded-lg"
-                                  />
-                                ) : (
-                                  <span className="text-gray-400 text-xl">📦</span>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-gray-800 text-sm">
-                                  {item.name}
-                                </h4>
-                              </div>
-                            </div>
-
-                            {/* Price */}
-                            <div className="text-center">
-                              <p className="font-medium text-gray-800 text-sm">{item.price.toFixed(2)} ريال</p>
-                            </div>
-
-                            {/* Quantity */}
-                            <div className="text-center">
-                              <p className="font-medium text-gray-800">{item.quantity}</p>
-                            </div>
-
-                            {/* Total */}
-                            <div className="text-center">
-                              <p className="font-semibold text-gray-800">{(item.price * item.quantity).toFixed(2)} ريال</p>
-                            </div>
-
-                            {/* Notes */}
-                            <div className="text-center">
-                              <p className="text-gray-600 text-sm">{item.notes || '-'}</p>
-                            </div>
-
-                            {/* Colors */}
-                            <div className="text-center">
-                              <p className="text-gray-600 text-sm">-</p>
-                            </div>
-                          </div>
-                        ))}
                       </div>
                     </div>
                   )}
