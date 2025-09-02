@@ -961,8 +961,8 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                     </div>
                   </div>
 
-                  {/* Desktop: Left Area (appears on right) - Takes 2 columns - Products Table */}
-                  <div className="xl:col-span-2 xl:order-1 order-1">
+                  {/* Desktop Only: Left Area (appears on right) - Takes 2 columns - Products Table */}
+                  <div className="xl:col-span-2 xl:order-1 hidden xl:block">
                     <div className="bg-white rounded-lg shadow-md overflow-hidden">
                       <div className="p-4 text-center border-b">
                         <h3 className="text-xl font-semibold" style={{color: '#661a1a'}}>ملخص الطلب</h3>
