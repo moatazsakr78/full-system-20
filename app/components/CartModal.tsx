@@ -209,7 +209,6 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
     return groups;
   }, {} as Record<string, { product: any; items: any[] }>);
 
-
   // Calculate totals
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shipping = deliveryMethod === 'pickup' ? 0 : shippingCost;
@@ -475,471 +474,635 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
   return (
     <>
       <style jsx>{`
-        select option {
-          color: #111827 !important;
-          background-color: #ffffff !important;
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
-        select {
-          color: #111827 !important;
-          background-color: #ffffff !important;
-        }
-        input {
-          color: #111827 !important;
-          background-color: #ffffff !important;
-        }
-        textarea {
-          color: #111827 !important;
-          background-color: #ffffff !important;
-        }
-        input::placeholder {
-          color: #6B7280 !important;
-        }
-        textarea::placeholder {
-          color: #6B7280 !important;
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
       <div className="fixed inset-0 z-50 font-['Cairo',Arial,sans-serif]" dir="rtl" style={{backgroundColor: '#C0C0C0'}}>
-      {/* Mobile Optimized Header */}
-      <header className="border-b border-gray-600 py-0 sticky top-0 z-10" style={{backgroundColor: '#661a1a'}}>
-        <div className="px-3 flex items-center justify-between min-h-[60px]">
-          {/* Left: Back Button */}
-          <button 
-            onClick={onClose}
-            className="text-white hover:text-red-300 transition-colors p-2"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          
-          {/* Center: Logo and Title */}
-          <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-lg flex items-center justify-center">
-              <img 
-                src="/assets/logo/El Farouk Group2.png" 
-                alt="El Farouk Group Logo" 
-                className="h-full w-full object-contain rounded-lg"
-              />
-            </div>
-            <div className="flex flex-col leading-tight">
-              <span className="text-white text-sm font-bold">El Farouk</span>
-              <span className="text-white text-sm font-bold">Group</span>
-            </div>
-          </div>
-
-          {/* Right: Cart Title */}
-          <div className="text-white text-sm font-medium">
-            ملخص الطلب
-          </div>
-        </div>
-      </header>
-
-      <div className="px-3 py-4 h-[calc(100vh-60px)] overflow-y-auto">
-        {cartItems.length === 0 ? (
-          // Empty cart message - Mobile optimized
-          <div className="text-center py-12">
-            <div className="bg-white rounded-lg p-8 shadow-md mx-auto">
-              <div className="text-gray-400 text-4xl mb-4">
-                🛒
-              </div>
-              <h2 className="text-lg font-bold text-gray-800 mb-3">السلة فارغة</h2>
-              <p className="text-gray-600 text-sm mb-6">لم تقم بإضافة أي منتجات إلى السلة بعد</p>
-              <button
+        {/* Responsive Header */}
+        <header className="border-b border-gray-600 py-0 sticky top-0 z-10" style={{backgroundColor: '#661a1a'}}>
+          {/* Desktop/Tablet Header */}
+          <div className="hidden md:block">
+            <div className="px-8 flex items-center justify-between" style={{minHeight: '80px'}}>
+              <button 
                 onClick={onClose}
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors text-sm"
+                className="text-white hover:text-red-300 transition-colors p-3 text-lg flex items-center"
               >
-                تصفح المنتجات
+                <svg className="w-8 h-8 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                <span>العودة للمتجر</span>
               </button>
+              
+              <div className="text-white text-2xl font-bold">
+                ملخص الطلب
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="h-14 w-14 rounded-lg flex items-center justify-center">
+                  <img 
+                    src="/assets/logo/El Farouk Group2.png" 
+                    alt="El Farouk Group Logo" 
+                    className="h-full w-full object-contain rounded-lg"
+                  />
+                </div>
+                <div className="flex flex-col leading-tight">
+                  <span className="text-white text-lg font-bold">El Farouk</span>
+                  <span className="text-white text-lg font-bold">Group</span>
+                </div>
+              </div>
             </div>
           </div>
-        ) : (
-        <div className="space-y-4">
-          
-          {/* Mobile Products Cards Section - New Design */}
-          <div className="bg-white rounded-lg shadow-md">
-            <div className="p-4 text-center">
-              <h3 className="text-base font-semibold" style={{color: '#661a1a'}}>ملخص الطلب</h3>
-            </div>
-            
-            <div className="p-3 space-y-3">
-              {Object.values(groupedCartItems).map((group) => {
-                const productTotal = group.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                const totalQuantity = group.items.reduce((sum, item) => sum + item.quantity, 0);
-                
-                // Group items by color
-                const colorGroups = group.items.reduce((colors, item) => {
-                  const colorKey = item.selected_color || 'بدون لون';
-                  if (!colors[colorKey]) {
-                    colors[colorKey] = { items: [], totalQuantity: 0 };
-                  }
-                  colors[colorKey].items.push(item);
-                  colors[colorKey].totalQuantity += item.quantity;
-                  return colors;
-                }, {} as Record<string, { items: CartItemData[]; totalQuantity: number }>);
 
-                return (
-                  <div key={group.product?.id || group.items[0]?.product_id} className="rounded-lg p-4" style={{backgroundColor: '#f3f3f3'}}>
-                    {/* Product Header with Image, Name, Code and Delete Button */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-start gap-3 flex-1">
-                        {/* Product Image - Far Right */}
-                        <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                          <img 
-                            src={group.product?.main_image_url || '/placeholder-product.svg'} 
-                            alt={group.product?.name || 'منتج'}
-                            className="w-full h-full object-cover rounded-lg"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              if (target.src !== '/placeholder-product.svg') {
-                                target.src = '/placeholder-product.svg';
+          {/* Mobile Header */}
+          <div className="md:hidden">
+            <div className="px-3 flex items-center justify-between min-h-[60px]">
+              <button 
+                onClick={onClose}
+                className="text-white hover:text-red-300 transition-colors p-2"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              
+              <div className="flex items-center gap-2">
+                <div className="h-10 w-10 rounded-lg flex items-center justify-center">
+                  <img 
+                    src="/assets/logo/El Farouk Group2.png" 
+                    alt="El Farouk Group Logo" 
+                    className="h-full w-full object-contain rounded-lg"
+                  />
+                </div>
+                <div className="flex flex-col leading-tight">
+                  <span className="text-white text-sm font-bold">El Farouk</span>
+                  <span className="text-white text-sm font-bold">Group</span>
+                </div>
+              </div>
+
+              <div className="text-white text-sm font-medium">
+                ملخص الطلب
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Responsive Content Container */}
+        <div className="md:px-16 md:py-4 px-3 py-4 h-[calc(100vh-60px)] md:h-[calc(100vh-80px)] overflow-y-auto scrollbar-hide">
+          {cartItems.length === 0 ? (
+            // Empty cart message
+            <div className="text-center py-12">
+              <div className="bg-white rounded-lg p-8 shadow-md mx-auto max-w-md">
+                <div className="text-gray-400 text-4xl mb-4">🛒</div>
+                <h2 className="text-lg font-bold text-gray-800 mb-3">السلة فارغة</h2>
+                <p className="text-gray-600 text-sm mb-6">لم تقم بإضافة أي منتجات إلى السلة بعد</p>
+                <button
+                  onClick={onClose}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors text-sm"
+                >
+                  تصفح المنتجات
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Desktop/Tablet Layout */}
+              <div className="hidden md:block">
+                {/* Tablet Only: Products Table at Top */}
+                <div className="xl:hidden mb-6">
+                  <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="p-4 text-center border-b">
+                      <h3 className="text-xl font-semibold" style={{color: '#661a1a'}}>ملخص الطلب</h3>
+                    </div>
+                    
+                    {/* Products Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead style={{backgroundColor: '#f8f9fa'}}>
+                          <tr className="text-gray-700 text-sm font-medium">
+                            <th className="p-4 text-right">المنتج</th>
+                            <th className="p-4 text-right">السعر</th>
+                            <th className="p-4 text-center">الكمية</th>
+                            <th className="p-4 text-right">الإجمالي</th>
+                            <th className="p-4 text-right">ملاحظات</th>
+                            <th className="p-4 text-right">حذف</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.values(groupedCartItems).map((group) => {
+                            const productTotal = group.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                            const totalQuantity = group.items.reduce((sum, item) => sum + item.quantity, 0);
+                            
+                            // Group items by color
+                            const colorGroups = group.items.reduce((colors, item) => {
+                              const colorKey = item.selected_color || 'بدون لون';
+                              if (!colors[colorKey]) {
+                                colors[colorKey] = { items: [], totalQuantity: 0 };
                               }
-                            }}
+                              colors[colorKey].items.push(item);
+                              colors[colorKey].totalQuantity += item.quantity;
+                              return colors;
+                            }, {} as Record<string, { items: CartItemData[]; totalQuantity: number }>);
+
+                            return (
+                              <tr key={group.product?.id || group.items[0]?.product_id} className="border-b hover:bg-gray-50">
+                                {/* Product */}
+                                <td className="p-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                                      <img 
+                                        src={group.product?.main_image_url || '/placeholder-product.svg'} 
+                                        alt={group.product?.name || 'منتج'}
+                                        className="w-full h-full object-cover rounded-lg"
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement;
+                                          if (target.src !== '/placeholder-product.svg') {
+                                            target.src = '/placeholder-product.svg';
+                                          }
+                                        }}
+                                      />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h4 className="font-medium text-gray-900 text-base truncate">{group.product?.name || 'منتج غير معروف'}</h4>
+                                      <div className="text-sm text-gray-500 mt-1">
+                                        كود {group.product?.product_code || 'غير محدد'}
+                                      </div>
+                                      {/* Colors */}
+                                      {Object.keys(colorGroups).some(colorName => colorName !== 'بدون لون') && (
+                                        <div className="flex flex-wrap gap-1 mt-2">
+                                          {Object.entries(colorGroups).map(([colorName, colorGroup]) => {
+                                            if (colorName === 'بدون لون') return null;
+                                            
+                                            return (
+                                              <span
+                                                key={colorName}
+                                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                              >
+                                                {colorName} ({(colorGroup as any).totalQuantity})
+                                              </span>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+                                
+                                {/* Price */}
+                                <td className="p-4">
+                                  <span className="text-gray-700">{group.items[0].price.toFixed(2)} جنيه</span>
+                                </td>
+                                
+                                {/* Quantity */}
+                                <td className="p-4 text-center">
+                                  <span className="font-medium text-gray-900">{totalQuantity}</span>
+                                </td>
+                                
+                                {/* Total */}
+                                <td className="p-4">
+                                  <span className="font-bold text-gray-900">{productTotal.toFixed(2)} جنيه</span>
+                                </td>
+                                
+                                {/* Notes */}
+                                <td className="p-4">
+                                  <button className="text-blue-600 hover:text-blue-800 transition-colors flex items-center">
+                                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    <span className="text-sm">ملاحظات</span>
+                                  </button>
+                                </td>
+                                
+                                {/* Delete */}
+                                <td className="p-4">
+                                  <button
+                                    onClick={() => {
+                                      group.items.forEach(item => handleRemoveItem(item.id));
+                                    }}
+                                    className="text-red-500 hover:text-red-700 transition-colors bg-red-50 rounded-full p-2"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Second Section - Desktop: 3 columns (1:2 ratio), Tablet: Vertical */}
+                <div className="xl:grid xl:grid-cols-3 xl:gap-6 space-y-6 xl:space-y-0">
+                  {/* Desktop: Right Sidebar (appears on left) - Takes 1 column - All three components vertically */}
+                  <div className="xl:col-span-1 xl:order-2 order-2 space-y-6">
+                    {/* Section 1: Delivery Method */}
+                    <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-md">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">طريقة استلام الطلب</h3>
+                      
+                      {/* Desktop & Tablet: Horizontal buttons, Mobile: Vertical */}
+                      <div className="md:grid md:grid-cols-2 md:gap-3 space-y-3 md:space-y-0">
+                        {/* Pickup Option */}
+                        <button
+                          onClick={() => handleDeliveryMethodChange('pickup')}
+                          className={`w-full p-3 rounded-lg border-2 transition-all ${
+                            deliveryMethod === 'pickup'
+                              ? 'bg-green-50 border-green-500'
+                              : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                          }`}
+                        >
+                          <div className="xl:flex-col xl:items-center xl:text-center md:flex-col md:items-center md:text-center flex items-center gap-3 xl:gap-2 md:gap-2">
+                            <div className="text-2xl xl:text-lg md:text-lg">🏪</div>
+                            <div className="flex-1 text-right xl:text-center xl:flex-none md:text-center md:flex-none">
+                              <div className={`font-medium text-sm xl:text-xs md:text-xs ${deliveryMethod === 'pickup' ? 'text-green-700' : 'text-gray-700'}`}>حجز واستلام</div>
+                              <div className={`text-xs xl:text-[10px] md:text-[10px] mt-1 ${deliveryMethod === 'pickup' ? 'text-green-600' : 'text-gray-500'}`}>استلام من المتجر مجاناً</div>
+                            </div>
+                            <div className={`w-4 h-4 xl:w-3 xl:h-3 md:w-3 md:h-3 rounded-full border-2 xl:mt-1 md:mt-1 ${
+                              deliveryMethod === 'pickup'
+                                ? 'bg-green-500 border-green-500'
+                                : 'border-gray-300'
+                            }`}>
+                              {deliveryMethod === 'pickup' && (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <svg className="w-2 h-2 xl:w-1.5 xl:h-1.5 md:w-1.5 md:h-1.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+
+                        {/* Delivery Option */}
+                        <button
+                          onClick={() => handleDeliveryMethodChange('delivery')}
+                          className={`w-full p-3 rounded-lg border-2 transition-all ${
+                            deliveryMethod === 'delivery'
+                              ? 'bg-blue-50 border-blue-500'
+                              : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                          }`}
+                        >
+                          <div className="xl:flex-col xl:items-center xl:text-center md:flex-col md:items-center md:text-center flex items-center gap-3 xl:gap-2 md:gap-2">
+                            <div className="text-2xl xl:text-lg md:text-lg">🚚</div>
+                            <div className="flex-1 text-right xl:text-center xl:flex-none md:text-center md:flex-none">
+                              <div className={`font-medium text-sm xl:text-xs md:text-xs ${deliveryMethod === 'delivery' ? 'text-blue-700' : 'text-gray-700'}`}>شحن وتوصيل للمنزل</div>
+                              <div className={`text-xs xl:text-[10px] md:text-[10px] mt-1 ${deliveryMethod === 'delivery' ? 'text-blue-600' : 'text-gray-500'}`}>توصيل حتى باب المنزل</div>
+                            </div>
+                            <div className={`w-4 h-4 xl:w-3 xl:h-3 md:w-3 md:h-3 rounded-full border-2 xl:mt-1 md:mt-1 ${
+                              deliveryMethod === 'delivery'
+                                ? 'bg-blue-500 border-blue-500'
+                                : 'border-gray-300'
+                            }`}>
+                              {deliveryMethod === 'delivery' && (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <svg className="w-2 h-2 xl:w-1.5 xl:h-1.5 md:w-1.5 md:h-1.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      </div>
+
+                      {/* Shipping Details - Only show when delivery is selected */}
+                      {deliveryMethod === 'delivery' && (
+                        <div className="mt-4 space-y-3 border-t border-gray-200 pt-4">
+                          <h4 className="text-sm font-semibold text-gray-900">تفاصيل الشحن</h4>
+                          
+                          {/* Shipping Company - Only show if multiple companies */}
+                          {shippingCompanies.length > 1 && (
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">شركة الشحن</label>
+                              <select
+                                value={selectedCompany}
+                                onChange={(e) => handleCompanySelect(e.target.value)}
+                                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white"
+                              >
+                                <option value="" className="text-gray-900">اختر شركة الشحن</option>
+                                {shippingCompanies.map((company) => (
+                                  <option key={company.id} value={company.id} className="text-gray-900">
+                                    {company.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          {/* Governorate Selection */}
+                          {(shippingCompanies.length > 0 && ((shippingCompanies.length === 1) || (shippingCompanies.length > 1 && selectedCompany))) && (
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">المحافظة</label>
+                              <select
+                                value={selectedGovernorate}
+                                onChange={(e) => handleGovernorateSelect(e.target.value)}
+                                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white"
+                              >
+                                <option value="" className="text-gray-900">اختر المحافظة</option>
+                                {governorates.map((gov) => (
+                                  <option key={gov.id} value={gov.id} className="text-gray-900">
+                                    {gov.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          {/* Area Selection - Only for complex governorates */}
+                          {selectedGovernorate && governorates.find(g => g.id === selectedGovernorate)?.type === 'complex' && (
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">المنطقة</label>
+                              <select
+                                value={selectedArea}
+                                onChange={(e) => handleAreaSelect(e.target.value)}
+                                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white"
+                              >
+                                <option value="" className="text-gray-900">اختر المنطقة</option>
+                                {governorates.find(g => g.id === selectedGovernorate)?.areas?.map((area) => (
+                                  <option key={area.id} value={area.id} className="text-gray-900">
+                                    {area.name} - {area.price} جنيه
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          {/* Shipping Cost Display */}
+                          {shippingCost > 0 && (
+                            <div className="bg-blue-50 border border-blue-200 rounded p-2">
+                              <div className="flex items-center justify-between">
+                                <div className="text-xs text-blue-700">تكلفة الشحن:</div>
+                                <div className="text-sm font-bold text-blue-700">{shippingCost.toFixed(2)} جنيه</div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section 2: Customer Data */}
+                    <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-md">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">بيانات العميل</h3>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">الاسم</label>
+                          <input
+                            type="text"
+                            value={customerData.name}
+                            onChange={(e) => handleInputChange('name', e.target.value)}
+                            placeholder="أدخل اسم العميل"
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-gray-900 bg-white placeholder-gray-500"
                           />
                         </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف</label>
+                          <input
+                            type="tel"
+                            value={customerData.phone}
+                            onChange={(e) => handleInputChange('phone', e.target.value)}
+                            placeholder="أدخل رقم الهاتف"
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-gray-900 bg-white placeholder-gray-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">رقم هاتف آخر (اختياري)</label>
+                          <input
+                            type="tel"
+                            value={customerData.altPhone}
+                            onChange={(e) => handleInputChange('altPhone', e.target.value)}
+                            placeholder="أدخل رقم هاتف آخر"
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-gray-900 bg-white placeholder-gray-500"
+                          />
+                        </div>
+
+                        {/* Address field - only show for delivery */}
+                        {deliveryMethod === 'delivery' && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">العنوان</label>
+                            <textarea
+                              value={customerData.address}
+                              onChange={(e) => handleInputChange('address', e.target.value)}
+                              placeholder="أدخل عنوان التوصيل"
+                              rows={3}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors resize-none text-gray-900 bg-white placeholder-gray-500"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Section 3: Order Summary */}
+                    <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-md">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">ملخص الطلب</h3>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm text-gray-600">
+                          <span>المجموع الفرعي:</span>
+                          <span>{subtotal.toFixed(2)} جنيه</span>
+                        </div>
                         
-                        {/* Name and Code - Center */}
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900 text-base">{group.product?.name || 'منتج غير معروف'}</h4>
-                          <div className="text-sm text-gray-500 mt-1">
-                            كود {group.product?.product_code || 'غير محدد'}
+                        {/* Only show shipping row if delivery method is selected */}
+                        {deliveryMethod === 'delivery' && (
+                          <div className="flex justify-between text-sm text-gray-600">
+                            <span>الشحن:</span>
+                            <span>
+                              {shipping > 0 ? `${shipping.toFixed(2)} جنيه` : (
+                                <span className="text-orange-500 text-xs">يرجى اختيار المنطقة</span>
+                              )}
+                            </span>
+                          </div>
+                        )}
+                        
+                        <div className="border-t border-gray-200 pt-2">
+                          <div className="flex justify-between text-lg font-bold text-gray-900">
+                            <span>الإجمالي:</span>
+                            <span>{total.toFixed(2)} جنيه</span>
                           </div>
                         </div>
                       </div>
-                      
-                      {/* Delete Button - Far Left */}
-                      <button
-                        onClick={() => {
-                          // Remove all items of this product
-                          group.items.forEach(item => handleRemoveItem(item.id));
-                        }}
-                        className="text-red-500 hover:text-red-700 transition-colors bg-white rounded-full p-2 shadow-sm"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
 
-                    {/* Product Details in 2x2 Grid - Each in White Box */}
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {/* Top Right - Unit Price */}
-                      <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-                        <div className="text-xs text-gray-500 mb-1">سعر القطعة</div>
-                        <div className="font-bold text-gray-900">{group.items[0].price.toFixed(2)} جنيه</div>
+                      {/* Action buttons */}
+                      <div className="space-y-3 mt-6">
+                        <button
+                          onClick={handleConfirmOrder}
+                          disabled={cartItems.length === 0}
+                          className={`w-full font-medium py-3 px-4 rounded-lg transition-colors duration-200 text-sm ${
+                            cartItems.length === 0
+                              ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                              : 'text-white hover:opacity-90'
+                          }`}
+                          style={cartItems.length > 0 ? {backgroundColor: '#661a1a'} : {}}
+                        >
+                          تأكيد الطلب ({Object.keys(groupedCartItems).length} منتج)
+                        </button>
+                        
+                        <button
+                          onClick={handleClearCart}
+                          disabled={cartItems.length === 0}
+                          className={`w-full font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-sm ${
+                            cartItems.length === 0
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              : 'bg-gray-600 hover:bg-gray-700 text-white'
+                          }`}
+                        >
+                          مسح السلة
+                        </button>
                       </div>
-                      
-                      {/* Top Left - Total */}
-                      <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-                        <div className="text-xs text-gray-500 mb-1">الإجمالي</div>
-                        <div className="font-bold text-gray-900">{productTotal.toFixed(2)} جنيه</div>
-                      </div>
-                      
-                      {/* Bottom Right - Quantity */}
-                      <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-                        <div className="text-xs text-gray-500 mb-1">الكمية</div>
-                        <div className="font-bold text-gray-900">{totalQuantity}</div>
-                      </div>
-                      
-                      {/* Bottom Left - Notes */}
-                      <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-                        <div className="text-xs text-gray-500 mb-1">ملاحظات</div>
-                        <div className="flex items-center justify-center text-blue-600">
-                          <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          <span className="text-xs">ملاحظات</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Colors and Quantities - Below the grid */}
-                    {Object.keys(colorGroups).some(colorName => colorName !== 'بدون لون') && (
-                      <div className="flex flex-wrap gap-1 mt-3">
-                        {Object.entries(colorGroups).map(([colorName, colorGroup]) => {
-                          if (colorName === 'بدون لون') return null;
-                          
-                          return (
-                            <span
-                              key={colorName}
-                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                            >
-                              {colorName} ({(colorGroup as any).totalQuantity})
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Delivery Method Selection */}
-          <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-md">
-            <h3 className="text-base font-semibold text-gray-900 mb-3">طريقة استلام الطلب</h3>
-            
-            <div className="space-y-3">
-              {/* Pickup Option */}
-              <button
-                onClick={() => handleDeliveryMethodChange('pickup')}
-                className={`w-full p-3 rounded-lg border-2 transition-all ${
-                  deliveryMethod === 'pickup'
-                    ? 'bg-green-50 border-green-500'
-                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">🏪</div>
-                    <div className="text-right">
-                      <div className={`font-medium text-sm ${deliveryMethod === 'pickup' ? 'text-green-700' : 'text-gray-700'}`}>حجز واستلام</div>
-                      <div className={`text-xs mt-1 ${deliveryMethod === 'pickup' ? 'text-green-600' : 'text-gray-500'}`}>استلام من المتجر مجاناً</div>
                     </div>
                   </div>
-                  <div className={`w-4 h-4 rounded-full border-2 ${
-                    deliveryMethod === 'pickup'
-                      ? 'bg-green-500 border-green-500'
-                      : 'border-gray-300'
-                  }`}>
-                    {deliveryMethod === 'pickup' && (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
+
+                  {/* Desktop: Left Area (appears on right) - Takes 2 columns - Products Table */}
+                  <div className="xl:col-span-2 xl:order-1 order-1">
+                    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                      <div className="p-4 text-center border-b">
+                        <h3 className="text-xl font-semibold" style={{color: '#661a1a'}}>ملخص الطلب</h3>
                       </div>
-                    )}
+                      
+                      {/* Products Table */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead style={{backgroundColor: '#f8f9fa'}}>
+                            <tr className="text-gray-700 text-sm font-medium">
+                              <th className="p-4 text-right">المنتج</th>
+                              <th className="p-4 text-right">السعر</th>
+                              <th className="p-4 text-center">الكمية</th>
+                              <th className="p-4 text-right">الإجمالي</th>
+                              <th className="p-4 text-right">ملاحظات</th>
+                              <th className="p-4 text-right">حذف</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.values(groupedCartItems).map((group) => {
+                              const productTotal = group.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                              const totalQuantity = group.items.reduce((sum, item) => sum + item.quantity, 0);
+                              
+                              // Group items by color
+                              const colorGroups = group.items.reduce((colors, item) => {
+                                const colorKey = item.selected_color || 'بدون لون';
+                                if (!colors[colorKey]) {
+                                  colors[colorKey] = { items: [], totalQuantity: 0 };
+                                }
+                                colors[colorKey].items.push(item);
+                                colors[colorKey].totalQuantity += item.quantity;
+                                return colors;
+                              }, {} as Record<string, { items: CartItemData[]; totalQuantity: number }>);
+
+                              return (
+                                <tr key={group.product?.id || group.items[0]?.product_id} className="border-b hover:bg-gray-50">
+                                  {/* Product */}
+                                  <td className="p-4">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                                        <img 
+                                          src={group.product?.main_image_url || '/placeholder-product.svg'} 
+                                          alt={group.product?.name || 'منتج'}
+                                          className="w-full h-full object-cover rounded-lg"
+                                          onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            if (target.src !== '/placeholder-product.svg') {
+                                              target.src = '/placeholder-product.svg';
+                                            }
+                                          }}
+                                        />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="font-medium text-gray-900 text-base truncate">{group.product?.name || 'منتج غير معروف'}</h4>
+                                        <div className="text-sm text-gray-500 mt-1">
+                                          كود {group.product?.product_code || 'غير محدد'}
+                                        </div>
+                                        {/* Colors */}
+                                        {Object.keys(colorGroups).some(colorName => colorName !== 'بدون لون') && (
+                                          <div className="flex flex-wrap gap-1 mt-2">
+                                            {Object.entries(colorGroups).map(([colorName, colorGroup]) => {
+                                              if (colorName === 'بدون لون') return null;
+                                              
+                                              return (
+                                                <span
+                                                  key={colorName}
+                                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                                >
+                                                  {colorName} ({(colorGroup as any).totalQuantity})
+                                                </span>
+                                              );
+                                            })}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  
+                                  {/* Price */}
+                                  <td className="p-4">
+                                    <span className="text-gray-700">{group.items[0].price.toFixed(2)} جنيه</span>
+                                  </td>
+                                  
+                                  {/* Quantity */}
+                                  <td className="p-4 text-center">
+                                    <span className="font-medium text-gray-900">{totalQuantity}</span>
+                                  </td>
+                                  
+                                  {/* Total */}
+                                  <td className="p-4">
+                                    <span className="font-bold text-gray-900">{productTotal.toFixed(2)} جنيه</span>
+                                  </td>
+                                  
+                                  {/* Notes */}
+                                  <td className="p-4">
+                                    <button className="text-blue-600 hover:text-blue-800 transition-colors flex items-center">
+                                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                      <span className="text-sm">ملاحظات</span>
+                                    </button>
+                                  </td>
+                                  
+                                  {/* Delete */}
+                                  <td className="p-4">
+                                    <button
+                                      onClick={() => {
+                                        group.items.forEach(item => handleRemoveItem(item.id));
+                                      }}
+                                      className="text-red-500 hover:text-red-700 transition-colors bg-red-50 rounded-full p-2"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </button>
-
-              {/* Delivery Option */}
-              <button
-                onClick={() => handleDeliveryMethodChange('delivery')}
-                className={`w-full p-3 rounded-lg border-2 transition-all ${
-                  deliveryMethod === 'delivery'
-                    ? 'bg-blue-50 border-blue-500'
-                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">🚚</div>
-                    <div className="text-right">
-                      <div className={`font-medium text-sm ${deliveryMethod === 'delivery' ? 'text-blue-700' : 'text-gray-700'}`}>شحن وتوصيل للمنزل</div>
-                      <div className={`text-xs mt-1 ${deliveryMethod === 'delivery' ? 'text-blue-600' : 'text-gray-500'}`}>توصيل حتى باب المنزل</div>
-                    </div>
-                  </div>
-                  <div className={`w-4 h-4 rounded-full border-2 ${
-                    deliveryMethod === 'delivery'
-                      ? 'bg-blue-500 border-blue-500'
-                      : 'border-gray-300'
-                  }`}>
-                    {deliveryMethod === 'delivery' && (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Shipping Details - Only show when delivery is selected */}
-          {deliveryMethod === 'delivery' && (
-            <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-md">
-              <h3 className="text-base font-semibold text-gray-900 mb-3">تفاصيل الشحن</h3>
-              
-              <div className="space-y-3">
-                {/* Shipping Company - Only show if multiple companies */}
-                {shippingCompanies.length > 1 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">شركة الشحن</label>
-                    <select
-                      value={selectedCompany}
-                      onChange={(e) => handleCompanySelect(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white"
-                    >
-                      <option value="" className="text-gray-900">اختر شركة الشحن</option>
-                      {shippingCompanies.map((company) => (
-                        <option key={company.id} value={company.id} className="text-gray-900">
-                          {company.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Governorate Selection */}
-                {(shippingCompanies.length > 0 && ((shippingCompanies.length === 1) || (shippingCompanies.length > 1 && selectedCompany))) && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">المحافظة</label>
-                    <select
-                      value={selectedGovernorate}
-                      onChange={(e) => handleGovernorateSelect(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white"
-                    >
-                      <option value="" className="text-gray-900">اختر المحافظة</option>
-                      {governorates.map((gov) => (
-                        <option key={gov.id} value={gov.id} className="text-gray-900">
-                          {gov.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Area Selection - Only for complex governorates */}
-                {selectedGovernorate && governorates.find(g => g.id === selectedGovernorate)?.type === 'complex' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">المنطقة</label>
-                    <select
-                      value={selectedArea}
-                      onChange={(e) => handleAreaSelect(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white"
-                    >
-                      <option value="" className="text-gray-900">اختر المنطقة</option>
-                      {governorates.find(g => g.id === selectedGovernorate)?.areas?.map((area) => (
-                        <option key={area.id} value={area.id} className="text-gray-900">
-                          {area.name} - {area.price} جنيه
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Shipping Cost Display */}
-                {shippingCost > 0 && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-blue-700">تكلفة الشحن:</div>
-                      <div className="text-base font-bold text-blue-700">{shippingCost.toFixed(2)} جنيه</div>
-                    </div>
-                  </div>
-                )}
               </div>
-            </div>
+
+              {/* Mobile Layout */}
+              <div className="md:hidden space-y-4">
+                {/* Mobile Products Cards Section - Keep existing mobile design */}
+                <div className="bg-white rounded-lg shadow-md">
+                  <div className="p-4 text-center">
+                    <h3 className="text-base font-semibold" style={{color: '#661a1a'}}>ملخص الطلب</h3>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
-          
-          {/* Order summary */}
-          <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-md">
-            <h3 className="text-base font-semibold text-gray-900 mb-3">ملخص الطلب</h3>
-            
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>المجموع الفرعي:</span>
-                <span>{subtotal.toFixed(2)} جنيه</span>
-              </div>
-              
-              {/* Only show shipping row if delivery method is selected */}
-              {deliveryMethod === 'delivery' && (
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>الشحن:</span>
-                  <span>
-                    {shipping > 0 ? `${shipping.toFixed(2)} جنيه` : (
-                      <span className="text-orange-500 text-xs">يرجى اختيار المنطقة</span>
-                    )}
-                  </span>
-                </div>
-              )}
-              
-              <div className="border-t border-gray-200 pt-2">
-                <div className="flex justify-between text-base font-semibold text-gray-900">
-                  <span>الإجمالي:</span>
-                  <span>{total.toFixed(2)} جنيه</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Customer data */}
-          <div className="bg-white border border-gray-300 rounded-lg p-4 shadow-md">
-            <h3 className="text-base font-semibold text-gray-900 mb-3">بيانات العميل</h3>
-            
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">الاسم</label>
-                <input
-                  type="text"
-                  value={customerData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="أدخل اسم العميل"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-gray-900 bg-white placeholder-gray-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف</label>
-                <input
-                  type="tel"
-                  value={customerData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  placeholder="أدخل رقم الهاتف"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-gray-900 bg-white placeholder-gray-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">رقم هاتف آخر (اختياري)</label>
-                <input
-                  type="tel"
-                  value={customerData.altPhone}
-                  onChange={(e) => handleInputChange('altPhone', e.target.value)}
-                  placeholder="أدخل رقم هاتف آخر"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-gray-900 bg-white placeholder-gray-500"
-                />
-              </div>
-
-              {/* Address field - only show for delivery */}
-              {deliveryMethod === 'delivery' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">العنوان</label>
-                  <textarea
-                    value={customerData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    placeholder="أدخل عنوان التوصيل"
-                    rows={2}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors resize-none text-gray-900 bg-white placeholder-gray-500"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Action buttons */}
-          <div className="space-y-3">
-            <button
-              onClick={handleConfirmOrder}
-              disabled={cartItems.length === 0}
-              className={`w-full font-medium py-3 px-4 rounded-lg transition-colors duration-200 text-sm ${
-                cartItems.length === 0
-                  ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                  : 'text-white hover:opacity-90'
-              }`}
-              style={cartItems.length > 0 ? {backgroundColor: '#661a1a'} : {}}
-            >
-              تأكيد الطلب ({Object.keys(groupedCartItems).length} منتج)
-            </button>
-            
-            <button
-              onClick={handleClearCart}
-              disabled={cartItems.length === 0}
-              className={`w-full font-medium py-3 px-4 rounded-lg transition-colors duration-200 text-sm ${
-                cartItems.length === 0
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-gray-600 hover:bg-gray-700 text-white'
-              }`}
-            >
-              مسح السلة
-            </button>
-          </div>
         </div>
-        )}
       </div>
-    </div>
     </>
   );
 };
