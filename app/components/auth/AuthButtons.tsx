@@ -8,9 +8,10 @@ interface AuthButtonsProps {
   onAuthSuccess?: () => void;
   compact?: boolean;
   mobileIconOnly?: boolean;
+  imageOnly?: boolean;
 }
 
-export default function AuthButtons({ onAuthSuccess, compact = false, mobileIconOnly = false }: AuthButtonsProps) {
+export default function AuthButtons({ onAuthSuccess, compact = false, mobileIconOnly = false, imageOnly = false }: AuthButtonsProps) {
   const { user, loading, isAuthenticated, signOut } = useAuth();
   const { profile, isAdmin, loading: profileLoading } = useUserProfile();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -93,20 +94,20 @@ export default function AuthButtons({ onAuthSuccess, compact = false, mobileIcon
         {/* User Avatar & Name - Clickable */}
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className={`flex items-center hover:bg-red-700 p-2 rounded-lg transition-colors ${mobileIconOnly ? 'gap-0' : (compact ? 'gap-1' : 'gap-2')}`}
+          className={`flex items-center hover:bg-red-700 p-2 rounded-lg transition-colors ${mobileIconOnly || imageOnly ? 'gap-0' : (compact ? 'gap-1' : 'gap-2')}`}
         >
           {user.avatar ? (
             <img
               src={user.avatar}
               alt={user.name || 'المستخدم'}
-              className={`rounded-full ${compact || mobileIconOnly ? 'w-8 h-8' : 'w-8 h-8'}`}
+              className={`rounded-full ${compact || mobileIconOnly || imageOnly ? 'w-8 h-8' : 'w-8 h-8'}`}
             />
           ) : (
-            <div className={`bg-white text-red-600 rounded-full flex items-center justify-center font-bold ${compact || mobileIconOnly ? 'w-8 h-8 text-sm' : 'w-8 h-8 text-sm'}`}>
+            <div className={`bg-white text-red-600 rounded-full flex items-center justify-center font-bold ${compact || mobileIconOnly || imageOnly ? 'w-8 h-8 text-sm' : 'w-8 h-8 text-sm'}`}>
               {(user.name || user.email || 'U').charAt(0).toUpperCase()}
             </div>
           )}
-          {!mobileIconOnly && (
+          {!mobileIconOnly && !imageOnly && (
             <>
               <span className={`text-white ${compact ? 'text-sm' : 'text-base'}`}>
                 مرحباً، {user.name || user.email?.split('@')[0]}

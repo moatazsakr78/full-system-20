@@ -1072,7 +1072,7 @@ export default function CustomerOrdersPage() {
       {/* Store Header (Red) */}
       <header className="border-b border-gray-700 py-0 relative z-40" style={{backgroundColor: '#5d1f1f'}}>
         <div className="relative flex items-center min-h-[60px] md:min-h-[80px]">
-          <div className="max-w-[95%] md:max-w-[80%] mx-auto px-2 md:px-4 flex items-center justify-between min-h-[60px] md:min-h-[80px] w-full">
+          <div className="max-w-[95%] md:max-w-[95%] lg:max-w-[80%] mx-auto px-2 md:px-3 lg:px-4 flex items-center justify-between min-h-[60px] md:min-h-[80px] w-full">
             
             {/* زر العودة - اليسار */}
             <button
@@ -1101,7 +1101,7 @@ export default function CustomerOrdersPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-[98%] md:max-w-[80%] mx-auto px-2 md:px-4 py-4 md:py-8">
+      <main className="max-w-[98%] md:max-w-[95%] lg:max-w-[80%] mx-auto px-2 md:px-3 lg:px-4 py-4 md:py-5 lg:py-8">
         {/* Tabs */}
         <div className="flex flex-wrap md:flex-nowrap mb-4 md:mb-8 bg-white rounded-lg overflow-hidden shadow-lg">
           <button
@@ -1172,9 +1172,9 @@ export default function CustomerOrdersPage() {
         </div>
 
         {/* Date Filter (for both tabs) */}
-        <div className="bg-white rounded-lg p-3 md:p-6 mb-4 md:mb-6 shadow-lg">
+        <div className="bg-white rounded-lg p-3 md:p-4 lg:p-6 mb-4 md:mb-5 lg:mb-6 shadow-lg">
           <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 text-gray-800">فلتر التاريخ</h3>
-          <div className="flex flex-wrap gap-2 md:gap-4">
+          <div className="flex flex-wrap gap-2 md:gap-3 lg:gap-4">
             <div className="flex flex-col flex-1 min-w-[140px]">
               <label className="text-xs md:text-sm text-gray-600 mb-1">من تاريخ</label>
               <input
@@ -1210,7 +1210,7 @@ export default function CustomerOrdersPage() {
         </div>
 
         {/* Orders List */}
-        <div className="space-y-2 md:space-y-4">
+        <div className="space-y-2 md:space-y-3 lg:space-y-4">
           {filteredOrders.length === 0 ? (
             <div className="bg-white rounded-lg p-4 md:p-8 shadow-lg text-center">
               <div className="text-gray-400 text-4xl md:text-6xl mb-2 md:mb-4">📦</div>
@@ -1235,7 +1235,7 @@ export default function CustomerOrdersPage() {
               return (
                 <div key={order.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
                   {/* Status Tag with Order Info */}
-                  <div className="px-3 md:px-6 pt-3 md:pt-4">
+                  <div className="px-3 md:px-4 lg:px-6 pt-3 md:pt-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       {/* Left Side: Status Tag + Time Remaining */}
                       <div className="flex items-center gap-2">
@@ -1300,7 +1300,7 @@ export default function CustomerOrdersPage() {
 
                   {/* Order Content - Always Visible */}
                   <div 
-                    className="px-3 md:px-6 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="px-3 md:px-4 lg:px-6 cursor-pointer hover:bg-gray-50 transition-colors"
                     onClick={() => toggleOrderExpansion(order.id)}
                   >
                     
@@ -1366,7 +1366,7 @@ export default function CustomerOrdersPage() {
 
                     {/* Desktop/Tablet View: Side by Side Layout */}
                     <div className="hidden md:block py-4">
-                      <div className="grid grid-cols-3 gap-8">
+                      <div className="grid grid-cols-3 gap-4 md:gap-6 lg:gap-8">
                         {/* Customer Information - Left Side (takes more space) */}
                         <div className="col-span-2">
                           <h5 className="text-lg font-semibold text-blue-600 mb-4">معلومات العميل</h5>
@@ -1399,7 +1399,7 @@ export default function CustomerOrdersPage() {
                             </svg>
                           </div>
                           
-                          <div className="space-y-2 text-base bg-gray-50 rounded-lg p-4">
+                          <div className="space-y-2 text-base bg-gray-50 rounded-lg p-3 md:p-4">
                             {order.subtotal !== null && order.subtotal !== undefined && order.shipping !== null && order.shipping !== undefined ? (
                               <>
                                 <div className="flex justify-between items-center gap-4">
@@ -1549,7 +1549,7 @@ export default function CustomerOrdersPage() {
 
                   {/* Order Items - Collapsible */}
                   {isExpanded && (
-                    <div className="px-3 md:px-6 pb-4 md:pb-6 border-t border-gray-200">
+                    <div className="px-3 md:px-4 lg:px-6 pb-4 md:pb-5 lg:pb-6 border-t border-gray-200">
                       <div className="pt-4">
                         <h4 className="text-sm font-semibold text-blue-600 mb-3">عناصر الطلب</h4>
                         
@@ -1575,9 +1575,6 @@ export default function CustomerOrdersPage() {
                                 <div className="flex-1 min-w-0">
                                   {/* Product Name */}
                                   <h5 className="font-semibold text-gray-800 text-sm mb-1 line-clamp-2">{item.name}</h5>
-                                  {item.barcode && (
-                                    <p className="text-xs text-gray-500 mb-2">كود: {item.barcode}</p>
-                                  )}
                                   
                                   {/* Price and Quantity Info */}
                                   <div className="space-y-1">
@@ -1611,8 +1608,8 @@ export default function CustomerOrdersPage() {
                           ))}
                         </div>
 
-                        {/* Desktop/Tablet View: Items as Table */}
-                        <div className="hidden md:block bg-gray-50 rounded-lg overflow-hidden">
+                        {/* Desktop View: Full Table with All Columns */}
+                        <div className="hidden lg:block bg-gray-50 rounded-lg overflow-hidden">
                           <div className="overflow-x-auto">
                             <table className="w-full">
                               <thead style={{backgroundColor: '#f8f8f8'}}>
@@ -1641,11 +1638,8 @@ export default function CustomerOrdersPage() {
                                             <span className="text-gray-400 text-lg">📦</span>
                                           )}
                                         </div>
-                                        <div>
-                                          <h6 className="font-medium text-gray-800 text-base">{item.name}</h6>
-                                          {item.barcode && (
-                                            <p className="text-sm text-gray-500">كود: {item.barcode}</p>
-                                          )}
+                                        <div className="min-w-0 flex-1">
+                                          <h6 className="font-medium text-gray-800 text-base break-words">{item.name}</h6>
                                         </div>
                                       </div>
                                     </td>
@@ -1673,6 +1667,59 @@ export default function CustomerOrdersPage() {
                               </tbody>
                             </table>
                           </div>
+                        </div>
+
+                        {/* Tablet View: Compact Table (No Notes/Weights) */}
+                        <div className="hidden md:block lg:hidden bg-gray-50 rounded-lg overflow-hidden">
+                          <table className="w-full">
+                            <thead style={{backgroundColor: '#f8f8f8'}}>
+                              <tr className="text-right">
+                                <th className="px-4 py-3 text-base font-semibold text-gray-800">المنتج</th>
+                                <th className="px-4 py-3 text-base font-semibold text-gray-800 text-center">السعر</th>
+                                <th className="px-4 py-3 text-base font-semibold text-gray-800 text-center">الكمية</th>
+                                <th className="px-4 py-3 text-base font-semibold text-gray-800 text-center">الإجمالي</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                              {order.items.map((item, index) => (
+                                <tr key={`tablet-${item.id}`} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                                  <td className="px-4 py-3">
+                                    <div className="flex gap-3 items-center">
+                                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        {item.image ? (
+                                          <img 
+                                            src={item.image} 
+                                            alt={item.name}
+                                            className="w-full h-full object-cover rounded-lg"
+                                          />
+                                        ) : (
+                                          <span className="text-gray-400 text-sm">📦</span>
+                                        )}
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <h6 className="font-medium text-gray-800 text-sm break-words line-clamp-2">{item.name}</h6>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className="text-sm font-medium text-gray-800 whitespace-nowrap">
+                                      {item.price?.toFixed(0) || '0'} جنيه
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
+                                      {item.quantity}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className="text-sm font-bold text-gray-800 whitespace-nowrap">
+                                      {((item.quantity * (item.price || 0))).toFixed(0)} جنيه
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     </div>

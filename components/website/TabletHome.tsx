@@ -237,88 +237,81 @@ export default function TabletHome({
       {isCompactHeaderVisible && (
         <header className="fixed top-0 left-0 right-0 border-b border-gray-700 py-2 z-50 transition-all duration-300" style={{backgroundColor: '#5d1f1f'}}>
           <div className="relative flex items-center min-h-[55px]">
-            {/* Main Compact Content Container */}
-            <div className="max-w-[90%] mx-auto px-4 flex items-center justify-between w-full min-h-[55px]">
-              <div className="flex items-center gap-3">
-                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-12 w-12 object-contain" />
-                <h1 className="text-lg font-bold text-white">El Farouk Group</h1>
-              </div>
-            
-            {/* Compact Search Bar */}
-            <div className="flex-1 max-w-sm mx-6">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="ابحث عن المنتجات..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white border-0 rounded-full px-4 py-2 pr-10 text-sm text-gray-800 placeholder-gray-500 shadow-sm focus:outline-none focus:ring-1"
-                  style={{"--tw-ring-color": "#5D1F1F"} as React.CSSProperties}
-                  onFocus={(e) => {
-                    e.target.style.boxShadow = '0 0 0 1px #5D1F1F';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-                <button
-                  onClick={() => setIsSearchOverlayOpen(true)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-red-600 transition-colors"
-                  title="فتح البحث المتقدم"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            
-            {/* Compact Navigation Links */}
-            <nav className="hidden lg:flex gap-4">
-              <a href="#about" className="text-gray-300 hover:text-white transition-colors text-sm">عن المتجر</a>
-              <a href="#offers" className="text-gray-300 hover:text-white transition-colors text-sm">العروض</a>
-              <a href="#categories" className="text-gray-300 hover:text-white transition-colors text-sm">الفئات</a>
-              <a href="#products" className="text-gray-300 hover:text-white transition-colors text-sm">المنتجات</a>
-            </nav>
-            
-            {/* Compact Auth & Cart */}
-            <div className="flex items-center gap-4">
-              <div className="mr-2">
-                <AuthButtons compact />
-              </div>
+            {/* Reserve space for menu button on the right */}
+            <div className="flex items-center w-full pr-14">
+              {/* Main Compact Content Container - New Layout */}
+              <div className="w-full px-4 flex items-center min-h-[55px]">
+                
+                {/* Logo and Title - Left Side */}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-12 w-12 object-contain" />
+                  <h1 className="text-lg font-bold text-white">El Farouk Group</h1>
+                </div>
               
-              <div className="ml-1">
-                <button 
-                  onClick={() => setIsCartModalOpen(true)}
-                  className="relative p-2 rounded-lg transition-colors"
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLButtonElement).style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
-                  </svg>
-                  {cartBadgeCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" style={{color: '#5D1F1F'}}>
-                      {cartBadgeCount}
-                    </span>
-                  )}
-                </button>
-              </div>
+                {/* Search Bar - Expanded Width */}
+                <div className="flex-1 max-w-xl mx-6">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="ابحث عن المنتجات..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-white border-0 rounded-full px-5 py-2.5 pr-12 text-sm text-gray-800 placeholder-gray-500 shadow-md focus:outline-none focus:ring-1 transition-all duration-300"
+                      style={{"--tw-ring-color": "#5D1F1F"} as React.CSSProperties}
+                      onFocus={(e) => {
+                        e.target.style.boxShadow = '0 0 0 1px #5D1F1F';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    />
+                    <button
+                      onClick={() => setIsSearchOverlayOpen(true)}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-red-600 transition-colors"
+                      title="فتح البحث المتقدم"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Right Side: Cart + User Image */}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  
+                  {/* Cart Button */}
+                  <button 
+                    onClick={() => setIsCartModalOpen(true)}
+                    className="relative p-2 rounded-lg transition-colors text-white bg-white bg-opacity-10 hover:bg-opacity-20"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
+                    </svg>
+                    {cartBadgeCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" style={{color: '#5D1F1F'}}>
+                        {cartBadgeCount}
+                      </span>
+                    )}
+                  </button>
+                  
+                  {/* User Profile Image Only - No Text */}
+                  <div className="flex items-center">
+                    <AuthButtons imageOnly compact />
+                  </div>
+                  
+                </div>
               </div>
             </div>
             
             {/* Compact Menu Button - Absolute Right Edge, Full Height */}
             <div className="absolute right-0 top-0 h-full">
               <button 
-                className="h-full px-4 text-white bg-transparent flex items-center justify-center"
+                className="h-full px-3 text-white bg-transparent flex items-center justify-center hover:bg-black hover:bg-opacity-20 transition-colors"
                 onClick={toggleRightSidebar}
                 title="القائمة"
               >
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
@@ -330,89 +323,84 @@ export default function TabletHome({
       {/* Main Tablet Header */}
       <header className="fixed top-0 left-0 right-0 border-b border-gray-700 py-0 z-40" style={{backgroundColor: '#5d1f1f'}}>
         <div className="relative flex items-center min-h-[75px]">
-          {/* Main Content Container */}
-          <div className="max-w-[85%] mx-auto px-4 flex items-center justify-between min-h-[75px] w-full">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
+          {/* Reserve space for menu button on the right */}
+          <div className="flex items-center w-full pr-16">
+            {/* Main Content Container - New Layout */}
+            <div className="w-full px-4 flex items-center min-h-[75px]">
+              
+              {/* Logo and Title - Left Side */}
+              <div className="flex items-center gap-3 flex-shrink-0">
                 <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-16 w-16 object-contain" />
-                <h1 className="text-xl font-bold text-white">El Farouk Group</h1>
+                <div className="flex flex-col">
+                  <h1 className="text-lg font-bold text-white leading-tight">El Farouk</h1>
+                  <h2 className="text-lg font-bold text-white leading-tight">Group</h2>
+                </div>
               </div>
-            </div>
-          
-          {/* Search Bar in Header */}
-          <div className="flex-1 max-w-lg mx-6">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="ابحث عن المنتجات..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border-0 rounded-full px-5 py-2.5 pr-12 text-gray-800 placeholder-gray-500 shadow-md focus:outline-none focus:ring-2 transition-all duration-300"
-                style={{"--tw-ring-color": "#5D1F1F"} as React.CSSProperties}
-                onFocus={(e) => {
-                  e.target.style.boxShadow = '0 0 0 2px #5D1F1F';
-                }}
-                onBlur={(e) => {
-                  e.target.style.boxShadow = 'none';
-                }}
-              />
-              <button
-                onClick={() => setIsSearchOverlayOpen(true)}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-red-600 transition-colors"
-                title="فتح البحث المتقدم"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <nav className="hidden lg:flex gap-5">
-              <a href="#products" className="text-gray-300 transition-colors font-medium hover:text-[#5D1F1F]">المنتجات</a>
-              <a href="#categories" className="text-gray-300 transition-colors font-medium hover:text-[#5D1F1F]">الفئات</a>
-              <a href="#offers" className="text-gray-300 transition-colors font-medium hover:text-[#5D1F1F]">العروض</a>
-              <a href="#about" className="text-gray-300 transition-colors font-medium hover:text-[#5D1F1F]">عن المتجر</a>
-            </nav>
-          </div>
-          
-          <div className="flex items-center gap-5">
-            {/* Authentication Buttons with margin */}
-            <div className="mr-6">
-              <AuthButtons />
-            </div>
             
-            {/* Cart Button pushed to the right */}
-            <div className="ml-3">
-              <button 
-                onClick={() => setIsCartModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-white"
-                style={{backgroundColor: '#5D1F1F'}}
-                onMouseEnter={(e) => {
-                  (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
-                }}
-                onMouseLeave={(e) => {
-                  (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
-                }}
-              >
-                <span>السلة ({cartBadgeCount})</span>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
-                </svg>
-              </button>
-            </div>
+              {/* Search Bar - Expanded Width */}
+              <div className="flex-1 max-w-2xl mx-6">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="ابحث عن المنتجات..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-white border-0 rounded-full px-6 py-3 pr-14 text-gray-800 placeholder-gray-500 shadow-lg focus:outline-none focus:ring-2 transition-all duration-300"
+                    style={{"--tw-ring-color": "#5D1F1F"} as React.CSSProperties}
+                    onFocus={(e) => {
+                      e.target.style.boxShadow = '0 0 0 2px #5D1F1F';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.boxShadow = 'none';
+                    }}
+                  />
+                  <button
+                    onClick={() => setIsSearchOverlayOpen(true)}
+                    className="absolute right-5 top-1/2 transform -translate-y-1/2 p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                    title="فتح البحث المتقدم"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              {/* Right Side: Cart + User Image */}
+              <div className="flex items-center gap-4 flex-shrink-0">
+                
+                {/* Cart Button */}
+                <button 
+                  onClick={() => setIsCartModalOpen(true)}
+                  className="relative p-2.5 rounded-lg transition-colors text-white bg-white bg-opacity-10 hover:bg-opacity-20"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
+                  </svg>
+                  {cartBadgeCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold" style={{color: '#5D1F1F'}}>
+                      {cartBadgeCount}
+                    </span>
+                  )}
+                </button>
+                
+                {/* User Profile Image Only - No Text */}
+                <div className="flex items-center">
+                  <AuthButtons imageOnly />
+                </div>
+                
+              </div>
             </div>
           </div>
           
           {/* Menu Button - Absolute Right Edge, Full Height */}
           <div className="absolute right-0 top-0 h-full">
             <button 
-              className="h-full px-5 text-white bg-transparent flex items-center justify-center"
+              className="h-full px-4 text-white bg-transparent flex items-center justify-center hover:bg-black hover:bg-opacity-20 transition-colors"
               onClick={toggleRightSidebar}
               title="القائمة"
             >
-              <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
@@ -421,7 +409,7 @@ export default function TabletHome({
       </header>
 
       {/* Tablet Main Content */}
-      <main className="max-w-[85%] mx-auto px-4 py-7" style={{ marginTop: '75px' }}>
+      <main className="max-w-[96%] mx-auto px-3 py-7" style={{ marginTop: '75px' }}>
 
         {/* Categories Section - Now First Section with Horizontal Scroll */}
         <section id="categories" className="mb-7">
@@ -430,14 +418,14 @@ export default function TabletHome({
             {categories.slice(0, 8).map((category) => (
               <div 
                 key={category.id} 
-                className="bg-white p-5 rounded-lg text-center hover:shadow-lg transition-all duration-200 border border-gray-200 group flex-shrink-0 w-48"
+                className="bg-white p-4 rounded-lg text-center hover:shadow-lg transition-all duration-200 border border-gray-200 group flex-shrink-0 w-40"
                 onClick={() => setSelectedCategory(category.name)}
               >
                 <div className="mb-4">
                   <img 
                     src={category.image} 
                     alt={category.name} 
-                    className="w-full h-32 object-cover rounded-lg"
+                    className="w-full h-24 object-cover rounded-lg"
                   />
                 </div>
                 <h4 className="font-semibold text-base text-gray-800 group-hover:text-red-500 transition-colors truncate">{category.name}</h4>
@@ -475,7 +463,7 @@ export default function TabletHome({
         {/* All Products */}
         <section id="products" className="mb-7">
           <h3 className="text-3xl font-bold mb-5 text-black">جميع المنتجات</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {filteredProducts.map((product) => (
               <InteractiveProductCard
                 key={product.id}
