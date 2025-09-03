@@ -340,7 +340,59 @@ export default function CustomerOrdersPage() {
       });
     }
 
-    setFilteredOrders(filtered);
+    // Apply custom sorting based on active tab
+    const sortOrders = (orders: Order[]) => {
+      return [...orders].sort((a, b) => {
+        if (activeTab === 'preparation') {
+          // For preparation tab: sort by status first, then by progress/date
+          if (a.status === 'processing' && b.status === 'pending') return -1;
+          if (a.status === 'pending' && b.status === 'processing') return 1;
+          
+          // If both are processing, sort by progress (highest first)
+          if (a.status === 'processing' && b.status === 'processing') {
+            const progressA = a.preparationProgress || 0;
+            const progressB = b.preparationProgress || 0;
+            if (progressA !== progressB) return progressB - progressA;
+          }
+          
+          // If both are pending, sort by date (newest first)
+          if (a.status === 'pending' && b.status === 'pending') {
+            return new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime();
+          }
+        } else if (activeTab === 'followup') {
+          // For followup tab: ready_for_pickup first, then ready_for_shipping, then shipped last
+          const statusOrder = { 'ready_for_pickup': 1, 'ready_for_shipping': 2, 'shipped': 3 };
+          const orderA = statusOrder[a.status as keyof typeof statusOrder] || 999;
+          const orderB = statusOrder[b.status as keyof typeof statusOrder] || 999;
+          
+          if (orderA !== orderB) return orderA - orderB;
+          
+          // If same status, sort by date (newest first for ready_for_pickup)
+          if (a.status === 'ready_for_pickup' && b.status === 'ready_for_pickup') {
+            return new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime();
+          }
+        } else if (activeTab === 'all') {
+          // For all tab: delivered and shipped at bottom, others by date
+          const isACompleted = ['delivered', 'shipped'].includes(a.status);
+          const isBCompleted = ['delivered', 'shipped'].includes(b.status);
+          
+          if (isACompleted && !isBCompleted) return 1;
+          if (!isACompleted && isBCompleted) return -1;
+          
+          // If both completed, sort delivered after shipped
+          if (isACompleted && isBCompleted) {
+            if (a.status === 'delivered' && b.status === 'shipped') return 1;
+            if (a.status === 'shipped' && b.status === 'delivered') return -1;
+          }
+        }
+        
+        // Default sort by date (newest first)
+        return new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime();
+      });
+    };
+
+    const sortedFiltered = sortOrders(filtered);
+    setFilteredOrders(sortedFiltered);
     
     // Set default expanded state for orders
     const newExpandedOrders = new Set<string>();
