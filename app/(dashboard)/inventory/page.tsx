@@ -823,13 +823,13 @@ export default function InventoryPage() {
       console.error('Error updating audit status:', error)
       alert('حدث خطأ في تحديث حالة الجرد: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'))
     }
-  }, [auditContextMenu.productId])
+  }, [auditContextMenu.productId, setProducts])
   
   // Handle audit status filter toggle
   const handleAuditStatusToggle = useCallback((status: string) => {
     setAuditStatusFilters(prev => ({
       ...prev,
-      [status]: !prev[status]
+      [status]: !prev[status as keyof typeof prev]
     }))
   }, [])
 
