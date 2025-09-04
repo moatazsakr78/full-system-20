@@ -35,6 +35,7 @@ export interface Product {
   warehouse?: string | null
   branch?: string | null
   tax_price?: number | null
+  audit_status?: string | null
   // New rating and discount fields
   rating?: number | null
   rating_count?: number | null
@@ -669,8 +670,26 @@ export function useProducts() {
               
               setProducts(prev => [enrichedProduct, ...prev])
             }
+          } else if (payload.eventType === 'UPDATE') {
+            // Handle UPDATE events more efficiently for specific fields
+            const updatedProduct = payload.new as any
+            const oldProduct = payload.old as any
+            
+            // Check if audit_status changed
+            if (updatedProduct.audit_status !== oldProduct.audit_status) {
+              // OPTIMISTIC: Just update the audit_status without full refetch
+              console.log('Real-time audit status update:', updatedProduct.id, updatedProduct.audit_status)
+              setProducts(prev => prev.map(product => 
+                product.id === updatedProduct.id 
+                  ? { ...product, audit_status: updatedProduct.audit_status }
+                  : product
+              ))
+            } else {
+              // For other updates, do full refetch
+              fetchProductsOptimized()
+            }
           } else {
-            // For UPDATE/DELETE, do a smart refetch
+            // For DELETE, do a smart refetch
             fetchProductsOptimized()
           }
         }
@@ -770,6 +789,7 @@ export function useProducts() {
 
   return {
     products,
+    setProducts,
     branches,
     isLoading,
     error,

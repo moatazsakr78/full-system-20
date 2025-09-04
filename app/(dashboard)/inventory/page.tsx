@@ -11,6 +11,7 @@ import AddStorageModal from '../../components/AddStorageModal'
 import ManagementModal from '../../components/ManagementModal'
 import CategoriesTreeView from '../../components/CategoriesTreeView'
 import ColumnsControlModal from '../../components/ColumnsControlModal'
+import QuantityAdjustmentModal from '../../components/QuantityAdjustmentModal'
 import { useProducts } from '../../lib/hooks/useProductsOptimized'
 import {
   ArrowPathIcon,
@@ -72,9 +73,37 @@ export default function InventoryPage() {
   const [showColumnsModal, setShowColumnsModal] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
   const [isTablet, setIsTablet] = useState(false)
+  
+  // Quantity adjustment modal states
+  const [showQuantityModal, setShowQuantityModal] = useState(false)
+  const [quantityModalMode, setQuantityModalMode] = useState<'add' | 'edit'>('add')
+  const [selectedProductForQuantity, setSelectedProductForQuantity] = useState<any>(null)
+  const [selectedBranchForQuantity, setSelectedBranchForQuantity] = useState<string>('')
+  
+  // Audit status states - removed since we now use database values
+  
+  // Audit status filter states
+  const [auditStatusFilters, setAuditStatusFilters] = useState({
+    'تام الجرد': true,
+    'استعد': true,
+    'غير مجرود': true
+  })
+  
+  // Context menu state for audit status
+  const [auditContextMenu, setAuditContextMenu] = useState<{
+    show: boolean;
+    x: number;
+    y: number;
+    productId: string;
+  }>({
+    show: false,
+    x: 0,
+    y: 0,
+    productId: ''
+  })
 
   // Get products and branches data using the same hook as products page
-  const { products, branches, isLoading, error, fetchProducts } = useProducts()
+  const { products, setProducts, branches, isLoading, error, fetchProducts } = useProducts()
 
   // Device detection for tablet optimization
   useEffect(() => {
@@ -103,7 +132,7 @@ export default function InventoryPage() {
 
   // Initialize visible columns state
   useEffect(() => {
-    const allColumns = ['index', 'name', 'category', 'totalQuantity', 'cost_price', 'price', 'wholesale_price', 'price1', 'price2', 'price3', 'price4', 'barcode', 'activity']
+    const allColumns = ['index', 'name', 'category', 'totalQuantity', 'cost_price', 'price', 'wholesale_price', 'price1', 'price2', 'price3', 'price4', 'barcode', 'audit_status']
     
     // Add branch columns
     branches.forEach(branch => {
@@ -132,6 +161,24 @@ export default function InventoryPage() {
       return () => document.removeEventListener('click', handleClickOutside)
     }
   }, [showBranchesDropdown])
+  
+  // Handle click outside audit context menu to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (auditContextMenu.show) {
+        console.log('Click outside detected, closing audit context menu')
+        setAuditContextMenu({ show: false, x: 0, y: 0, productId: '' })
+      }
+    }
+
+    if (auditContextMenu.show) {
+      // Add a small delay to prevent immediate closing
+      setTimeout(() => {
+        document.addEventListener('click', handleClickOutside)
+      }, 100)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [auditContextMenu.show])
 
   // OPTIMIZED: Generate dynamic table columns with advanced memoization
   const dynamicTableColumns = useMemo(() => {
@@ -392,16 +439,33 @@ export default function InventoryPage() {
     }
   }))
 
-    const activityColumn = { 
-    id: 'activity', 
-    header: 'نشيط', 
-    accessor: 'is_active', 
-    width: 80,
-    render: (value: boolean) => (
-      <div className="flex justify-center">
-        <div className={`w-3 h-3 rounded-full ${value ? 'bg-green-500' : 'bg-red-500'}`}></div>
-      </div>
-    )
+    const auditStatusColumn = { 
+    id: 'audit_status', 
+    header: 'الحالة', 
+    accessor: 'audit_status', 
+    width: 120,
+    render: (value: any, item: any) => {
+      const status = item.audit_status || 'غير مجرود'
+      const getStatusColor = (status: string) => {
+        switch(status) {
+          case 'تام الجرد': return 'bg-green-600 text-white'
+          case 'استعد': return 'bg-yellow-600 text-white'
+          case 'غير مجرود': return 'bg-red-600 text-white'
+          default: return 'bg-red-600 text-white'
+        }
+      }
+      
+      return (
+        <div 
+          className="flex justify-center"
+          onContextMenu={(e) => handleAuditStatusRightClick(e, item.id)}
+        >
+          <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(status)} cursor-context-menu`}>
+            {status}
+          </span>
+        </div>
+      )
+    }
     }
 
     // Get count of selected branches
@@ -419,7 +483,7 @@ export default function InventoryPage() {
       ...branchQuantityColumns,
       ...branchLowStockColumns,
       ...variantColumns,
-      activityColumn
+      auditStatusColumn
     ]
     
     // Filter columns based on visibility
@@ -502,9 +566,13 @@ export default function InventoryPage() {
       
       // Stock status filter
       const stockStatus = getStockStatus(item)
-      return stockStatusFilters[stockStatus as keyof typeof stockStatusFilters]
+      if (!stockStatusFilters[stockStatus as keyof typeof stockStatusFilters]) return false
+      
+      // Audit status filter
+      const auditStatus = item.audit_status || 'غير مجرود'
+      return auditStatusFilters[auditStatus as keyof typeof auditStatusFilters]
     })
-  }, [products, searchQuery, stockStatusFilters, getStockStatus])
+  }, [products, searchQuery, stockStatusFilters, auditStatusFilters, getStockStatus])
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
@@ -573,6 +641,193 @@ export default function InventoryPage() {
   // OPTIMIZED: Memoized stock status toggle handler
   const handleStockStatusToggle = useCallback((status: 'good' | 'low' | 'zero') => {
     setStockStatusFilters(prev => ({
+      ...prev,
+      [status]: !prev[status]
+    }))
+  }, [])
+
+  // Handle quantity adjustment actions
+  const handleQuantityAction = useCallback((mode: 'add' | 'edit') => {
+    if (!selectedProduct) {
+      alert('يرجى اختيار منتج أولاً')
+      return
+    }
+    
+    setQuantityModalMode(mode)
+    setSelectedProductForQuantity(selectedProduct)
+    setShowQuantityModal(true)
+  }, [selectedProduct])
+
+  // Handle quantity confirmation with database update
+  const handleQuantityConfirm = useCallback(async (newQuantity: number, reason: string, branchId: string) => {
+    if (!selectedProductForQuantity || !branchId) {
+      console.error('Missing required data:', { selectedProductForQuantity, branchId })
+      alert('بيانات المنتج أو الفرع مفقودة')
+      return
+    }
+
+    try {
+      console.log('Starting inventory update:', {
+        productId: selectedProductForQuantity.id,
+        branchId,
+        newQuantity,
+        reason,
+        mode: quantityModalMode
+      })
+
+      // Show loading state
+      const loadingMessage = quantityModalMode === 'add' ? 'جاري إضافة الكمية...' : 'جاري تعديل الكمية...'
+      console.log(loadingMessage)
+
+      // Create the API payload
+      const payload = {
+        action: 'update_inventory',
+        productId: selectedProductForQuantity.id,
+        branchId: branchId,
+        quantity: newQuantity
+      }
+      
+      console.log('API Payload:', payload)
+
+      // Call the API
+      const response = await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      })
+      
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+
+      // Parse response
+      let result
+      try {
+        result = await response.json()
+        console.log('Response data:', result)
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError)
+        throw new Error('استجابة غير صالحة من الخادم')
+      }
+
+      // Check for HTTP errors
+      if (!response.ok) {
+        const errorMessage = result?.error || result?.message || `HTTP Error ${response.status}`
+        console.error('HTTP Error:', errorMessage)
+        throw new Error(errorMessage)
+      }
+
+      // Check for API errors
+      if (!result.success) {
+        const errorMessage = result.error || result.message || 'فشل في تحديث الكمية'
+        console.error('API Error:', errorMessage)
+        throw new Error(errorMessage)
+      }
+
+      console.log('Update successful:', result.data)
+
+      // Refresh the products data to show the updated quantity
+      console.log('Refreshing products data...')
+      await fetchProducts()
+      console.log('Products data refreshed')
+      
+      // Show success message
+      const successMessage = quantityModalMode === 'add' ? 'تم إضافة الكمية بنجاح' : 'تم تعديل الكمية بنجاح'
+      alert(successMessage)
+      
+    } catch (error) {
+      console.error('Complete error details:', error)
+      const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف'
+      alert('حدث خطأ في تحديث الكمية: ' + errorMessage)
+    }
+  }, [selectedProductForQuantity, quantityModalMode, fetchProducts])
+
+  // Handle audit status right click
+  const handleAuditStatusRightClick = useCallback((e: React.MouseEvent, productId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    console.log('Right-click detected on audit status for product:', productId)
+    console.log('Mouse position:', e.clientX, e.clientY)
+    
+    setAuditContextMenu({
+      show: true,
+      x: e.clientX,
+      y: e.clientY,
+      productId: productId
+    })
+  }, [])
+  
+  // Handle audit context menu action selection
+  const handleAuditContextMenuAction = useCallback(async (newStatus: string) => {
+    if (!auditContextMenu.productId) return
+    
+    const productId = auditContextMenu.productId
+    let originalStatus = 'غير مجرود' // Default fallback
+    
+    // Store original status before any changes
+    setProducts(prevProducts => {
+      const targetProduct = prevProducts.find(p => p.id === productId)
+      originalStatus = targetProduct?.audit_status || 'غير مجرود'
+      return prevProducts
+    })
+    
+    // Close context menu immediately for better UX
+    setAuditContextMenu({ show: false, x: 0, y: 0, productId: '' })
+    
+    try {
+      console.log('Updating audit status:', { productId, newStatus })
+      
+      // OPTIMISTIC UPDATE: Update local state immediately
+      setProducts(prevProducts => 
+        prevProducts.map(product => 
+          product.id === productId 
+            ? { ...product, audit_status: newStatus }
+            : product
+        )
+      )
+      
+      // Call API to update audit status in database
+      const response = await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'update_audit_status',
+          productId: productId,
+          auditStatus: newStatus
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (!response.ok || !result.success) {
+        // ROLLBACK: If API fails, revert the optimistic update
+        setProducts(prevProducts => 
+          prevProducts.map(product => 
+            product.id === productId 
+              ? { ...product, audit_status: originalStatus }
+              : product
+          )
+        )
+        
+        throw new Error(result.error || 'Failed to update audit status')
+      }
+      
+      console.log('Audit status updated successfully in database:', result)
+      // NOTE: Real-time subscription will sync any additional changes from server
+      
+    } catch (error) {
+      console.error('Error updating audit status:', error)
+      alert('حدث خطأ في تحديث حالة الجرد: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'))
+    }
+  }, [auditContextMenu.productId])
+  
+  // Handle audit status filter toggle
+  const handleAuditStatusToggle = useCallback((status: string) => {
+    setAuditStatusFilters(prev => ({
       ...prev,
       [status]: !prev[status]
     }))
@@ -650,9 +905,20 @@ export default function InventoryPage() {
               <span className="text-sm">اكسل</span>
             </button>
 
-            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+            <button 
+              onClick={() => handleQuantityAction('add')}
+              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+            >
               <ClipboardDocumentListIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">جرد سريع</span>
+              <span className="text-sm">إضافة</span>
+            </button>
+
+            <button 
+              onClick={() => handleQuantityAction('edit')}
+              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+            >
+              <ClipboardDocumentListIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">تعديل</span>
             </button>
 
             <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
@@ -666,6 +932,40 @@ export default function InventoryPage() {
             >
               <TableCellsIcon className="h-5 w-5 mb-1" />
               <span className="text-sm">الأعمدة</span>
+            </button>
+            
+            {/* Audit Status Filter Buttons */}
+            <button 
+              onClick={() => handleAuditStatusToggle('تام الجرد')}
+              className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] rounded-md transition-all ${
+                auditStatusFilters['تام الجرد'] 
+                  ? 'text-white bg-green-600 hover:bg-green-700' 
+                  : 'text-gray-400 bg-gray-600 opacity-50'
+              }`}
+            >
+              <span className="text-xs mb-1">تام الجرد</span>
+            </button>
+            
+            <button 
+              onClick={() => handleAuditStatusToggle('استعد')}
+              className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] rounded-md transition-all ${
+                auditStatusFilters['استعد'] 
+                  ? 'text-white bg-yellow-600 hover:bg-yellow-700' 
+                  : 'text-gray-400 bg-gray-600 opacity-50'
+              }`}
+            >
+              <span className="text-xs mb-1">استعد</span>
+            </button>
+            
+            <button 
+              onClick={() => handleAuditStatusToggle('غير مجرود')}
+              className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] rounded-md transition-all ${
+                auditStatusFilters['غير مجرود'] 
+                  ? 'text-white bg-red-600 hover:bg-red-700' 
+                  : 'text-gray-400 bg-gray-600 opacity-50'
+              }`}
+            >
+              <span className="text-xs mb-1">غير مجرود</span>
             </button>
           </div>
         </div>
@@ -1300,6 +1600,59 @@ export default function InventoryPage() {
         columns={getAllColumns}
         onColumnsChange={handleColumnsChange}
       />
+      
+      {/* Quantity Adjustment Modal */}
+      <QuantityAdjustmentModal
+        isOpen={showQuantityModal}
+        onClose={() => setShowQuantityModal(false)}
+        product={selectedProductForQuantity}
+        mode={quantityModalMode}
+        branches={branches}
+        onConfirm={handleQuantityConfirm}
+      />
+      
+      {/* Audit Status Context Menu */}
+      {auditContextMenu.show && (
+        <div
+          className="fixed bg-[#2B3544] border-2 border-[#4A5568] rounded-xl shadow-2xl py-2 z-[9999]"
+          style={{
+            left: auditContextMenu.x,
+            top: auditContextMenu.y,
+            minWidth: '150px'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Get available statuses for current product */}
+          {(() => {
+            const currentProduct = products.find(p => p.id === auditContextMenu.productId)
+            const currentStatus = currentProduct?.audit_status || 'غير مجرود'
+            const allStatuses = ['غير مجرود', 'استعد', 'تام الجرد']
+            const availableStatuses = allStatuses.filter(status => status !== currentStatus)
+            
+            return availableStatuses.map((status) => {
+              const getStatusColor = (status: string) => {
+                switch(status) {
+                  case 'تام الجرد': return 'hover:bg-green-600/20 text-green-400'
+                  case 'استعد': return 'hover:bg-yellow-600/20 text-yellow-400'
+                  case 'غير مجرود': return 'hover:bg-red-600/20 text-red-400'
+                  default: return 'hover:bg-gray-600/20 text-gray-400'
+                }
+              }
+              
+              return (
+                <button
+                  key={status}
+                  onClick={() => handleAuditContextMenuAction(status)}
+                  className={`w-full text-right px-4 py-3 transition-colors ${getStatusColor(status)} border-b border-gray-600/30 last:border-b-0`}
+                >
+                  <span className="font-medium">{status}</span>
+                </button>
+              )
+            })
+          })()
+          }
+        </div>
+      )}
     </div>
   )
 }
