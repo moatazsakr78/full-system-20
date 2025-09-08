@@ -38,10 +38,12 @@ interface Role {
   name: string;
   description: string;
   userCount: number;
-  status: 'active' | 'inactive';
   permissions: string[];
   createdAt: string;
   lastModified: string;
+  roleType: 'حقل رئيسي' | string;
+  parentRole?: string;
+  priceLevel?: number;
 }
 
 interface User {
@@ -72,6 +74,38 @@ export default function PermissionsPage() {
   const [isAddPermissionModalOpen, setIsAddPermissionModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [updatingRole, setUpdatingRole] = useState(false);
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [derivedRoles, setDerivedRoles] = useState<Role[]>([]);
+  const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleDescription, setNewRoleDescription] = useState('');
+  const [newRolePriceLevel, setNewRolePriceLevel] = useState<number>(1);
+
+  // Add new derived role function
+  const handleAddDerivedRole = () => {
+    if (!newRoleName.trim() || !newRoleDescription.trim()) return;
+    
+    const newRole: Role = {
+      id: `derived_${Date.now()}`,
+      name: newRoleName,
+      description: newRoleDescription,
+      userCount: 0,
+      permissions: ['1', '5'], // Same as جملة role
+      createdAt: new Date().toLocaleDateString('en-CA'),
+      lastModified: new Date().toLocaleDateString('en-CA'),
+      roleType: 'جملة',
+      parentRole: 'جملة',
+      priceLevel: newRolePriceLevel
+    };
+    
+    setDerivedRoles(prev => [...prev, newRole]);
+    
+    // Clear form
+    setNewRoleName('');
+    setNewRoleDescription('');
+    setNewRolePriceLevel(1);
+    setIsAddRoleModalOpen(false);
+  };
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -228,48 +262,51 @@ export default function PermissionsPage() {
   ];
 
   // Main 4 roles - Fixed roles that cannot be edited or deleted
-  const roles: Role[] = [
+  const mainRoles: Role[] = [
     {
       id: 'client',
       name: 'عميل',
       description: 'صلاحيات محدودة للوصول للمتجر وطلباته فقط',
       userCount: realUsers.filter(u => u.role === 'عميل').length,
-      status: 'active',
       permissions: ['1', '5'], // Home page, view orders
       createdAt: '2024-01-01',
-      lastModified: '2024-01-01'
+      lastModified: '2024-01-01',
+      roleType: 'حقل رئيسي'
     },
     {
       id: 'wholesale',
       name: 'جملة',
-      description: 'صلاحيات محدودة للوصول للمتجر وطلباته فقط (نفس العميل)',
+      description: 'صلاحيات محدودة للوصول للمتجر وطلباته فقط مع أسعار الجملة',
       userCount: realUsers.filter(u => u.role === 'جملة').length,
-      status: 'active',
       permissions: ['1', '5'], // Home page, view orders
       createdAt: '2024-01-01',
-      lastModified: '2024-01-01'
+      lastModified: '2024-01-01',
+      roleType: 'حقل رئيسي'
     },
     {
       id: 'employee',
       name: 'موظف',
       description: 'صلاحيات كاملة لجميع صفحات النظام والمتجر',
       userCount: realUsers.filter(u => u.role === 'موظف').length,
-      status: 'active',
       permissions: permissions.map(p => p.id),
       createdAt: '2024-01-01',
-      lastModified: '2024-01-01'
+      lastModified: '2024-01-01',
+      roleType: 'حقل رئيسي'
     },
     {
       id: 'main_admin',
       name: 'أدمن رئيسي',
       description: 'صلاحيات كاملة لجميع صفحات النظام والمتجر مع إدارة كاملة',
       userCount: realUsers.filter(u => u.role === 'أدمن رئيسي').length,
-      status: 'active',
       permissions: permissions.map(p => p.id),
       createdAt: '2024-01-01',
-      lastModified: '2024-01-01'
+      lastModified: '2024-01-01',
+      roleType: 'حقل رئيسي'
     }
   ];
+
+  // Combine main roles with derived roles
+  const roles = [...mainRoles, ...derivedRoles];
 
 
 
@@ -311,9 +348,12 @@ export default function PermissionsPage() {
       id: 'name',
       header: 'اسم الدور',
       accessor: 'name' as keyof Role,
-      width: 180,
+      width: 200,
       render: (value: any, role: Role) => (
-        <div className="flex items-center gap-2">
+        <div 
+          className={`flex items-center gap-2 cursor-pointer p-2 rounded ${selectedRoleId === role.id ? 'bg-blue-600/30' : 'hover:bg-gray-700/30'} transition-colors`}
+          onClick={() => setSelectedRoleId(role.id)}
+        >
           <ShieldCheckIcon className="h-4 w-4 text-blue-400" />
           <span className="font-medium text-white">{value}</span>
         </div>
@@ -323,7 +363,7 @@ export default function PermissionsPage() {
       id: 'description',
       header: 'الوصف',
       accessor: 'description' as keyof Role,
-      width: 300,
+      width: 350,
       render: (value: any) => (
         <span className="text-gray-300 text-sm">{value}</span>
       )
@@ -341,15 +381,18 @@ export default function PermissionsPage() {
       )
     },
     {
-      id: 'status',
-      header: 'الحالة',
-      accessor: 'status' as keyof Role,
-      width: 100,
+      id: 'roleType',
+      header: 'نوع الدور',
+      accessor: 'roleType' as keyof Role,
+      width: 150,
       render: (value: any, role: Role) => (
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${role.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-          <span className={`text-sm ${role.status === 'active' ? 'text-green-400' : 'text-red-400'}`}>
-            {role.status === 'active' ? 'نشط' : 'غير نشط'}
+          <span className={`px-2 py-1 text-xs rounded-full ${
+            role.roleType === 'حقل رئيسي' 
+              ? 'bg-purple-600/20 text-purple-300 border border-purple-600/30' 
+              : 'bg-blue-600/20 text-blue-300 border border-blue-600/30'
+          }`}>
+            {role.roleType === 'حقل رئيسي' ? 'حقل رئيسي' : role.parentRole}
           </span>
         </div>
       )
@@ -361,34 +404,6 @@ export default function PermissionsPage() {
       width: 120,
       render: (value: any) => (
         <span className="text-gray-400 text-sm">{value}</span>
-      )
-    },
-    {
-      id: 'actions',
-      header: 'الإجراءات',
-      accessor: 'id' as keyof Role,
-      width: 120,
-      render: (value: any, role: Role) => (
-        <div className="flex items-center gap-1">
-          <button className="p-1 text-gray-400 hover:text-blue-400 transition-colors">
-            <EyeIcon className="h-4 w-4" />
-          </button>
-          {/* إخفاء أزرار التعديل والحذف للأدوار الأساسية */}
-          <button 
-            className="p-1 text-gray-600 cursor-not-allowed" 
-            disabled
-            title="الأدوار الأساسية لا يمكن تعديلها"
-          >
-            <PencilIcon className="h-4 w-4" />
-          </button>
-          <button 
-            className="p-1 text-gray-600 cursor-not-allowed" 
-            disabled
-            title="الأدوار الأساسية لا يمكن حذفها"
-          >
-            <TrashIcon className="h-4 w-4" />
-          </button>
-        </div>
       )
     }
   ];
@@ -529,12 +544,28 @@ export default function PermissionsPage() {
   const getActionButtons = (): ActionButton[] => {
     switch (activeView) {
       case 'roles':
-        return [
-          { icon: UserGroupIcon, label: 'دور جديد (معطل)', action: () => {}, disabled: true },
-          { icon: PencilIcon, label: 'تعديل (معطل)', action: () => {}, disabled: true },
-          { icon: TrashIcon, label: 'حذف (معطل)', action: () => {}, disabled: true },
-          { icon: ClipboardDocumentListIcon, label: 'تصدير', action: () => {} }
-        ];
+        const selectedRole = roles.find(r => r.id === selectedRoleId);
+        
+        if (selectedRole?.name === 'جملة') {
+          return [
+            { 
+              icon: UserGroupIcon, 
+              label: 'دور جديد', 
+              action: () => setIsAddRoleModalOpen(true), 
+              disabled: false 
+            },
+            { icon: PencilIcon, label: 'تعديل', action: () => {}, disabled: true },
+            { icon: TrashIcon, label: 'حذف', action: () => {}, disabled: true },
+            { icon: ClipboardDocumentListIcon, label: 'تصدير', action: () => {} }
+          ];
+        } else {
+          return [
+            { icon: UserGroupIcon, label: 'دور جديد', action: () => {}, disabled: true },
+            { icon: PencilIcon, label: 'تعديل', action: () => {}, disabled: true },
+            { icon: TrashIcon, label: 'حذف', action: () => {}, disabled: true },
+            { icon: ClipboardDocumentListIcon, label: 'تصدير', action: () => {} }
+          ];
+        }
       case 'users':
         return [
           { icon: UserPlusIcon, label: 'مستخدم جديد', action: () => {} },
@@ -664,9 +695,9 @@ export default function PermissionsPage() {
                     <span className="text-white font-medium">{roles.length}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">الأدوار النشطة:</span>
+                    <span className="text-gray-400">الأدوار الرئيسية:</span>
                     <span className="text-green-400 font-medium">
-                      {roles.filter(r => r.status === 'active').length}
+                      {roles.filter(r => r.roleType === 'حقل رئيسي').length}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
@@ -818,6 +849,130 @@ export default function PermissionsPage() {
           // Here you would typically save to database
         }}
       />
+
+      {/* Add Role Modal - Side Panel */}
+      {isAddRoleModalOpen && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50" 
+            onClick={() => setIsAddRoleModalOpen(false)}
+          ></div>
+          
+          {/* Side Panel */}
+          <div className="mr-auto bg-[#2B3544] w-96 h-full shadow-xl border-r border-gray-600 relative z-10">
+            <div className="flex flex-col h-full">
+              {/* Header */}
+              <div className="bg-[#374151] px-6 py-4 border-b border-gray-600">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-white">إضافة دور جديد</h2>
+                  <button
+                    onClick={() => setIsAddRoleModalOpen(false)}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <p className="text-gray-300 text-sm mt-2">إنشاء دور جديد مشتق من دور الجملة</p>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Role Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    اسم الدور *
+                  </label>
+                  <input
+                    type="text"
+                    value={newRoleName}
+                    onChange={(e) => setNewRoleName(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#374151] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="ادخل اسم الدور..."
+                  />
+                </div>
+
+                {/* Price Level */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    مستوى السعر *
+                  </label>
+                  <select
+                    value={newRolePriceLevel}
+                    onChange={(e) => setNewRolePriceLevel(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-[#374151] border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value={1}>سعر 1</option>
+                    <option value={2}>سعر 2</option>
+                    <option value={3}>سعر 3</option>
+                    <option value={4}>سعر 4</option>
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">
+                    حدد مستوى السعر الذي سيربط بهذا الدور
+                  </p>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    وصف الدور *
+                  </label>
+                  <textarea
+                    value={newRoleDescription}
+                    onChange={(e) => setNewRoleDescription(e.target.value)}
+                    rows={4}
+                    className="w-full px-3 py-2 bg-[#374151] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    placeholder="اكتب وصف مفصل للدور..."
+                  />
+                </div>
+
+                {/* Role Info */}
+                <div className="bg-blue-50/10 border border-blue-600/30 rounded-lg p-4">
+                  <h4 className="text-blue-300 font-medium mb-2 flex items-center gap-2">
+                    <ShieldCheckIcon className="h-4 w-4" />
+                    معلومات الدور
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">نوع الدور:</span>
+                      <span className="text-blue-300">فرعي</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">مشتق من:</span>
+                      <span className="text-blue-300">جملة</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">الصلاحيات:</span>
+                      <span className="text-blue-300">نفس صلاحيات الجملة</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="bg-[#374151] px-6 py-4 border-t border-gray-600">
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setIsAddRoleModalOpen(false)}
+                    className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    onClick={handleAddDerivedRole}
+                    disabled={!newRoleName.trim() || !newRoleDescription.trim()}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    حفظ الدور
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
