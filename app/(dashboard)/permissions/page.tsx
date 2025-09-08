@@ -282,6 +282,9 @@ export default function PermissionsPage() {
   const updateUserRole = async (userId: string, newRole: string) => {
     setUpdatingRole(true);
     try {
+      console.log('🔄 محاولة تحديث دور المستخدم:', { userId, newRole });
+
+      // تحديث الدور مباشرة - RLS policy ستتولى التحقق من الصلاحيات
       const { data, error } = await supabase
         .from('user_profiles')
         .update({ 
@@ -289,11 +292,19 @@ export default function PermissionsPage() {
           updated_at: new Date().toISOString()
         })
         .eq('id', userId)
-        .select();
+        .select('id, full_name, role');
 
       if (error) {
         console.error('❌ خطأ في تحديث الدور:', error);
-        alert('فشل في تحديث الدور: ' + error.message);
+        
+        // رسائل خطأ مفصلة حسب نوع الخطأ
+        if (error.code === 'PGRST116') {
+          alert('المستخدم غير موجود في قاعدة البيانات');
+        } else if (error.code === '42501' || error.message.includes('permission denied')) {
+          alert('ليس لديك صلاحية لتحديث أدوار المستخدمين');
+        } else {
+          alert('فشل في تحديث الدور: ' + error.message);
+        }
         return false;
       }
 
@@ -307,16 +318,20 @@ export default function PermissionsPage() {
         ));
         
         setEditingUserId(null);
-        console.log('✅ تم تحديث دور المستخدم بنجاح');
+        console.log('✅ تم تحديث دور المستخدم بنجاح إلى:', newRole);
+        
+        // رسالة نجاح للمستخدم (اختيارية)
+        // alert('تم تحديث الدور بنجاح!');
+        
         return true;
       } else {
-        console.error('❌ لم يتم العثور على المستخدم أو فشل التحديث');
-        alert('فشل في تحديث الدور - لم يتم العثور على المستخدم');
+        console.error('❌ فشل التحديث - لا توجد بيانات مُحدَثة');
+        alert('فشل في تحديث الدور - لم يتم التحديث');
         return false;
       }
     } catch (error) {
-      console.error('❌ خطأ في تحديث الدور:', error);
-      alert('حدث خطأ غير متوقع في تحديث الدور');
+      console.error('❌ خطأ عام في تحديث الدور:', error);
+      alert('حدث خطأ غير متوقع: ' + (error as Error).message);
       return false;
     } finally {
       setUpdatingRole(false);
