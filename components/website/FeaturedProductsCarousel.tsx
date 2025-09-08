@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Product } from './shared/types';
+import { useUserProfile } from '../../lib/hooks/useUserProfile';
 
 interface FeaturedProductsCarouselProps {
   products: Product[];
@@ -21,6 +22,17 @@ export default function FeaturedProductsCarousel({
 }: FeaturedProductsCarouselProps) {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
+  
+  // Get user profile to check role
+  const { profile } = useUserProfile();
+  
+  // Determine which price to display based on user role
+  const getDisplayPrice = (product: Product) => {
+    if (profile?.role === 'جملة' && product.wholesale_price) {
+      return product.wholesale_price;
+    }
+    return product.price;
+  };
   
   const canGoPrevious = currentIndex > 0;
   const canGoNext = currentIndex < products.length - itemsPerView;
@@ -122,11 +134,16 @@ export default function FeaturedProductsCarousel({
                   </p>
                 </div>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    {product.originalPrice && (
-                      <span className="text-sm text-gray-500 line-through">{product.originalPrice} ريال</span>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      {product.originalPrice && (
+                        <span className="text-sm text-gray-500 line-through">{product.originalPrice} ريال</span>
+                      )}
+                      <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>{getDisplayPrice(product)} ريال</span>
+                    </div>
+                    {profile?.role === 'جملة' && product.wholesale_price && (
+                      <span className="text-xs text-blue-600 font-medium">سعر الجملة</span>
                     )}
-                    <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>{product.price} ريال</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
@@ -139,7 +156,11 @@ export default function FeaturedProductsCarousel({
               <button 
                 onClick={async (e) => {
                   e.stopPropagation();
-                  await onAddToCart(product);
+                  const productToAdd = { 
+                    ...product, 
+                    price: getDisplayPrice(product) // Use the display price based on user role
+                  };
+                  await onAddToCart(productToAdd);
                 }}
                 className="w-full mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 text-white transform hover:scale-105 active:scale-95"
                 style={{backgroundColor: '#5D1F1F'}}

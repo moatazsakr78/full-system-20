@@ -300,15 +300,20 @@ export default function InteractiveProductCard({
         )}
         
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            {product.originalPrice && (
-              <span className="text-sm line-through text-gray-500">
-                {product.originalPrice} ريال
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              {product.originalPrice && (
+                <span className="text-sm line-through text-gray-500">
+                  {product.originalPrice} ريال
+                </span>
+              )}
+              <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>
+                {getDisplayPrice()} ريال
               </span>
+            </div>
+            {profile?.role === 'جملة' && product.wholesale_price && (
+              <span className="text-xs text-blue-600 font-medium">سعر الجملة</span>
             )}
-            <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>
-              {getDisplayPrice()} ريال
-            </span>
           </div>
         </div>
         <div className="flex items-center justify-between">
