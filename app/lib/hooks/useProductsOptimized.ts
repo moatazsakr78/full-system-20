@@ -56,7 +56,7 @@ export interface Product {
   } | null
   // Computed fields for table display
   totalQuantity?: number
-  inventoryData?: Record<string, { quantity: number, min_stock: number }>
+  inventoryData?: Record<string, { quantity: number, min_stock: number, audit_status: string }>
   variantsData?: Record<string, ProductVariant[]>
   productColors?: Array<{id: string, name: string, color: string}>
   allImages?: string[]
@@ -333,8 +333,8 @@ export function useProducts() {
             const productInventoryData = inventoryByProduct.get(product.id) || []
             const productVariantsData = variantsByProduct.get(product.id) || []
 
-            // Group inventory by branch/warehouse with O(n) complexity
-            const inventoryByBranch: Record<string, { quantity: number, min_stock: number }> = {}
+            // Group inventory by branch/warehouse with O(n) complexity - INCLUDE AUDIT STATUS
+            const inventoryByBranch: Record<string, { quantity: number, min_stock: number, audit_status: string }> = {}
             let totalQuantity = 0
 
             productInventoryData.forEach((inv: any) => {
@@ -342,7 +342,8 @@ export function useProducts() {
               if (locationId) {
                 inventoryByBranch[locationId] = {
                   quantity: inv.quantity || 0,
-                  min_stock: inv.min_stock || 0
+                  min_stock: inv.min_stock || 0,
+                  audit_status: inv.audit_status || 'غير مجرود'
                 }
                 totalQuantity += inv.quantity || 0
               }

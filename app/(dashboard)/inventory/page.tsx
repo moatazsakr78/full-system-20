@@ -839,6 +839,11 @@ export default function InventoryPage() {
       
       console.log('Audit status updated successfully:', result)
       
+      // Force a full data refresh to ensure we get the latest data
+      setTimeout(() => {
+        fetchProducts()
+      }, 500) // Small delay to ensure database update is complete
+      
     } catch (error) {
       console.error('Error updating audit status:', error)
       alert('فشل في تحديث حالة الجرد: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'))
