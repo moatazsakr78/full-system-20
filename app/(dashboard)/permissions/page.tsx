@@ -89,7 +89,7 @@ export default function PermissionsPage() {
     if (!newRoleName.trim() || !newRoleDescription.trim()) return;
     
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_roles')
         .insert([{
           name: newRoleName.trim(),
@@ -153,7 +153,7 @@ export default function PermissionsPage() {
     if (!newRoleName.trim() || !newRoleDescription.trim() || !editingRoleId) return;
     
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_roles')
         .update({
           name: newRoleName.trim(),
@@ -203,7 +203,7 @@ export default function PermissionsPage() {
     }
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('user_roles')
         .delete()
         .eq('id', roleId);
@@ -314,7 +314,7 @@ export default function PermissionsPage() {
   // Load derived roles from database
   const loadDerivedRoles = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_roles')
         .select('*')
         .eq('is_active', true)
