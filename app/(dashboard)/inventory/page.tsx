@@ -780,37 +780,23 @@ export default function InventoryPage() {
     })
   }, [])
   
-  // Handle audit context menu action selection
+  // Handle audit context menu action selection - Clean and simple approach with optimistic update
   const handleAuditContextMenuAction = useCallback(async (newStatus: string) => {
-    if (!auditContextMenu.productId) {
-      console.error('No product ID available for audit status update')
+    if (!auditContextMenu.productId || !auditContextMenu.branchId) {
+      console.error('Missing product ID or branch ID')
       return
     }
     
     const productId = auditContextMenu.productId
     const branchId = auditContextMenu.branchId
-    let originalStatus = 'غير مجرود' // Default fallback
     
-    // Store original status before any changes
-    setProducts(prevProducts => {
-      const targetProduct = prevProducts.find(p => p.id === productId)
-      const branchInventory = targetProduct?.inventoryData?.[branchId]
-      originalStatus = (branchInventory as any)?.audit_status || 'غير مجرود'
-      return prevProducts
-    })
-    
-    // Close context menu immediately for better UX
+    // Close context menu
     setAuditContextMenu({ show: false, x: 0, y: 0, productId: '', branchId: '' })
     
-    console.log('Starting audit status update:', { 
-      productId, 
-      branchId, 
-      newStatus, 
-      originalStatus 
-    })
-    
     try {
-      // OPTIMISTIC UPDATE: Update local state immediately for specific branch
+      console.log('Updating audit status:', { productId, branchId, newStatus })
+      
+      // Optimistic update - update UI immediately
       setProducts(prevProducts => 
         prevProducts.map(product => {
           if (product.id === productId) {
@@ -829,8 +815,7 @@ export default function InventoryPage() {
         })
       )
       
-      // Call API to update audit status in database
-      console.log('Calling API to update audit status...')
+      // Call API in background
       const response = await fetch('/api/supabase', {
         method: 'POST',
         headers: {
@@ -838,89 +823,27 @@ export default function InventoryPage() {
         },
         body: JSON.stringify({
           action: 'update_audit_status',
-          productId: productId,
-          branchId: branchId,
+          productId,
+          branchId,
           auditStatus: newStatus
         })
       })
       
-      console.log('API response received:', {
-        status: response.status,
-        ok: response.ok,
-        statusText: response.statusText
-      })
-      
-      let result
-      try {
-        result = await response.json()
-        console.log('API response data:', result)
-      } catch (parseError) {
-        console.error('Failed to parse API response:', parseError)
-        throw new Error('استجابة غير صالحة من الخادم')
-      }
+      const result = await response.json()
       
       if (!response.ok || !result.success) {
-        console.error('API request failed:', {
-          status: response.status,
-          result: result
-        })
-        
-        // ROLLBACK: If API fails, revert the optimistic update for specific branch
-        setProducts(prevProducts => 
-          prevProducts.map(product => {
-            if (product.id === productId) {
-              return {
-                ...product,
-                inventoryData: {
-                  ...product.inventoryData,
-                  [branchId]: {
-                    ...product.inventoryData?.[branchId],
-                    audit_status: originalStatus
-                  } as any
-                }
-              } as any
-            }
-            return product
-          })
-        )
-        
-        const errorMessage = result.error || `خطأ HTTP: ${response.status} ${response.statusText}`
-        throw new Error(errorMessage)
+        // If API fails, revert the optimistic update
+        await fetchProducts()
+        throw new Error(result.error || 'Failed to update audit status')
       }
       
-      console.log('Audit status updated successfully in database:', result)
-      
-      // Show success message
-      const successMessage = `تم تحديث حالة الجرد بنجاح من "${result.previousStatus || originalStatus}" إلى "${newStatus}"`
-      console.log(successMessage)
-      
-      // NOTE: Real-time subscription will sync any additional changes from server
+      console.log('Audit status updated successfully:', result)
       
     } catch (error) {
-      console.error('Complete error details:', error)
-      const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف في تحديث حالة الجرد'
-      alert('حدث خطأ في تحديث حالة الجرد:\n' + errorMessage)
-      
-      // Additional rollback in case of any other errors
-      setProducts(prevProducts => 
-        prevProducts.map(product => {
-          if (product.id === productId) {
-            return {
-              ...product,
-              inventoryData: {
-                ...product.inventoryData,
-                [branchId]: {
-                  ...product.inventoryData?.[branchId],
-                  audit_status: originalStatus
-                } as any
-              }
-            } as any
-          }
-          return product
-        })
-      )
+      console.error('Error updating audit status:', error)
+      alert('فشل في تحديث حالة الجرد: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'))
     }
-  }, [auditContextMenu.productId, auditContextMenu.branchId, setProducts])
+  }, [auditContextMenu.productId, auditContextMenu.branchId, setProducts, fetchProducts])
   
   // Handle audit status filter toggle
   const handleAuditStatusToggle = useCallback((status: string) => {

@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Use service role for admin operations or anon key for regular operations
+// Simple Supabase client setup
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
 export async function POST(request: NextRequest) {
@@ -45,84 +39,60 @@ export async function POST(request: NextRequest) {
     if (action === 'update_audit_status') {
       console.log('Updating audit status:', { productId, branchId, auditStatus })
       
-      // Validate input parameters
-      if (!productId || !branchId || !auditStatus) {
-        console.error('Missing required parameters:', { productId, branchId, auditStatus })
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Missing required parameters: productId, branchId, and auditStatus are required' 
-          },
-          { status: 400 }
-        )
-      }
-      
-      // Validate audit status value
-      const validStatuses = ['غير مجرود', 'استعد', 'تام الجرد']
-      if (!validStatuses.includes(auditStatus)) {
-        console.error('Invalid audit status:', auditStatus)
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: `Invalid audit status. Must be one of: ${validStatuses.join(', ')}` 
-          },
-          { status: 400 }
-        )
-      }
-      
-      // Check if inventory record exists first
+      // First check if the record exists
       const { data: existingRecord, error: checkError } = await supabase
         .from('inventory')
-        .select('id, audit_status')
+        .select('id, audit_status, product_id, branch_id')
         .eq('product_id', productId)
         .eq('branch_id', branchId)
-        .single()
+        .maybeSingle()
         
       if (checkError) {
-        console.error('Error checking existing inventory record:', checkError)
+        console.error('Error checking record:', checkError)
         return NextResponse.json(
           { 
             success: false, 
-            error: 'Inventory record not found for this product-branch combination',
-            details: checkError 
+            error: 'Error checking inventory record',
+            details: checkError.message 
+          },
+          { status: 500 }
+        )
+      }
+      
+      if (!existingRecord) {
+        console.error('No inventory record found for:', { productId, branchId })
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'No inventory record found for this product and branch',
+            details: { productId, branchId }
           },
           { status: 404 }
         )
       }
       
-      console.log('Found existing inventory record:', existingRecord)
+      console.log('Found existing record:', existingRecord)
       
-      // Update audit status in inventory table for specific product-branch combination
+      // Update the record
       const { data, error } = await supabase
         .from('inventory')
         .update({ 
           audit_status: auditStatus,
           last_updated: new Date().toISOString()
         })
-        .eq('product_id', productId)
-        .eq('branch_id', branchId)
-        .select()
+        .eq('id', existingRecord.id)
+        .select('*')
+        .single()
         
       if (error) {
-        console.error('Supabase audit status update error:', error)
+        console.error('Update error:', error)
         return NextResponse.json(
           { 
             success: false, 
-            error: 'Failed to update audit status in database',
-            details: error 
+            error: 'Failed to update audit status',
+            details: error.message 
           },
           { status: 500 }
-        )
-      }
-      
-      if (!data || data.length === 0) {
-        console.error('No records were updated')
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: 'No inventory records were updated. Please check the product and branch IDs.' 
-          },
-          { status: 404 }
         )
       }
       
@@ -130,8 +100,8 @@ export async function POST(request: NextRequest) {
       
       return NextResponse.json({ 
         success: true, 
-        data: data[0],
-        message: `Audit status successfully updated to "${auditStatus}"`,
+        data: data,
+        message: `Audit status updated to "${auditStatus}"`,
         previousStatus: existingRecord.audit_status
       })
     }
