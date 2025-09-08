@@ -36,16 +36,17 @@ export async function POST(request: NextRequest) {
     }
     
     if (action === 'update_audit_status') {
-      console.log('Updating audit status:', { productId, auditStatus })
+      console.log('Updating audit status:', { productId, branchId, auditStatus })
       
-      // Update audit status directly in products table
+      // Update audit status in inventory table for specific product-branch combination
       const { data, error } = await supabase
-        .from('products')
+        .from('inventory')
         .update({ 
           audit_status: auditStatus,
-          updated_at: new Date().toISOString()
+          last_updated: new Date().toISOString()
         })
-        .eq('id', productId)
+        .eq('product_id', productId)
+        .eq('branch_id', branchId)
         .select()
         
       if (error) {

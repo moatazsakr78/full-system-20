@@ -251,7 +251,7 @@ export function useProducts() {
             // Single query for all inventory data
             supabase
               .from('inventory')
-              .select('product_id, branch_id, quantity, min_stock')
+              .select('product_id, branch_id, quantity, min_stock, audit_status')
               .in('product_id', productIds)
               .then(({ data, error }) => {
                 if (error) {
@@ -675,19 +675,8 @@ export function useProducts() {
             const updatedProduct = payload.new as any
             const oldProduct = payload.old as any
             
-            // Check if audit_status changed
-            if (updatedProduct.audit_status !== oldProduct.audit_status) {
-              // OPTIMISTIC: Just update the audit_status without full refetch
-              console.log('Real-time audit status update:', updatedProduct.id, updatedProduct.audit_status)
-              setProducts(prev => prev.map(product => 
-                product.id === updatedProduct.id 
-                  ? { ...product, audit_status: updatedProduct.audit_status }
-                  : product
-              ))
-            } else {
-              // For other updates, do full refetch
-              fetchProductsOptimized()
-            }
+            // For product updates, do full refetch to get latest data
+            fetchProductsOptimized()
           } else {
             // For DELETE, do a smart refetch
             fetchProductsOptimized()
@@ -714,7 +703,11 @@ export function useProducts() {
                 if (product.id === productId) {
                   const updatedInventoryData = {
                     ...product.inventoryData,
-                    [locationId]: { quantity, min_stock: minStock }
+                    [locationId]: { 
+                      quantity, 
+                      min_stock: minStock,
+                      audit_status: payload.new.audit_status || 'غير مجرود'
+                    }
                   }
                   
                   // Recalculate total quantity

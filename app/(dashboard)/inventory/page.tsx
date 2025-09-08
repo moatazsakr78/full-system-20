@@ -89,17 +89,22 @@ export default function InventoryPage() {
     'غير مجرود': true
   })
   
+  // Selected branch for audit status filtering
+  const [selectedAuditBranch, setSelectedAuditBranch] = useState<string>('')
+  
   // Context menu state for audit status
   const [auditContextMenu, setAuditContextMenu] = useState<{
     show: boolean;
     x: number;
     y: number;
     productId: string;
+    branchId: string;
   }>({
     show: false,
     x: 0,
     y: 0,
-    productId: ''
+    productId: '',
+    branchId: ''
   })
 
   // Get products and branches data using the same hook as products page
@@ -167,7 +172,7 @@ export default function InventoryPage() {
     const handleClickOutside = (event: MouseEvent) => {
       if (auditContextMenu.show) {
         console.log('Click outside detected, closing audit context menu')
-        setAuditContextMenu({ show: false, x: 0, y: 0, productId: '' })
+        setAuditContextMenu({ show: false, x: 0, y: 0, productId: '', branchId: '' })
       }
     }
 
@@ -439,34 +444,39 @@ export default function InventoryPage() {
     }
   }))
 
-    const auditStatusColumn = { 
-    id: 'audit_status', 
-    header: 'الحالة', 
-    accessor: 'audit_status', 
-    width: 120,
-    render: (value: any, item: any) => {
-      const status = item.audit_status || 'غير مجرود'
-      const getStatusColor = (status: string) => {
-        switch(status) {
-          case 'تام الجرد': return 'bg-green-600 text-white'
-          case 'استعد': return 'bg-yellow-600 text-white'
-          case 'غير مجرود': return 'bg-red-600 text-white'
-          default: return 'bg-red-600 text-white'
+    // Add audit status columns for each selected branch
+    const auditStatusColumns = branches
+      .filter(branch => selectedBranches[branch.id])
+      .map(branch => ({
+        id: `audit_status_${branch.id}`,
+        header: `حالة الجرد - ${branch.name}`,
+        accessor: `audit_status_${branch.id}`,
+        width: 150,
+        render: (value: any, item: any) => {
+          const inventoryData = item.inventoryData?.[branch.id]
+          const status = (inventoryData as any)?.audit_status || 'غير مجرود'
+          
+          const getStatusColor = (status: string) => {
+            switch(status) {
+              case 'تام الجرد': return 'bg-green-600 text-white'
+              case 'استعد': return 'bg-yellow-600 text-white'
+              case 'غير مجرود': return 'bg-red-600 text-white'
+              default: return 'bg-red-600 text-white'
+            }
+          }
+          
+          return (
+            <div 
+              className="flex justify-center"
+              onContextMenu={(e) => handleAuditStatusRightClick(e, item.id, branch.id)}
+            >
+              <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(status)} cursor-context-menu`}>
+                {status}
+              </span>
+            </div>
+          )
         }
-      }
-      
-      return (
-        <div 
-          className="flex justify-center"
-          onContextMenu={(e) => handleAuditStatusRightClick(e, item.id)}
-        >
-          <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(status)} cursor-context-menu`}>
-            {status}
-          </span>
-        </div>
-      )
-    }
-    }
+      }))
 
     // Get count of selected branches
     const selectedBranchesCount = Object.values(selectedBranches).filter(Boolean).length
@@ -483,7 +493,7 @@ export default function InventoryPage() {
       ...branchQuantityColumns,
       ...branchLowStockColumns,
       ...variantColumns,
-      auditStatusColumn
+      ...auditStatusColumns
     ]
     
     // Filter columns based on visibility
@@ -568,11 +578,21 @@ export default function InventoryPage() {
       const stockStatus = getStockStatus(item)
       if (!stockStatusFilters[stockStatus as keyof typeof stockStatusFilters]) return false
       
-      // Audit status filter
-      const auditStatus = item.audit_status || 'غير مجرود'
-      return auditStatusFilters[auditStatus as keyof typeof auditStatusFilters]
+      // Audit status filter - check selected audit branch or all branches
+      if (selectedAuditBranch) {
+        // Filter by specific branch audit status
+        const branchAuditStatus = (item.inventoryData?.[selectedAuditBranch] as any)?.audit_status || 'غير مجرود'
+        return auditStatusFilters[branchAuditStatus as keyof typeof auditStatusFilters]
+      } else {
+        // Filter by any branch that matches the audit status filters
+        return Object.entries(item.inventoryData || {}).some(([branchId, inventory]: [string, any]) => {
+          if (!selectedBranches[branchId]) return false
+          const auditStatus = (inventory as any)?.audit_status || 'غير مجرود'
+          return auditStatusFilters[auditStatus as keyof typeof auditStatusFilters]
+        })
+      }
     })
-  }, [products, searchQuery, stockStatusFilters, auditStatusFilters, getStockStatus])
+  }, [products, searchQuery, stockStatusFilters, auditStatusFilters, selectedAuditBranch, selectedBranches, getStockStatus])
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
@@ -744,18 +764,19 @@ export default function InventoryPage() {
   }, [selectedProductForQuantity, quantityModalMode, fetchProducts])
 
   // Handle audit status right click
-  const handleAuditStatusRightClick = useCallback((e: React.MouseEvent, productId: string) => {
+  const handleAuditStatusRightClick = useCallback((e: React.MouseEvent, productId: string, branchId: string) => {
     e.preventDefault()
     e.stopPropagation()
     
-    console.log('Right-click detected on audit status for product:', productId)
+    console.log('Right-click detected on audit status for product:', productId, 'branch:', branchId)
     console.log('Mouse position:', e.clientX, e.clientY)
     
     setAuditContextMenu({
       show: true,
       x: e.clientX,
       y: e.clientY,
-      productId: productId
+      productId: productId,
+      branchId: branchId
     })
   }, [])
   
@@ -769,23 +790,34 @@ export default function InventoryPage() {
     // Store original status before any changes
     setProducts(prevProducts => {
       const targetProduct = prevProducts.find(p => p.id === productId)
-      originalStatus = targetProduct?.audit_status || 'غير مجرود'
+      const branchInventory = targetProduct?.inventoryData?.[auditContextMenu.branchId]
+      originalStatus = (branchInventory as any)?.audit_status || 'غير مجرود'
       return prevProducts
     })
     
     // Close context menu immediately for better UX
-    setAuditContextMenu({ show: false, x: 0, y: 0, productId: '' })
+    setAuditContextMenu({ show: false, x: 0, y: 0, productId: '', branchId: '' })
     
     try {
       console.log('Updating audit status:', { productId, newStatus })
       
-      // OPTIMISTIC UPDATE: Update local state immediately
+      // OPTIMISTIC UPDATE: Update local state immediately for specific branch
       setProducts(prevProducts => 
-        prevProducts.map(product => 
-          product.id === productId 
-            ? { ...product, audit_status: newStatus }
-            : product
-        )
+        prevProducts.map(product => {
+          if (product.id === productId) {
+            return {
+              ...product,
+              inventoryData: {
+                ...product.inventoryData,
+                [auditContextMenu.branchId]: {
+                  ...product.inventoryData?.[auditContextMenu.branchId],
+                  audit_status: newStatus
+                } as any
+              }
+            } as any
+          }
+          return product
+        })
       )
       
       // Call API to update audit status in database
@@ -797,6 +829,7 @@ export default function InventoryPage() {
         body: JSON.stringify({
           action: 'update_audit_status',
           productId: productId,
+          branchId: auditContextMenu.branchId,
           auditStatus: newStatus
         })
       })
@@ -804,13 +837,23 @@ export default function InventoryPage() {
       const result = await response.json()
       
       if (!response.ok || !result.success) {
-        // ROLLBACK: If API fails, revert the optimistic update
+        // ROLLBACK: If API fails, revert the optimistic update for specific branch
         setProducts(prevProducts => 
-          prevProducts.map(product => 
-            product.id === productId 
-              ? { ...product, audit_status: originalStatus }
-              : product
-          )
+          prevProducts.map(product => {
+            if (product.id === productId) {
+              return {
+                ...product,
+                inventoryData: {
+                  ...product.inventoryData,
+                  [auditContextMenu.branchId]: {
+                    ...product.inventoryData?.[auditContextMenu.branchId],
+                    audit_status: originalStatus
+                  } as any
+                }
+              } as any
+            }
+            return product
+          })
         )
         
         throw new Error(result.error || 'Failed to update audit status')
@@ -823,7 +866,7 @@ export default function InventoryPage() {
       console.error('Error updating audit status:', error)
       alert('حدث خطأ في تحديث حالة الجرد: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'))
     }
-  }, [auditContextMenu.productId, setProducts])
+  }, [auditContextMenu.productId, auditContextMenu.branchId, setProducts])
   
   // Handle audit status filter toggle
   const handleAuditStatusToggle = useCallback((status: string) => {
@@ -934,39 +977,6 @@ export default function InventoryPage() {
               <span className="text-sm">الأعمدة</span>
             </button>
             
-            {/* Audit Status Filter Buttons */}
-            <button 
-              onClick={() => handleAuditStatusToggle('تام الجرد')}
-              className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] rounded-md transition-all ${
-                auditStatusFilters['تام الجرد'] 
-                  ? 'text-white bg-green-600 hover:bg-green-700' 
-                  : 'text-gray-400 bg-gray-600 opacity-50'
-              }`}
-            >
-              <span className="text-xs mb-1">تام الجرد</span>
-            </button>
-            
-            <button 
-              onClick={() => handleAuditStatusToggle('استعد')}
-              className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] rounded-md transition-all ${
-                auditStatusFilters['استعد'] 
-                  ? 'text-white bg-yellow-600 hover:bg-yellow-700' 
-                  : 'text-gray-400 bg-gray-600 opacity-50'
-              }`}
-            >
-              <span className="text-xs mb-1">استعد</span>
-            </button>
-            
-            <button 
-              onClick={() => handleAuditStatusToggle('غير مجرود')}
-              className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] rounded-md transition-all ${
-                auditStatusFilters['غير مجرود'] 
-                  ? 'text-white bg-red-600 hover:bg-red-700' 
-                  : 'text-gray-400 bg-gray-600 opacity-50'
-              }`}
-            >
-              <span className="text-xs mb-1">غير مجرود</span>
-            </button>
           </div>
         </div>
 
@@ -1075,38 +1085,91 @@ export default function InventoryPage() {
                   </div>
                 </div>
 
-                {/* Right Side - Status Filter Buttons */}
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => handleStockStatusToggle('good')}
-                    className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                      stockStatusFilters.good 
-                        ? 'bg-green-600 hover:bg-green-700 text-white' 
-                        : 'bg-gray-600 text-gray-400 opacity-50'
-                    }`}
+                {/* Right Side - Audit and Stock Status Filter Buttons */}
+                <div className="flex items-center gap-4">
+                  
+                  {/* Audit Status Filter Section */}
+                  <div className="flex items-center gap-2">
+                    {/* Audit Status Buttons */}
+                    <button 
+                      onClick={() => handleAuditStatusToggle('تام الجرد')}
+                      className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                        auditStatusFilters['تام الجرد'] 
+                          ? 'bg-green-600 hover:bg-green-700 text-white' 
+                          : 'bg-gray-600 text-gray-400 opacity-50'
+                      }`}
+                    >
+                      تام الجرد
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleAuditStatusToggle('استعد')}
+                      className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                        auditStatusFilters['استعد'] 
+                          ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+                          : 'bg-gray-600 text-gray-400 opacity-50'
+                      }`}
+                    >
+                      استعد
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleAuditStatusToggle('غير مجرود')}
+                      className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                        auditStatusFilters['غير مجرود'] 
+                          ? 'bg-red-600 hover:bg-red-700 text-white' 
+                          : 'bg-gray-600 text-gray-400 opacity-50'
+                      }`}
+                    >
+                      غير مجرود
+                    </button>
+                  </div>
+                  
+                  {/* Branch Selector for Audit Status - Positioned as Separator */}
+                  <select
+                    value={selectedAuditBranch}
+                    onChange={(e) => setSelectedAuditBranch(e.target.value)}
+                    className="px-3 py-2 bg-[#2B3544] border border-gray-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    جيد
-                  </button>
-                  <button 
-                    onClick={() => handleStockStatusToggle('low')}
-                    className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                      stockStatusFilters.low 
-                        ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-                        : 'bg-gray-600 text-gray-400 opacity-50'
-                    }`}
-                  >
-                    منخفض
-                  </button>
-                  <button 
-                    onClick={() => handleStockStatusToggle('zero')}
-                    className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                      stockStatusFilters.zero 
-                        ? 'bg-red-600 hover:bg-red-700 text-white' 
-                        : 'bg-gray-600 text-gray-400 opacity-50'
-                    }`}
-                  >
-                    صفر
-                  </button>
+                    <option value="">جميع الفروع</option>
+                    {branches.map(branch => (
+                      <option key={branch.id} value={branch.id}>{branch.name}</option>
+                    ))}
+                  </select>
+                  
+                  {/* Stock Status Buttons */}
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => handleStockStatusToggle('good')}
+                      className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                        stockStatusFilters.good 
+                          ? 'bg-green-600 hover:bg-green-700 text-white' 
+                          : 'bg-gray-600 text-gray-400 opacity-50'
+                      }`}
+                    >
+                      جيد
+                    </button>
+                    <button 
+                      onClick={() => handleStockStatusToggle('low')}
+                      className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                        stockStatusFilters.low 
+                          ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+                          : 'bg-gray-600 text-gray-400 opacity-50'
+                      }`}
+                    >
+                      منخفض
+                    </button>
+                    <button 
+                      onClick={() => handleStockStatusToggle('zero')}
+                      className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                        stockStatusFilters.zero 
+                          ? 'bg-red-600 hover:bg-red-700 text-white' 
+                          : 'bg-gray-600 text-gray-400 opacity-50'
+                      }`}
+                    >
+                      صفر
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1625,7 +1688,8 @@ export default function InventoryPage() {
           {/* Get available statuses for current product */}
           {(() => {
             const currentProduct = products.find(p => p.id === auditContextMenu.productId)
-            const currentStatus = currentProduct?.audit_status || 'غير مجرود'
+            const branchInventory = currentProduct?.inventoryData?.[auditContextMenu.branchId]
+            const currentStatus = (branchInventory as any)?.audit_status || 'غير مجرود'
             const allStatuses = ['غير مجرود', 'استعد', 'تام الجرد']
             const availableStatuses = allStatuses.filter(status => status !== currentStatus)
             

@@ -17,6 +17,7 @@ interface TreeViewProps {
   data: TreeNode[];
   onItemClick?: (item: TreeNode) => void;
   onToggle?: (nodeId: string) => void;
+  selectedId?: string;
 }
 
 interface TreeNodeProps {
@@ -24,13 +25,15 @@ interface TreeNodeProps {
   level?: number;
   onItemClick?: (item: TreeNode) => void;
   onToggle?: (nodeId: string) => void;
+  selectedId?: string;
 }
 
 const TreeNodeComponent = ({ 
   node, 
   level = 0, 
   onItemClick,
-  onToggle 
+  onToggle,
+  selectedId
 }: TreeNodeProps) => {
   const hasChildren = node.children && node.children.length > 0;
   
@@ -46,7 +49,11 @@ const TreeNodeComponent = ({
   return (
     <div>
       <div 
-        className="flex items-center px-3 py-2 hover:bg-[#2B3544] cursor-pointer text-gray-300 hover:text-white transition-colors"
+        className={`flex items-center px-3 py-2 cursor-pointer transition-colors ${
+          selectedId === node.id && !hasChildren
+            ? 'bg-blue-600 text-white'
+            : 'hover:bg-[#2B3544] text-gray-300 hover:text-white'
+        }`}
         style={{ paddingRight: `${12 + level * 20}px` }}
         onClick={handleClick}
       >
@@ -65,7 +72,9 @@ const TreeNodeComponent = ({
           
           <FolderIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
           
-          <span className="text-base text-gray-300 truncate">
+          <span className={`text-base truncate ${
+            selectedId === node.id && !hasChildren ? 'text-white' : 'text-gray-300'
+          }`}>
             {node.name}
           </span>
         </div>
@@ -79,7 +88,8 @@ const TreeNodeComponent = ({
               node={child} 
               level={level + 1} 
               onItemClick={onItemClick}
-              onToggle={onToggle} 
+              onToggle={onToggle}
+              selectedId={selectedId}
             />
           ))}
         </div>
@@ -88,7 +98,7 @@ const TreeNodeComponent = ({
   );
 };
 
-const TreeView = ({ data, onItemClick, onToggle }: TreeViewProps) => {
+const TreeView = ({ data, onItemClick, onToggle, selectedId }: TreeViewProps) => {
   return (
     <div className="w-full">
       {data.map((node) => (
@@ -97,6 +107,7 @@ const TreeView = ({ data, onItemClick, onToggle }: TreeViewProps) => {
           node={node}
           onItemClick={onItemClick}
           onToggle={onToggle}
+          selectedId={selectedId}
         />
       ))}
     </div>

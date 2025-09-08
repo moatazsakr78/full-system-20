@@ -15,16 +15,16 @@ import {
   UsersIcon,
   CogIcon,
   LockClosedIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ExclamationTriangleIcon,
   ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline';
 import TopHeader from '@/app/components/layout/TopHeader';
 import Sidebar from '@/app/components/layout/Sidebar';
-import ResizableTable from '@/app/components/tables/ResizableTable';
 import TreeView, { TreeNode } from '@/app/components/TreeView';
+import ResizableTable from '@/app/components/tables/ResizableTable';
+import AddPermissionModal from '@/app/components/AddPermissionModal';
+import PermissionDetails from '@/app/components/PermissionDetails';
 import { supabase } from '@/app/lib/supabase/client';
+
 
 interface Permission {
   id: string;
@@ -53,18 +53,100 @@ interface User {
   createdAt: string | null;
 }
 
+interface ActionButton {
+  icon: any;
+  label: string;
+  action: () => void;
+  disabled?: boolean;
+}
+
 export default function PermissionsPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState<'roles' | 'users' | 'permissions'>('roles');
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [selectedPermissionPage, setSelectedPermissionPage] = useState<{id: string, name: string} | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [realUsers, setRealUsers] = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [isAddPermissionModalOpen, setIsAddPermissionModalOpen] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [updatingRole, setUpdatingRole] = useState(false);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+
+
+  const toggleTreeNode = (nodeId: string) => {
+    const updateNode = (nodes: TreeNode[]): TreeNode[] => {
+      return nodes.map(node => {
+        if (node.id === nodeId) {
+          return { ...node, isExpanded: !node.isExpanded };
+        }
+        if (node.children) {
+          return { ...node, children: updateNode(node.children) };
+        }
+        return node;
+      });
+    };
+    
+    setPermissionTreeData(updateNode(permissionTreeData));
+  };
+
+  // تحديث أدوار المستخدمين حسب is_admin
+  const updateUserRoles = async () => {
+    try {
+      // تحديث المستخدمين الذين is_admin = false ليصبح دورهم 'عميل'
+      await supabase
+        .from('user_profiles')
+        .update({ role: 'عميل' })
+        .eq('is_admin', false);
+
+      // تحديث المستخدمين الذين is_admin = true ليصبح دورهم 'أدمن رئيسي'
+      await supabase
+        .from('user_profiles')
+        .update({ role: 'أدمن رئيسي' })
+        .eq('is_admin', true);
+
+      console.log('✅ تم تحديث أدوار المستخدمين بنجاح');
+    } catch (error) {
+      console.error('❌ خطأ في تحديث الأدوار:', error);
+    }
+  };
+
+  // تحديث دور مستخدم معين
+  const updateUserRole = async (userId: string, newRole: string) => {
+    setUpdatingRole(true);
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('❌ خطأ في تحديث الدور:', error);
+        return false;
+      }
+
+      // تحديث البيانات محلياً
+      setRealUsers(prev => prev.map(user => 
+        user.id === userId ? { ...user, role: newRole } : user
+      ));
+      
+      setEditingUserId(null);
+      console.log('✅ تم تحديث دور المستخدم بنجاح');
+      return true;
+    } catch (error) {
+      console.error('❌ خطأ في تحديث الدور:', error);
+      return false;
+    } finally {
+      setUpdatingRole(false);
+    }
+  };
+
+  // قائمة الأدوار المتاحة
+  const availableRoles = ['عميل', 'جملة', 'موظف', 'أدمن رئيسي'];
 
   // جلب جميع المستخدمين من قاعدة البيانات
   useEffect(() => {
@@ -76,9 +158,12 @@ export default function PermissionsPage() {
         console.log('🔐 حالة المصادقة:', !!session);
         console.log('👤 المستخدم الحالي:', session?.user?.id);
 
+        // تحديث الأدوار أولاً قبل جلب البيانات
+        await updateUserRoles();
+
         const { data, error } = await supabase
           .from('user_profiles')
-          .select('id, full_name, role, created_at')
+          .select('id, full_name, role, is_admin, created_at')
           .order('created_at', { ascending: false });
 
         console.log('📊 البيانات المسترجعة:', data);
@@ -118,22 +203,6 @@ export default function PermissionsPage() {
     fetchRealUsers();
   }, []);
 
-  const toggleTreeNode = (nodeId: string) => {
-    const updateNode = (nodes: TreeNode[]): TreeNode[] => {
-      return nodes.map(node => {
-        if (node.id === nodeId) {
-          return { ...node, isExpanded: !node.isExpanded };
-        }
-        if (node.children) {
-          return { ...node, children: updateNode(node.children) };
-        }
-        return node;
-      });
-    };
-    
-    setPermissionTreeData(updateNode(permissionTreeData));
-  };
-
   // Sample permissions data
   const permissions: Permission[] = [
     { id: '1', module: 'المبيعات', action: 'قراءة', description: 'عرض بيانات المبيعات' },
@@ -158,131 +227,83 @@ export default function PermissionsPage() {
     { id: '20', module: 'الصلاحيات', action: 'إدارة', description: 'إدارة صلاحيات المستخدمين' },
   ];
 
-  // Sample roles data
+  // Main 4 roles - Fixed roles that cannot be edited or deleted
   const roles: Role[] = [
     {
-      id: '1',
-      name: 'المدير العام',
-      description: 'صلاحيات كاملة لجميع وظائف النظام',
-      userCount: 2,
+      id: 'client',
+      name: 'عميل',
+      description: 'صلاحيات محدودة للوصول للمتجر وطلباته فقط',
+      userCount: realUsers.filter(u => u.role === 'عميل').length,
+      status: 'active',
+      permissions: ['1', '5'], // Home page, view orders
+      createdAt: '2024-01-01',
+      lastModified: '2024-01-01'
+    },
+    {
+      id: 'wholesale',
+      name: 'جملة',
+      description: 'صلاحيات محدودة للوصول للمتجر وطلباته فقط (نفس العميل)',
+      userCount: realUsers.filter(u => u.role === 'جملة').length,
+      status: 'active',
+      permissions: ['1', '5'], // Home page, view orders
+      createdAt: '2024-01-01',
+      lastModified: '2024-01-01'
+    },
+    {
+      id: 'employee',
+      name: 'موظف',
+      description: 'صلاحيات كاملة لجميع صفحات النظام والمتجر',
+      userCount: realUsers.filter(u => u.role === 'موظف').length,
       status: 'active',
       permissions: permissions.map(p => p.id),
-      createdAt: '2024-01-15',
-      lastModified: '2024-07-20'
+      createdAt: '2024-01-01',
+      lastModified: '2024-01-01'
     },
     {
-      id: '2',
-      name: 'مدير المبيعات',
-      description: 'إدارة المبيعات والعملاء والتقارير التجارية',
-      userCount: 5,
+      id: 'main_admin',
+      name: 'أدمن رئيسي',
+      description: 'صلاحيات كاملة لجميع صفحات النظام والمتجر مع إدارة كاملة',
+      userCount: realUsers.filter(u => u.role === 'أدمن رئيسي').length,
       status: 'active',
-      permissions: ['1', '2', '3', '5', '11', '12', '13', '16', '17'],
-      createdAt: '2024-01-20',
-      lastModified: '2024-07-18'
-    },
-    {
-      id: '3',
-      name: 'أمين المخزن',
-      description: 'إدارة المخزون والمنتجات والموردين',
-      userCount: 3,
-      status: 'active',
-      permissions: ['5', '6', '7', '9', '10', '14', '15'],
-      createdAt: '2024-02-01',
-      lastModified: '2024-07-15'
-    },
-    {
-      id: '4',
-      name: 'كاشير',
-      description: 'عمليات البيع الأساسية فقط',
-      userCount: 8,
-      status: 'active',
-      permissions: ['1', '2', '5', '11'],
-      createdAt: '2024-02-10',
-      lastModified: '2024-07-10'
-    },
-    {
-      id: '5',
-      name: 'مراجع مالي',
-      description: 'عرض التقارير المالية وتصديرها',
-      userCount: 1,
-      status: 'inactive',
-      permissions: ['1', '16', '17'],
-      createdAt: '2024-03-01',
-      lastModified: '2024-06-30'
+      permissions: permissions.map(p => p.id),
+      createdAt: '2024-01-01',
+      lastModified: '2024-01-01'
     }
   ];
 
 
+
   const [permissionTreeData, setPermissionTreeData] = useState<TreeNode[]>([
     {
-      id: 'sales',
-      name: 'المبيعات',
-      isExpanded: false,
+      id: 'admin-pages',
+      name: 'صفحات الإدارة',
+      isExpanded: true,
       children: [
-        { id: 'sales-read', name: 'عرض المبيعات' },
-        { id: 'sales-create', name: 'إنشاء مبيعات' },
-        { id: 'sales-edit', name: 'تعديل المبيعات' },
-        { id: 'sales-delete', name: 'حذف المبيعات' }
+        { id: 'pos', name: 'نقطة البيع' },
+        { id: 'products', name: 'المنتجات' },
+        { id: 'inventory', name: 'المخزون' },
+        { id: 'customers', name: 'العملاء' },
+        { id: 'suppliers', name: 'الموردين' },
+        { id: 'customer-orders', name: 'طلبات العملاء' },
+        { id: 'records', name: 'السجلات' },
+        { id: 'reports', name: 'التقارير (غير مكتملة)' },
+        { id: 'permissions', name: 'الصلاحيات' }
       ]
     },
     {
-      id: 'products',
-      name: 'المنتجات',
+      id: 'store-pages',
+      name: 'صفحات المتجر',
       isExpanded: false,
       children: [
-        { id: 'products-read', name: 'عرض المنتجات' },
-        { id: 'products-create', name: 'إضافة منتجات' },
-        { id: 'products-edit', name: 'تعديل المنتجات' },
-        { id: 'products-delete', name: 'حذف المنتجات' }
-      ]
-    },
-    {
-      id: 'inventory',
-      name: 'المخزون',
-      isExpanded: false,
-      children: [
-        { id: 'inventory-read', name: 'عرض المخزون' },
-        { id: 'inventory-edit', name: 'تحديث المخزون' }
-      ]
-    },
-    {
-      id: 'customers',
-      name: 'العملاء',
-      isExpanded: false,
-      children: [
-        { id: 'customers-read', name: 'عرض العملاء' },
-        { id: 'customers-create', name: 'إضافة عملاء' },
-        { id: 'customers-edit', name: 'تعديل العملاء' }
-      ]
-    },
-    {
-      id: 'suppliers',
-      name: 'الموردين',
-      isExpanded: false,
-      children: [
-        { id: 'suppliers-read', name: 'عرض الموردين' },
-        { id: 'suppliers-create', name: 'إضافة موردين' }
-      ]
-    },
-    {
-      id: 'reports',
-      name: 'التقارير',
-      isExpanded: false,
-      children: [
-        { id: 'reports-read', name: 'عرض التقارير' },
-        { id: 'reports-export', name: 'تصدير التقارير' }
-      ]
-    },
-    {
-      id: 'settings',
-      name: 'الإعدادات',
-      isExpanded: false,
-      children: [
-        { id: 'settings-read', name: 'عرض الإعدادات' },
-        { id: 'settings-edit', name: 'تعديل الإعدادات' }
+        { id: 'store-customer-orders', name: 'طلبات العملاء' },
+        { id: 'store-products', name: 'إدارة المنتجات' },
+        { id: 'store-management', name: 'إدارة المتجر' },
+        { id: 'shipping-details', name: 'تفاصيل الشحن' }
       ]
     }
   ]);
+
+
 
 
   const roleColumns = [
@@ -352,10 +373,19 @@ export default function PermissionsPage() {
           <button className="p-1 text-gray-400 hover:text-blue-400 transition-colors">
             <EyeIcon className="h-4 w-4" />
           </button>
-          <button className="p-1 text-gray-400 hover:text-yellow-400 transition-colors">
+          {/* إخفاء أزرار التعديل والحذف للأدوار الأساسية */}
+          <button 
+            className="p-1 text-gray-600 cursor-not-allowed" 
+            disabled
+            title="الأدوار الأساسية لا يمكن تعديلها"
+          >
             <PencilIcon className="h-4 w-4" />
           </button>
-          <button className="p-1 text-gray-400 hover:text-red-400 transition-colors">
+          <button 
+            className="p-1 text-gray-600 cursor-not-allowed" 
+            disabled
+            title="الأدوار الأساسية لا يمكن حذفها"
+          >
             <TrashIcon className="h-4 w-4" />
           </button>
         </div>
@@ -385,13 +415,50 @@ export default function PermissionsPage() {
       id: 'role',
       header: 'الدور',
       accessor: 'role' as keyof User,
-      width: 150,
-      render: (value: any) => (
-        <span className={`px-2 py-1 text-white text-xs rounded-full ${
-          value ? 'bg-blue-600' : 'bg-gray-600'
-        }`}>
-          {value || 'غير محدد'}
-        </span>
+      width: 200,
+      render: (value: any, user: User) => (
+        <div className="flex items-center gap-2">
+          {editingUserId === user.id ? (
+            <div className="flex items-center gap-2 w-full">
+              <select
+                className="bg-[#2B3544] border border-gray-600 rounded-md px-2 py-1 text-white text-xs flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={value || 'عميل'}
+                onChange={(e) => updateUserRole(user.id, e.target.value)}
+                disabled={updatingRole}
+              >
+                {availableRoles.map(role => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </select>
+              {updatingRole && (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+              )}
+              <button
+                onClick={() => setEditingUserId(null)}
+                className="text-gray-400 hover:text-gray-300 text-xs"
+                disabled={updatingRole}
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 w-full">
+              <span className={`px-2 py-1 text-white text-xs rounded-full ${
+                value === 'عميل' || value === 'جملة' ? 'bg-green-600' :
+                value === 'موظف' ? 'bg-blue-600' :
+                value === 'أدمن رئيسي' ? 'bg-purple-600' : 'bg-gray-600'
+              }`}>
+                {value || 'غير محدد'}
+              </span>
+              <button
+                onClick={() => setEditingUserId(user.id)}
+                className="text-gray-400 hover:text-blue-400 text-xs"
+              >
+                <PencilIcon className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+        </div>
       )
     },
     {
@@ -433,36 +500,6 @@ export default function PermissionsPage() {
     }
   ];
 
-  const permissionColumns = [
-    {
-      id: 'module',
-      header: 'الوحدة',
-      accessor: 'module' as keyof Permission,
-      width: 150,
-      render: (value: any) => (
-        <span className="font-medium text-blue-400">{value}</span>
-      )
-    },
-    {
-      id: 'action',
-      header: 'الإجراء',
-      accessor: 'action' as keyof Permission,
-      width: 120,
-      render: (value: any) => (
-        <span className="px-2 py-1 bg-gray-600 text-white text-xs rounded-full">{value}</span>
-      )
-    },
-    {
-      id: 'description',
-      header: 'الوصف',
-      accessor: 'description' as keyof Permission,
-      width: 300,
-      render: (value: any) => (
-        <span className="text-gray-300 text-sm">{value}</span>
-      )
-    }
-  ];
-
   const getCurrentData = () => {
     switch (activeView) {
       case 'roles':
@@ -470,7 +507,7 @@ export default function PermissionsPage() {
       case 'users':
         return realUsers;
       case 'permissions':
-        return permissions;
+        return [];
       default:
         return [];
     }
@@ -483,19 +520,19 @@ export default function PermissionsPage() {
       case 'users':
         return userColumns;
       case 'permissions':
-        return permissionColumns;
+        return [];
       default:
         return [];
     }
   };
 
-  const getActionButtons = () => {
+  const getActionButtons = (): ActionButton[] => {
     switch (activeView) {
       case 'roles':
         return [
-          { icon: UserGroupIcon, label: 'دور جديد', action: () => {} },
-          { icon: PencilIcon, label: 'تعديل', action: () => {} },
-          { icon: TrashIcon, label: 'حذف', action: () => {} },
+          { icon: UserGroupIcon, label: 'دور جديد (معطل)', action: () => {}, disabled: true },
+          { icon: PencilIcon, label: 'تعديل (معطل)', action: () => {}, disabled: true },
+          { icon: TrashIcon, label: 'حذف (معطل)', action: () => {}, disabled: true },
           { icon: ClipboardDocumentListIcon, label: 'تصدير', action: () => {} }
         ];
       case 'users':
@@ -507,7 +544,7 @@ export default function PermissionsPage() {
         ];
       case 'permissions':
         return [
-          { icon: KeyIcon, label: 'صلاحية جديدة', action: () => {} },
+          { icon: KeyIcon, label: 'صلاحية جديدة', action: () => setIsAddPermissionModalOpen(true) },
           { icon: CogIcon, label: 'إعدادات', action: () => {} },
           { icon: ClipboardDocumentListIcon, label: 'تصدير', action: () => {} }
         ];
@@ -529,7 +566,13 @@ export default function PermissionsPage() {
               <button
                 key={index}
                 onClick={button.action}
-                className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px] transition-colors"
+                disabled={button.disabled}
+                className={`flex flex-col items-center p-2 min-w-[80px] transition-colors ${
+                  button.disabled 
+                    ? 'text-gray-600 cursor-not-allowed' 
+                    : 'text-gray-300 hover:text-white cursor-pointer'
+                }`}
+                title={button.disabled ? 'الأدوار الأساسية لا يمكن تعديلها' : ''}
               >
                 <button.icon className="h-5 w-5 mb-1" />
                 <span className="text-sm">{button.label}</span>
@@ -588,8 +631,22 @@ export default function PermissionsPage() {
                   <h4 className="text-gray-300 text-sm font-medium mb-3">شجرة الصلاحيات</h4>
                   <TreeView 
                     data={permissionTreeData}
+                    selectedId={selectedPermissionPage?.id}
                     onItemClick={(item) => {
-                      console.log('Permission clicked:', item);
+                      if (item.children) {
+                        toggleTreeNode(item.id);
+                      } else {
+                        // إذا كانت الصفحة محددة بالفعل، قم بإلغاء التحديد
+                        if (selectedPermissionPage && selectedPermissionPage.id === item.id) {
+                          setSelectedPermissionPage(null);
+                        } else {
+                          // إذا لم تكن محددة، قم بتحديدها
+                          setSelectedPermissionPage({
+                            id: item.id,
+                            name: item.name
+                          });
+                        }
+                      }
                     }}
                     onToggle={toggleTreeNode}
                   />
@@ -711,14 +768,56 @@ export default function PermissionsPage() {
 
             {/* Data Table Container */}
             <div className="flex-1 overflow-hidden bg-[#2B3544]">
-              <ResizableTable
-                columns={getCurrentColumns()}
-                data={getCurrentData()}
-              />
+              {activeView === 'permissions' && selectedPermissionPage ? (
+                <div className="p-6">
+                  <PermissionDetails
+                    pageName={selectedPermissionPage.name}
+                    pageId={selectedPermissionPage.id}
+                    onClose={() => setSelectedPermissionPage(null)}
+                    isSelected={true}
+                  />
+                </div>
+              ) : activeView === 'permissions' ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <KeyIcon className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-medium text-white mb-2">إدارة الصلاحيات</h3>
+                    <p className="text-gray-400 mb-6 max-w-md">
+                      اختر صفحة من شجرة الصلاحيات على اليمين لعرض وإدارة الصلاحيات الخاصة بها
+                    </p>
+                    <div className="bg-[#374151] rounded-lg p-6 border border-gray-600 max-w-md mx-auto">
+                      <h4 className="text-white font-medium mb-3">الصفحات المتاحة:</h4>
+                      <div className="text-right space-y-2 text-sm text-gray-300">
+                        <div>• نقطة البيع</div>
+                        <div>• المنتجات</div>
+                        <div>• المخزون</div>
+                        <div>• العملاء والموردين</div>
+                        <div>• طلبات العملاء والسجلات</div>
+                        <div>• صفحات المتجر الإلكتروني</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <ResizableTable
+                  columns={getCurrentColumns()}
+                  data={getCurrentData()}
+                />
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Add Permission Modal */}
+      <AddPermissionModal
+        isOpen={isAddPermissionModalOpen}
+        onClose={() => setIsAddPermissionModalOpen(false)}
+        onPermissionAdded={(permission) => {
+          console.log('New permission added:', permission);
+          // Here you would typically save to database
+        }}
+      />
     </div>
   );
 }
