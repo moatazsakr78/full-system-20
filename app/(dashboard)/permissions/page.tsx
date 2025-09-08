@@ -257,26 +257,9 @@ export default function PermissionsPage() {
     setPermissionTreeData(updateNode(permissionTreeData));
   };
 
-  // تحديث أدوار المستخدمين حسب is_admin
-  const updateUserRoles = async () => {
-    try {
-      // تحديث المستخدمين الذين is_admin = false ليصبح دورهم 'عميل'
-      await supabase
-        .from('user_profiles')
-        .update({ role: 'عميل' })
-        .eq('is_admin', false);
-
-      // تحديث المستخدمين الذين is_admin = true ليصبح دورهم 'أدمن رئيسي'
-      await supabase
-        .from('user_profiles')
-        .update({ role: 'أدمن رئيسي' })
-        .eq('is_admin', true);
-
-      console.log('✅ تم تحديث أدوار المستخدمين بنجاح');
-    } catch (error) {
-      console.error('❌ خطأ في تحديث الأدوار:', error);
-    }
-  };
+  // REMOVED: updateUserRoles function that was overriding manual role changes
+  // This function was automatically resetting all user roles based on is_admin flag
+  // which prevented manual role assignments from persisting after page refresh
 
   // تحديث دور مستخدم معين
   const updateUserRole = async (userId: string, newRole: string) => {
@@ -385,8 +368,8 @@ export default function PermissionsPage() {
         console.log('🔐 حالة المصادقة:', !!session);
         console.log('👤 المستخدم الحالي:', session?.user?.id);
 
-        // تحديث الأدوار أولاً قبل جلب البيانات
-        await updateUserRoles();
+        // تم إزالة تحديث الأدوار التلقائي للحفاظ على التعديلات اليدوية
+        // await updateUserRoles();
 
         const { data, error } = await supabase
           .from('user_profiles')
