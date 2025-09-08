@@ -84,6 +84,7 @@ export default function MobileHome({
               name: dbProduct.name || 'منتج بدون اسم',
               description: dbProduct.description || '',
               price: finalPrice,
+              wholesale_price: Number(dbProduct.wholesale_price) || undefined,
               originalPrice: hasDiscount ? Number(dbProduct.price) : undefined,
               image: dbProduct.main_image_url || undefined,
               images: dbProduct.main_image_url ? [dbProduct.main_image_url] : [],

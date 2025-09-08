@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Product, ProductColor } from './shared/types';
 import { useCart } from '../../lib/contexts/CartContext';
+import { useUserProfile } from '../../lib/hooks/useUserProfile';
 
 interface InteractiveProductCardProps {
   product: Product;
@@ -31,6 +32,17 @@ export default function InteractiveProductCard({
   
   // Get cart functions for direct access
   const { addToCart: directAddToCart } = useCart();
+  
+  // Get user profile to check role
+  const { profile } = useUserProfile();
+  
+  // Determine which price to display based on user role
+  const getDisplayPrice = () => {
+    if (profile?.role === 'جملة' && product.wholesale_price) {
+      return product.wholesale_price;
+    }
+    return product.price;
+  };
   
   // Create array of all available images (main image + additional images)
   const allImages = product.images && product.images.length > 0 
@@ -295,7 +307,7 @@ export default function InteractiveProductCard({
               </span>
             )}
             <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>
-              {product.price} ريال
+              {getDisplayPrice()} ريال
             </span>
           </div>
         </div>
@@ -316,7 +328,8 @@ export default function InteractiveProductCard({
             e.stopPropagation();
             const productToAdd = { 
               ...product, 
-              selectedColor: selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : null)
+              selectedColor: selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : null),
+              price: getDisplayPrice() // Use the display price based on user role
             };
             await onAddToCart(productToAdd);
           }}
@@ -445,11 +458,12 @@ export default function InteractiveProductCard({
                   
                   const selectedColorName = productToAdd.selectedColor?.name || undefined;
                   const quantityToAdd = parseInt(quantity);
+                  const priceToUse = getDisplayPrice(); // Use the display price based on user role
                   
                   try {
-                    console.log('🛒 Adding to cart:', quantityToAdd, 'units of product:', product.name);
+                    console.log('🛒 Adding to cart:', quantityToAdd, 'units of product:', product.name, 'at price:', priceToUse);
                     // Use directAddToCart with the full quantity at once - much faster!
-                    await directAddToCart(String(product.id), quantityToAdd, product.price, selectedColorName);
+                    await directAddToCart(String(product.id), quantityToAdd, priceToUse, selectedColorName);
                     console.log('✅ Successfully added', quantityToAdd, 'units to cart');
                   } catch (error) {
                     console.error('❌ Error adding to cart:', error);

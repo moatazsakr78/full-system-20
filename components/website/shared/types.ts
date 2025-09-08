@@ -38,6 +38,7 @@ export interface Product {
   name: string;
   description?: string;
   price: number;
+  wholesale_price?: number;
   originalPrice?: number;
   image?: string;
   images?: string[];
