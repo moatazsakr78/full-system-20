@@ -15,7 +15,8 @@ import {
   UsersIcon,
   CogIcon,
   LockClosedIcon,
-  ClipboardDocumentListIcon
+  ClipboardDocumentListIcon,
+  ArrowRightIcon
 } from '@heroicons/react/24/outline';
 import TopHeader from '@/app/components/layout/TopHeader';
 import Sidebar from '@/app/components/layout/Sidebar';
@@ -350,10 +351,7 @@ export default function PermissionsPage() {
       accessor: 'name' as keyof Role,
       width: 200,
       render: (value: any, role: Role) => (
-        <div 
-          className={`flex items-center gap-2 cursor-pointer p-2 rounded ${selectedRoleId === role.id ? 'bg-blue-600/30' : 'hover:bg-gray-700/30'} transition-colors`}
-          onClick={() => setSelectedRoleId(role.id)}
-        >
+        <div className="flex items-center gap-2">
           <ShieldCheckIcon className="h-4 w-4 text-blue-400" />
           <span className="font-medium text-white">{value}</span>
         </div>
@@ -833,6 +831,12 @@ export default function PermissionsPage() {
                 <ResizableTable
                   columns={getCurrentColumns()}
                   data={getCurrentData()}
+                  selectedRowId={activeView === 'roles' ? selectedRoleId : undefined}
+                  onRowClick={(item) => {
+                    if (activeView === 'roles') {
+                      setSelectedRoleId(item.id);
+                    }
+                  }}
                 />
               )}
             </div>
@@ -851,128 +855,150 @@ export default function PermissionsPage() {
       />
 
       {/* Add Role Modal - Side Panel */}
-      {isAddRoleModalOpen && (
-        <div className="fixed inset-0 z-50 flex">
-          {/* Backdrop */}
+      <>
+        {/* Backdrop */}
+        {isAddRoleModalOpen && (
           <div 
-            className="fixed inset-0 bg-black bg-opacity-50" 
+            className="fixed inset-0 bg-black bg-opacity-25 z-40"
             onClick={() => setIsAddRoleModalOpen(false)}
-          ></div>
+          />
+        )}
+
+        {/* Sidebar */}
+        <div className={`fixed top-12 right-0 h-[calc(100vh-3rem)] w-[500px] bg-[#3A4553] z-50 transform transition-transform duration-300 ease-in-out ${
+          isAddRoleModalOpen ? 'translate-x-0' : 'translate-x-full'
+        } shadow-2xl`}>
           
-          {/* Side Panel */}
-          <div className="mr-auto bg-[#2B3544] w-96 h-full shadow-xl border-r border-gray-600 relative z-10">
-            <div className="flex flex-col h-full">
-              {/* Header */}
-              <div className="bg-[#374151] px-6 py-4 border-b border-gray-600">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-white">إضافة دور جديد</h2>
-                  <button
-                    onClick={() => setIsAddRoleModalOpen(false)}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                <p className="text-gray-300 text-sm mt-2">إنشاء دور جديد مشتق من دور الجملة</p>
-              </div>
+          {/* Header */}
+          <div className="bg-[#3A4553] px-4 py-3 flex items-center justify-start border-b border-[#4A5568]">
+            <h2 className="text-white text-lg font-medium flex-1 text-right">إضافة دور جديد</h2>
+            <button
+              onClick={() => setIsAddRoleModalOpen(false)}
+              className="text-white hover:text-gray-200 transition-colors ml-4"
+            >
+              <ArrowRightIcon className="h-5 w-5" />
+            </button>
+          </div>
 
-              {/* Body */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Role Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    اسم الدور *
-                  </label>
-                  <input
-                    type="text"
-                    value={newRoleName}
-                    onChange={(e) => setNewRoleName(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#374151] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="ادخل اسم الدور..."
-                  />
-                </div>
+          {/* Tab Navigation Bar */}
+          <div className="bg-[#3A4553] border-b border-[#4A5568]">
+            <div className="flex">
+              <button className="relative px-6 py-3 text-sm font-medium text-[#5DADE2]">
+                تفاصيل الدور
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#5DADE2]"></div>
+              </button>
+            </div>
+          </div>
 
-                {/* Price Level */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    مستوى السعر *
-                  </label>
-                  <select
-                    value={newRolePriceLevel}
-                    onChange={(e) => setNewRolePriceLevel(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-[#374151] border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value={1}>سعر 1</option>
-                    <option value={2}>سعر 2</option>
-                    <option value={3}>سعر 3</option>
-                    <option value={4}>سعر 4</option>
-                  </select>
-                  <p className="text-xs text-gray-400 mt-1">
-                    حدد مستوى السعر الذي سيربط بهذا الدور
-                  </p>
-                </div>
+          {/* Content Area - Scrollable */}
+          <div className="flex-1 overflow-y-auto scrollbar-hide p-6 space-y-4">
+            
+            {/* Role Name */}
+            <div className="space-y-2">
+              <label className="block text-white text-sm font-medium text-right">
+                اسم الدور *
+              </label>
+              <input
+                type="text"
+                value={newRoleName}
+                onChange={(e) => setNewRoleName(e.target.value)}
+                placeholder="أدخل اسم الدور"
+                className="w-full px-3 py-2 bg-[#2B3441] border border-[#4A5568] rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-sm"
+              />
+            </div>
 
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    وصف الدور *
-                  </label>
-                  <textarea
-                    value={newRoleDescription}
-                    onChange={(e) => setNewRoleDescription(e.target.value)}
-                    rows={4}
-                    className="w-full px-3 py-2 bg-[#374151] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    placeholder="اكتب وصف مفصل للدور..."
-                  />
-                </div>
+            {/* Price Level */}
+            <div className="space-y-2">
+              <label className="block text-white text-sm font-medium text-right">
+                مستوى السعر *
+              </label>
+              <select
+                value={newRolePriceLevel}
+                onChange={(e) => setNewRolePriceLevel(Number(e.target.value))}
+                className="w-full px-3 py-2 bg-[#2B3441] border border-[#4A5568] rounded text-white focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-sm"
+              >
+                <option value={1}>سعر 1</option>
+                <option value={2}>سعر 2</option>
+                <option value={3}>سعر 3</option>
+                <option value={4}>سعر 4</option>
+              </select>
+              <p className="text-gray-400 text-xs text-right">
+                حدد مستوى السعر الذي سيربط بهذا الدور
+              </p>
+            </div>
 
-                {/* Role Info */}
-                <div className="bg-blue-50/10 border border-blue-600/30 rounded-lg p-4">
-                  <h4 className="text-blue-300 font-medium mb-2 flex items-center gap-2">
-                    <ShieldCheckIcon className="h-4 w-4" />
-                    معلومات الدور
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">نوع الدور:</span>
-                      <span className="text-blue-300">فرعي</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">مشتق من:</span>
-                      <span className="text-blue-300">جملة</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-300">الصلاحيات:</span>
-                      <span className="text-blue-300">نفس صلاحيات الجملة</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {/* Description */}
+            <div className="space-y-2">
+              <label className="block text-white text-sm font-medium text-right">
+                وصف الدور *
+              </label>
+              <textarea
+                value={newRoleDescription}
+                onChange={(e) => setNewRoleDescription(e.target.value)}
+                placeholder="أدخل وصف مفصل للدور"
+                rows={4}
+                className="w-full px-3 py-2 bg-[#2B3441] border border-[#4A5568] rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-sm resize-none"
+              />
+            </div>
 
-              {/* Footer */}
-              <div className="bg-[#374151] px-6 py-4 border-t border-gray-600">
-                <div className="flex gap-3 justify-end">
-                  <button
-                    onClick={() => setIsAddRoleModalOpen(false)}
-                    className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
-                  >
-                    إلغاء
-                  </button>
-                  <button
-                    onClick={handleAddDerivedRole}
-                    disabled={!newRoleName.trim() || !newRoleDescription.trim()}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    حفظ الدور
-                  </button>
+            {/* Role Info */}
+            <div className="bg-blue-50/10 border border-blue-600/30 rounded-lg p-4">
+              <h4 className="text-blue-300 font-medium mb-2 flex items-center gap-2 justify-end">
+                <span>معلومات الدور</span>
+                <ShieldCheckIcon className="h-4 w-4" />
+              </h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-blue-300">فرعي</span>
+                  <span className="text-gray-300">نوع الدور:</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-blue-300">جملة</span>
+                  <span className="text-gray-300">مشتق من:</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-blue-300">نفس صلاحيات الجملة</span>
+                  <span className="text-gray-300">الصلاحيات:</span>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Action Buttons */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-[#3A4553] border-t border-[#4A5568]">
+            <div className="flex gap-2">
+              <div className="flex-1"></div>
+              
+              {/* Cancel and Save buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsAddRoleModalOpen(false)}
+                  className="bg-transparent hover:bg-gray-600/10 text-gray-300 border border-gray-600 hover:border-gray-500 px-4 py-2 text-sm font-medium transition-all duration-200 min-w-[80px] flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  إلغاء
+                </button>
+                <button
+                  onClick={handleAddDerivedRole}
+                  disabled={!newRoleName.trim() || !newRoleDescription.trim()}
+                  className={`bg-transparent border px-4 py-2 text-sm font-medium transition-all duration-200 min-w-[80px] flex items-center gap-2 ${
+                    !newRoleName.trim() || !newRoleDescription.trim()
+                      ? 'border-gray-600 text-gray-500 cursor-not-allowed' 
+                      : 'hover:bg-gray-600/10 text-gray-300 border-gray-600 hover:border-gray-500'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  حفظ
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </>
     </div>
   );
 }
