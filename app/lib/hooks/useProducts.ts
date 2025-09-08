@@ -54,7 +54,7 @@ export interface Product {
   } | null
   // Computed fields for table display
   totalQuantity?: number
-  inventoryData?: Record<string, { quantity: number, min_stock: number }>
+  inventoryData?: Record<string, { quantity: number, min_stock: number, audit_status: string }>
   variantsData?: Record<string, ProductVariant[]>
   productColors?: Array<{id: string, name: string, color: string}>
   allImages?: string[]
