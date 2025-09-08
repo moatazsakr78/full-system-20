@@ -282,26 +282,41 @@ export default function PermissionsPage() {
   const updateUserRole = async (userId: string, newRole: string) => {
     setUpdatingRole(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('user_profiles')
-        .update({ role: newRole })
-        .eq('id', userId);
+        .update({ 
+          role: newRole,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select();
 
       if (error) {
         console.error('❌ خطأ في تحديث الدور:', error);
+        alert('فشل في تحديث الدور: ' + error.message);
         return false;
       }
 
-      // تحديث البيانات محلياً
-      setRealUsers(prev => prev.map(user => 
-        user.id === userId ? { ...user, role: newRole } : user
-      ));
-      
-      setEditingUserId(null);
-      console.log('✅ تم تحديث دور المستخدم بنجاح');
-      return true;
+      // تأكد من أن التحديث تم بنجاح
+      if (data && data.length > 0) {
+        console.log('✅ تم تحديث الدور في قاعدة البيانات:', data[0]);
+        
+        // تحديث البيانات محلياً
+        setRealUsers(prev => prev.map(user => 
+          user.id === userId ? { ...user, role: newRole } : user
+        ));
+        
+        setEditingUserId(null);
+        console.log('✅ تم تحديث دور المستخدم بنجاح');
+        return true;
+      } else {
+        console.error('❌ لم يتم العثور على المستخدم أو فشل التحديث');
+        alert('فشل في تحديث الدور - لم يتم العثور على المستخدم');
+        return false;
+      }
     } catch (error) {
       console.error('❌ خطأ في تحديث الدور:', error);
+      alert('حدث خطأ غير متوقع في تحديث الدور');
       return false;
     } finally {
       setUpdatingRole(false);
@@ -619,7 +634,8 @@ export default function PermissionsPage() {
           ) : (
             <div className="flex items-center gap-2 w-full">
               <span className={`px-2 py-1 text-white text-xs rounded-full ${
-                value === 'عميل' || value === 'جملة' ? 'bg-green-600' :
+                value === 'عميل' ? 'bg-green-600' :
+                value === 'جملة' ? 'bg-blue-600' :
                 value === 'موظف' ? 'bg-blue-600' :
                 value === 'أدمن رئيسي' ? 'bg-purple-600' : 'bg-gray-600'
               }`}>
