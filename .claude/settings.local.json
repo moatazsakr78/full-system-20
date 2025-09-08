@@ -238,7 +238,10 @@
       "Bash(start http://localhost:3002/dashboard)",
       "Bash(start http://localhost:3003/pos)",
       "Bash(start http://localhost:3004)",
-      "Bash(start http://localhost:3004/my-orders)"
+      "Bash(start http://localhost:3004/my-orders)",
+      "Bash(start http://localhost:3004/customer-orders)",
+      "Bash(start http://localhost:3004/pos)",
+      "Bash(start http://localhost:3004/permissions)"
     ],
     "deny": [],
     "additionalDirectories": [
