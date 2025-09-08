@@ -85,29 +85,55 @@ export default function PermissionsPage() {
   const [newRolePriceLevel, setNewRolePriceLevel] = useState<number>(1);
 
   // Add new derived role function
-  const handleAddDerivedRole = () => {
+  const handleAddDerivedRole = async () => {
     if (!newRoleName.trim() || !newRoleDescription.trim()) return;
     
-    const newRole: Role = {
-      id: `derived_${Date.now()}`,
-      name: newRoleName,
-      description: newRoleDescription,
-      userCount: 0,
-      permissions: ['1', '5'], // Same as جملة role
-      createdAt: new Date().toLocaleDateString('en-CA'),
-      lastModified: new Date().toLocaleDateString('en-CA'),
-      roleType: 'جملة',
-      parentRole: 'جملة',
-      priceLevel: newRolePriceLevel
-    };
-    
-    setDerivedRoles(prev => [...prev, newRole]);
-    
-    // Clear form
-    setNewRoleName('');
-    setNewRoleDescription('');
-    setNewRolePriceLevel(1);
-    setIsAddRoleModalOpen(false);
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .insert([{
+          name: newRoleName.trim(),
+          description: newRoleDescription.trim(),
+          role_type: 'فرعي',
+          parent_role: 'جملة',
+          price_level: newRolePriceLevel,
+          permissions: ['1', '5'], // Same as جملة role
+          user_count: 0
+        }])
+        .select();
+
+      if (error) {
+        console.error('Error adding role:', error);
+        alert('حدث خطأ أثناء إضافة الدور: ' + error.message);
+        return;
+      }
+
+      if (data && data[0]) {
+        const newRole: Role = {
+          id: data[0].id,
+          name: data[0].name,
+          description: data[0].description,
+          userCount: 0,
+          permissions: data[0].permissions || ['1', '5'],
+          createdAt: new Date(data[0].created_at).toLocaleDateString('en-CA'),
+          lastModified: new Date(data[0].updated_at).toLocaleDateString('en-CA'),
+          roleType: 'فرعي',
+          parentRole: 'جملة',
+          priceLevel: data[0].price_level
+        };
+        
+        setDerivedRoles(prev => [...prev, newRole]);
+      }
+
+      // Clear form
+      setNewRoleName('');
+      setNewRoleDescription('');
+      setNewRolePriceLevel(1);
+      setIsAddRoleModalOpen(false);
+    } catch (err) {
+      console.error('Unexpected error adding role:', err);
+      alert('حدث خطأ غير متوقع');
+    }
   };
 
   // Edit derived role function
@@ -123,37 +149,81 @@ export default function PermissionsPage() {
   };
 
   // Save edited role function
-  const handleSaveEditedRole = () => {
+  const handleSaveEditedRole = async () => {
     if (!newRoleName.trim() || !newRoleDescription.trim() || !editingRoleId) return;
     
-    setDerivedRoles(prev => prev.map(role => 
-      role.id === editingRoleId 
-        ? {
-            ...role,
-            name: newRoleName,
-            description: newRoleDescription,
-            priceLevel: newRolePriceLevel,
-            lastModified: new Date().toLocaleDateString('en-CA')
-          }
-        : role
-    ));
-    
-    // Clear form and close modal
-    setNewRoleName('');
-    setNewRoleDescription('');
-    setNewRolePriceLevel(1);
-    setEditingRoleId(null);
-    setIsEditRoleModalOpen(false);
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .update({
+          name: newRoleName.trim(),
+          description: newRoleDescription.trim(),
+          price_level: newRolePriceLevel,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingRoleId)
+        .select();
+
+      if (error) {
+        console.error('Error updating role:', error);
+        alert('حدث خطأ أثناء تحديث الدور: ' + error.message);
+        return;
+      }
+
+      if (data && data[0]) {
+        setDerivedRoles(prev => prev.map(role => 
+          role.id === editingRoleId 
+            ? {
+                ...role,
+                name: data[0].name,
+                description: data[0].description,
+                priceLevel: data[0].price_level,
+                lastModified: new Date(data[0].updated_at).toLocaleDateString('en-CA')
+              }
+            : role
+        ));
+      }
+
+      // Clear form and close modal
+      setNewRoleName('');
+      setNewRoleDescription('');
+      setNewRolePriceLevel(1);
+      setEditingRoleId(null);
+      setIsEditRoleModalOpen(false);
+    } catch (err) {
+      console.error('Unexpected error updating role:', err);
+      alert('حدث خطأ غير متوقع');
+    }
   };
 
   // Delete derived role function
-  const handleDeleteDerivedRole = (roleId: string) => {
-    if (confirm('هل أنت متأكد من حذف هذا الدور؟\nسيتم حذف الدور نهائياً ولا يمكن التراجع عن هذا الإجراء.')) {
+  const handleDeleteDerivedRole = async (roleId: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذا الدور؟\nسيتم حذف الدور نهائياً ولا يمكن التراجع عن هذا الإجراء.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('id', roleId);
+
+      if (error) {
+        console.error('Error deleting role:', error);
+        alert('حدث خطأ أثناء حذف الدور: ' + error.message);
+        return;
+      }
+
+      // Remove from local state
       setDerivedRoles(prev => prev.filter(role => role.id !== roleId));
+      
       // إلغاء التحديد إذا كان الدور المحذوف محدداً
       if (selectedRoleId === roleId) {
         setSelectedRoleId(null);
       }
+    } catch (err) {
+      console.error('Unexpected error deleting role:', err);
+      alert('حدث خطأ غير متوقع');
     }
   };
 
@@ -241,8 +311,42 @@ export default function PermissionsPage() {
   // قائمة الأدوار المتاحة
   const availableRoles = ['عميل', 'جملة', 'موظف', 'أدمن رئيسي'];
 
+  // Load derived roles from database
+  const loadDerivedRoles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading roles:', error);
+        return;
+      }
+
+      const formattedRoles: Role[] = data.map((role: any) => ({
+        id: role.id,
+        name: role.name,
+        description: role.description,
+        userCount: role.user_count || 0,
+        permissions: role.permissions || ['1', '5'],
+        createdAt: new Date(role.created_at).toLocaleDateString('en-CA'),
+        lastModified: new Date(role.updated_at).toLocaleDateString('en-CA'),
+        roleType: role.role_type || 'فرعي',
+        parentRole: role.parent_role || 'جملة',
+        priceLevel: role.price_level || 1
+      }));
+
+      setDerivedRoles(formattedRoles);
+    } catch (err) {
+      console.error('Unexpected error loading roles:', err);
+    }
+  };
+
   // جلب جميع المستخدمين من قاعدة البيانات
   useEffect(() => {
+    loadDerivedRoles(); // Load derived roles on component mount
     const fetchRealUsers = async () => {
       setUsersLoading(true);
       try {
