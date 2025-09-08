@@ -243,7 +243,8 @@
       "Bash(start http://localhost:3004/pos)",
       "Bash(start http://localhost:3004/permissions)",
       "Bash(start http://localhost:3005/permissions)",
-      "Bash(start http://localhost:3000)"
+      "Bash(start http://localhost:3000)",
+      "Bash(start test-audit-fix.html)"
     ],
     "deny": [],
     "additionalDirectories": [
