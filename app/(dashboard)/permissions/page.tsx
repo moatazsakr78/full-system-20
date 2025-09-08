@@ -78,6 +78,8 @@ export default function PermissionsPage() {
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [derivedRoles, setDerivedRoles] = useState<Role[]>([]);
   const [isAddRoleModalOpen, setIsAddRoleModalOpen] = useState(false);
+  const [isEditRoleModalOpen, setIsEditRoleModalOpen] = useState(false);
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleDescription, setNewRoleDescription] = useState('');
   const [newRolePriceLevel, setNewRolePriceLevel] = useState<number>(1);
@@ -106,6 +108,62 @@ export default function PermissionsPage() {
     setNewRoleDescription('');
     setNewRolePriceLevel(1);
     setIsAddRoleModalOpen(false);
+  };
+
+  // Edit derived role function
+  const handleEditDerivedRole = (roleId: string) => {
+    const roleToEdit = derivedRoles.find(role => role.id === roleId);
+    if (roleToEdit) {
+      setEditingRoleId(roleId);
+      setNewRoleName(roleToEdit.name);
+      setNewRoleDescription(roleToEdit.description);
+      setNewRolePriceLevel(roleToEdit.priceLevel || 1);
+      setIsEditRoleModalOpen(true);
+    }
+  };
+
+  // Save edited role function
+  const handleSaveEditedRole = () => {
+    if (!newRoleName.trim() || !newRoleDescription.trim() || !editingRoleId) return;
+    
+    setDerivedRoles(prev => prev.map(role => 
+      role.id === editingRoleId 
+        ? {
+            ...role,
+            name: newRoleName,
+            description: newRoleDescription,
+            priceLevel: newRolePriceLevel,
+            lastModified: new Date().toLocaleDateString('en-CA')
+          }
+        : role
+    ));
+    
+    // Clear form and close modal
+    setNewRoleName('');
+    setNewRoleDescription('');
+    setNewRolePriceLevel(1);
+    setEditingRoleId(null);
+    setIsEditRoleModalOpen(false);
+  };
+
+  // Delete derived role function
+  const handleDeleteDerivedRole = (roleId: string) => {
+    if (confirm('هل أنت متأكد من حذف هذا الدور؟\nسيتم حذف الدور نهائياً ولا يمكن التراجع عن هذا الإجراء.')) {
+      setDerivedRoles(prev => prev.filter(role => role.id !== roleId));
+      // إلغاء التحديد إذا كان الدور المحذوف محدداً
+      if (selectedRoleId === roleId) {
+        setSelectedRoleId(null);
+      }
+    }
+  };
+
+  // Cancel edit role function
+  const handleCancelEditRole = () => {
+    setNewRoleName('');
+    setNewRoleDescription('');
+    setNewRolePriceLevel(1);
+    setEditingRoleId(null);
+    setIsEditRoleModalOpen(false);
   };
 
   const toggleSidebar = () => {
@@ -544,23 +602,54 @@ export default function PermissionsPage() {
       case 'roles':
         const selectedRole = roles.find(r => r.id === selectedRoleId);
         
-        if (selectedRole?.name === 'جملة') {
-          return [
-            { 
-              icon: UserGroupIcon, 
-              label: 'دور جديد', 
-              action: () => setIsAddRoleModalOpen(true), 
-              disabled: false 
-            },
-            { icon: PencilIcon, label: 'تعديل', action: () => {}, disabled: true },
-            { icon: TrashIcon, label: 'حذف', action: () => {}, disabled: true },
-            { icon: ClipboardDocumentListIcon, label: 'تصدير', action: () => {} }
-          ];
-        } else {
+        if (!selectedRole) {
+          // لا يوجد دور محدد
           return [
             { icon: UserGroupIcon, label: 'دور جديد', action: () => {}, disabled: true },
             { icon: PencilIcon, label: 'تعديل', action: () => {}, disabled: true },
             { icon: TrashIcon, label: 'حذف', action: () => {}, disabled: true },
+            { icon: ClipboardDocumentListIcon, label: 'تصدير', action: () => {} }
+          ];
+        } else if (selectedRole.roleType === 'حقل رئيسي') {
+          // دور رئيسي محدد
+          if (selectedRole.name === 'جملة') {
+            // دور الجملة يمكن إنشاء أدوار فرعية منه
+            return [
+              { 
+                icon: UserGroupIcon, 
+                label: 'دور جديد', 
+                action: () => setIsAddRoleModalOpen(true), 
+                disabled: false 
+              },
+              { icon: PencilIcon, label: 'تعديل', action: () => {}, disabled: true },
+              { icon: TrashIcon, label: 'حذف', action: () => {}, disabled: true },
+              { icon: ClipboardDocumentListIcon, label: 'تصدير', action: () => {} }
+            ];
+          } else {
+            // باقي الأدوار الرئيسية لا يمكن تعديلها أو حذفها أو إنشاء أدوار منها
+            return [
+              { icon: UserGroupIcon, label: 'دور جديد', action: () => {}, disabled: true },
+              { icon: PencilIcon, label: 'تعديل', action: () => {}, disabled: true },
+              { icon: TrashIcon, label: 'حذف', action: () => {}, disabled: true },
+              { icon: ClipboardDocumentListIcon, label: 'تصدير', action: () => {} }
+            ];
+          }
+        } else {
+          // دور فرعي محدد - يمكن تعديله وحذفه لكن لا يمكن إنشاء أدوار منه
+          return [
+            { icon: UserGroupIcon, label: 'دور جديد', action: () => {}, disabled: true },
+            { 
+              icon: PencilIcon, 
+              label: 'تعديل', 
+              action: () => handleEditDerivedRole(selectedRole.id), 
+              disabled: false 
+            },
+            { 
+              icon: TrashIcon, 
+              label: 'حذف', 
+              action: () => handleDeleteDerivedRole(selectedRole.id), 
+              disabled: false 
+            },
             { icon: ClipboardDocumentListIcon, label: 'تصدير', action: () => {} }
           ];
         }
@@ -834,7 +923,13 @@ export default function PermissionsPage() {
                   selectedRowId={activeView === 'roles' ? selectedRoleId : undefined}
                   onRowClick={(item) => {
                     if (activeView === 'roles') {
-                      setSelectedRoleId(item.id);
+                      // إذا كان الصف محدد بالفعل، قم بإلغاء التحديد
+                      if (selectedRoleId === item.id) {
+                        setSelectedRoleId(null);
+                      } else {
+                        // وإلا حدد الصف الجديد
+                        setSelectedRoleId(item.id);
+                      }
                     }
                   }}
                 />
@@ -993,6 +1088,152 @@ export default function PermissionsPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   حفظ
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+
+      {/* Edit Role Modal - Side Panel */}
+      <>
+        {/* Backdrop */}
+        {isEditRoleModalOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-25 z-40"
+            onClick={() => handleCancelEditRole()}
+          />
+        )}
+
+        {/* Sidebar */}
+        <div className={`fixed top-12 right-0 h-[calc(100vh-3rem)] w-[500px] bg-[#3A4553] z-50 transform transition-transform duration-300 ease-in-out ${
+          isEditRoleModalOpen ? 'translate-x-0' : 'translate-x-full'
+        } shadow-2xl`}>
+          
+          {/* Header */}
+          <div className="bg-[#3A4553] px-4 py-3 flex items-center justify-start border-b border-[#4A5568]">
+            <h2 className="text-white text-lg font-medium flex-1 text-right">تعديل الدور</h2>
+            <button
+              onClick={() => handleCancelEditRole()}
+              className="text-white hover:text-gray-200 transition-colors ml-4"
+            >
+              <ArrowRightIcon className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Tab Navigation Bar */}
+          <div className="bg-[#3A4553] border-b border-[#4A5568]">
+            <div className="flex">
+              <button className="relative px-6 py-3 text-sm font-medium text-[#5DADE2]">
+                تفاصيل الدور
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#5DADE2]"></div>
+              </button>
+            </div>
+          </div>
+
+          {/* Content Area - Scrollable */}
+          <div className="flex-1 overflow-y-auto scrollbar-hide p-6 space-y-4">
+            
+            {/* Role Name */}
+            <div className="space-y-2">
+              <label className="block text-white text-sm font-medium text-right">
+                اسم الدور *
+              </label>
+              <input
+                type="text"
+                value={newRoleName}
+                onChange={(e) => setNewRoleName(e.target.value)}
+                placeholder="أدخل اسم الدور"
+                className="w-full px-3 py-2 bg-[#2B3441] border border-[#4A5568] rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-sm"
+              />
+            </div>
+
+            {/* Price Level */}
+            <div className="space-y-2">
+              <label className="block text-white text-sm font-medium text-right">
+                مستوى السعر *
+              </label>
+              <select
+                value={newRolePriceLevel}
+                onChange={(e) => setNewRolePriceLevel(Number(e.target.value))}
+                className="w-full px-3 py-2 bg-[#2B3441] border border-[#4A5568] rounded text-white focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-sm"
+              >
+                <option value={1}>سعر 1</option>
+                <option value={2}>سعر 2</option>
+                <option value={3}>سعر 3</option>
+                <option value={4}>سعر 4</option>
+              </select>
+              <p className="text-gray-400 text-xs text-right">
+                حدد مستوى السعر الذي سيربط بهذا الدور
+              </p>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <label className="block text-white text-sm font-medium text-right">
+                وصف الدور *
+              </label>
+              <textarea
+                value={newRoleDescription}
+                onChange={(e) => setNewRoleDescription(e.target.value)}
+                placeholder="أدخل وصف مفصل للدور"
+                rows={4}
+                className="w-full px-3 py-2 bg-[#2B3441] border border-[#4A5568] rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-sm resize-none"
+              />
+            </div>
+
+            {/* Role Info */}
+            <div className="bg-blue-50/10 border border-blue-600/30 rounded-lg p-4">
+              <h4 className="text-blue-300 font-medium mb-2 flex items-center gap-2 justify-end">
+                <span>معلومات الدور</span>
+                <ShieldCheckIcon className="h-4 w-4" />
+              </h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-blue-300">فرعي</span>
+                  <span className="text-gray-300">نوع الدور:</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-blue-300">جملة</span>
+                  <span className="text-gray-300">مشتق من:</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-blue-300">نفس صلاحيات الجملة</span>
+                  <span className="text-gray-300">الصلاحيات:</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-[#3A4553] border-t border-[#4A5568]">
+            <div className="flex gap-2">
+              <div className="flex-1"></div>
+              
+              {/* Cancel and Save buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleCancelEditRole()}
+                  className="bg-transparent hover:bg-gray-600/10 text-gray-300 border border-gray-600 hover:border-gray-500 px-4 py-2 text-sm font-medium transition-all duration-200 min-w-[80px] flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  إلغاء
+                </button>
+                <button
+                  onClick={handleSaveEditedRole}
+                  disabled={!newRoleName.trim() || !newRoleDescription.trim()}
+                  className={`bg-transparent border px-4 py-2 text-sm font-medium transition-all duration-200 min-w-[80px] flex items-center gap-2 ${
+                    !newRoleName.trim() || !newRoleDescription.trim()
+                      ? 'border-gray-600 text-gray-500 cursor-not-allowed' 
+                      : 'hover:bg-gray-600/10 text-gray-300 border-gray-600 hover:border-gray-500'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  حفظ التعديل
                 </button>
               </div>
             </div>
