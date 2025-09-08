@@ -32,8 +32,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/suppliers',
     '/records',
     '/reports',
-    '/permissions',
-    '/settings'
+    '/permissions'
   ],
   'أدمن رئيسي': [
     // All pages - full access
@@ -51,8 +50,7 @@ export const rolePermissions: Record<UserRole, string[]> = {
     '/suppliers',
     '/records',
     '/reports',
-    '/permissions',
-    '/settings'
+    '/permissions'
   ]
 };
 

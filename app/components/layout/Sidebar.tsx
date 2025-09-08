@@ -13,7 +13,6 @@ import {
   DocumentTextIcon,
   ChartBarIcon,
   ShieldCheckIcon,
-  Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   XMarkIcon,
   ClipboardDocumentListIcon
@@ -30,7 +29,6 @@ const sidebarItems = [
   { href: '/records', label: 'السجلات', icon: DocumentTextIcon },
   { href: '/reports', label: 'التقارير', icon: ChartBarIcon },
   { href: '/permissions', label: 'الصلاحيات', icon: ShieldCheckIcon },
-  { href: '/settings', label: 'الإعدادات', icon: Cog6ToothIcon },
 ]
 
 interface SidebarProps {
