@@ -54,6 +54,7 @@ interface User {
   role: string | null;
   lastLogin: string | null;
   createdAt: string | null;
+  avatar_url: string | null;
 }
 
 interface ActionButton {
@@ -373,7 +374,7 @@ export default function PermissionsPage() {
 
         const { data, error } = await supabase
           .from('user_profiles')
-          .select('id, full_name, role, is_admin, created_at')
+          .select('id, full_name, role, is_admin, created_at, avatar_url, email')
           .order('created_at', { ascending: false });
 
         console.log('📊 البيانات المسترجعة:', data);
@@ -393,10 +394,11 @@ export default function PermissionsPage() {
           const formattedUsers: User[] = data.map((user: any) => ({
             id: user.id || 'غير متوفر',
             name: user.full_name || user.name || 'مستخدم غير معروف',
-            email: 'غير متوفر', // العمود غير موجود في قاعدة البيانات
+            email: user.email || 'غير متوفر',
             role: user.role || 'غير محدد',
             lastLogin: 'غير متوفر',
-            createdAt: user.created_at ? new Date(user.created_at).toLocaleDateString('ar-EG') : null
+            createdAt: user.created_at ? new Date(user.created_at).toLocaleDateString('ar-EG') : null,
+            avatar_url: user.avatar_url || null
           }));
           
           console.log('✅ المستخدمين المنسقين:', formattedUsers);
@@ -589,8 +591,24 @@ export default function PermissionsPage() {
       width: 200,
       render: (value: any, user: User) => (
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-medium">{value?.charAt(0) || 'U'}</span>
+          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-blue-600">
+            {user.avatar_url ? (
+              <img 
+                src={user.avatar_url} 
+                alt={value || 'User Avatar'} 
+                className="w-full h-full object-cover rounded-full"
+                onError={(e) => {
+                  // إذا فشل تحميل الصورة، اعرض الحرف الأول
+                  e.currentTarget.style.display = 'none';
+                  const parentDiv = e.currentTarget.parentNode as HTMLElement;
+                  if (parentDiv) {
+                    parentDiv.innerHTML = `<span class="text-white text-sm font-medium">${value?.charAt(0) || 'U'}</span>`;
+                  }
+                }}
+              />
+            ) : (
+              <span className="text-white text-sm font-medium">{value?.charAt(0) || 'U'}</span>
+            )}
           </div>
           <div>
             <div className="text-white font-medium">{value || 'غير محدد'}</div>
