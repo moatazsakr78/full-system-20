@@ -839,10 +839,11 @@ export default function InventoryPage() {
       
       console.log('Audit status updated successfully:', result)
       
-      // Force a full data refresh to ensure we get the latest data
-      setTimeout(() => {
-        fetchProducts()
-      }, 500) // Small delay to ensure database update is complete
+      // Clear cache to prevent stale data from overriding the optimistic update
+      cache.invalidatePattern('products:')
+      
+      // Don't refresh - rely on real-time subscription to update the data
+      // The optimistic update should persist until the real-time update arrives
       
     } catch (error) {
       console.error('Error updating audit status:', error)

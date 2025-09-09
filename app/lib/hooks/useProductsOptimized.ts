@@ -702,6 +702,8 @@ export function useProducts() {
             if (locationId) {
               setProducts(prev => prev.map(product => {
                 if (product.id === productId) {
+                  console.log('Real-time update received for product:', productId, 'with audit status:', payload.new.audit_status)
+                  
                   const updatedInventoryData = {
                     ...product.inventoryData,
                     [locationId]: { 

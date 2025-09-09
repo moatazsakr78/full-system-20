@@ -98,6 +98,9 @@ export async function POST(request: NextRequest) {
       
       console.log('Successfully updated audit status:', data)
       
+      // Note: Cache invalidation should be handled by the real-time subscription
+      // No manual cache clearing needed here
+      
       return NextResponse.json({ 
         success: true, 
         data: data,
