@@ -449,6 +449,7 @@ export default function CustomersPage() {
     setShowDeleteConfirm(false)
   }
 
+
   // Fetch customer groups for CustomerGroupSidebar usage
   const fetchCustomerGroups = async () => {
     try {
@@ -691,6 +692,7 @@ export default function CustomersPage() {
               <div className="flex items-center justify-between">
                 {/* Left Side - Search and Controls */}
                 <div className="flex items-center gap-4">
+
                   {/* Group Filter Dropdown */}
                   <div className="relative">
                     <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium transition-colors">
@@ -908,6 +910,7 @@ export default function CustomersPage() {
         columns={getAllColumns()}
         onColumnsChange={handleColumnsChange}
       />
+
     </div>
   )
 }

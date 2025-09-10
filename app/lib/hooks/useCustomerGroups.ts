@@ -174,12 +174,31 @@ export function useCustomerGroups() {
     return flatList
   }
 
+  // Function to get all groups for filtering (including children as separate items)
+  const getAllGroupsForFilter = async (): Promise<CustomerGroup[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('customer_groups')
+        .select('*')
+        .or('is_active.is.null,is_active.eq.true')
+        .order('sort_order', { ascending: true, nullsFirst: false })
+
+      if (error) throw error
+
+      return data || []
+    } catch (err) {
+      console.error('Error fetching all customer groups:', err)
+      return []
+    }
+  }
+
   return {
     groups,
     isLoading,
     error,
     refetch: fetchGroups,
     toggleGroup,
-    getFlatGroupsList
+    getFlatGroupsList,
+    getAllGroupsForFilter
   }
 }
