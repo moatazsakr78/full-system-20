@@ -6,8 +6,9 @@ import ResizableTable from '@/app/components/tables/ResizableTable';
 import SimpleDateFilterModal, { DateFilter } from '@/app/components/SimpleDateFilterModal';
 import ProductsFilterModal from '@/app/components/ProductsFilterModal';
 import CustomersFilterModal from '@/app/components/CustomersFilterModal';
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { 
+  ChevronLeftIcon, 
+  ChevronRightIcon,
   ChartBarIcon, 
   DocumentArrowDownIcon,
   PrinterIcon,

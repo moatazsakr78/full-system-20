@@ -142,16 +142,7 @@ export default function CustomersFilterModal({
     onClose()
   }, [selectedCustomers, selectedGroups, onFilterApply, onClose])
 
-  // Generate Gmail profile image URL
-  const getGmailProfileImageUrl = (email: string): string => {
-    if (!email) return ''
-    // Gmail profile images are available via Gravatar or Google's API
-    // For Gmail specifically, we can use Google's profile image API
-    const emailHash = email.toLowerCase().trim()
-    return `https://lh3.googleusercontent.com/a/default-user=s96-c`
-  }
-
-  // Generate customer avatar with real Gmail image or fallback to initials
+  // Generate customer avatar with real profile image (matching permissions page exactly)
   const generateCustomerAvatar = (customer: Customer) => {
     const initials = customer.name
       .split(' ')
@@ -160,35 +151,45 @@ export default function CustomersFilterModal({
       .toUpperCase()
       .slice(0, 2)
 
-    // Try to use Gmail profile image if email exists and is Gmail
-    const isGmailUser = customer.email && customer.email.toLowerCase().includes('@gmail.com')
+    // Generate a nice avatar using UI Avatars API
+    const getAvatarUrl = (name: string, email?: string | null) => {
+      // Extract first two words for better avatar names
+      const nameWords = name.trim().split(' ').slice(0, 2);
+      const displayName = nameWords.join(' ');
+      
+      // Use UI Avatars API for consistent, beautiful avatars
+      const params = new URLSearchParams({
+        name: displayName,
+        size: '96',
+        background: '3B82F6',
+        color: 'ffffff',
+        format: 'svg'
+      });
+      
+      return `https://ui-avatars.com/api/?${params.toString()}`;
+    };
+
+    const avatarUrl = getAvatarUrl(customer.name, customer.email);
+
+    const [imageLoadError, setImageLoadError] = useState(false);
     
-    if (isGmailUser) {
-      return (
-        <div className="w-16 h-16 rounded-full border-2 border-blue-400 overflow-hidden bg-blue-600">
-          <img
-            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(customer.name)}&size=64&background=3B82F6&color=ffffff&bold=true&format=png`}
-            alt={customer.name}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              // Fallback to initials if image fails to load
-              e.currentTarget.style.display = 'none'
-              const nextSibling = e.currentTarget.nextElementSibling as HTMLElement
-              if (nextSibling) {
-                nextSibling.style.display = 'flex'
-              }
-            }}
-          />
-          <div className="w-full h-full bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg" style={{ display: 'none' }}>
-            {initials}
-          </div>
-        </div>
-      )
-    }
+    // Reset error state when customer changes
+    useEffect(() => {
+      setImageLoadError(false);
+    }, [customer.id]);
 
     return (
-      <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg border-2 border-blue-400">
-        {initials}
+      <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-blue-600 border-2 border-blue-400">
+        {!imageLoadError ? (
+          <img 
+            src={avatarUrl}
+            alt={customer.name || 'Customer Avatar'} 
+            className="w-full h-full object-cover rounded-full"
+            onError={() => setImageLoadError(true)}
+          />
+        ) : (
+          <span className="text-white text-lg font-bold">{initials}</span>
+        )}
       </div>
     )
   }
