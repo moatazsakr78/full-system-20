@@ -171,25 +171,18 @@ export default function CustomersFilterModal({
 
     const avatarUrl = getAvatarUrl(customer.name, customer.email);
 
-    const [imageLoadError, setImageLoadError] = useState(false);
-    
-    // Reset error state when customer changes
-    useEffect(() => {
-      setImageLoadError(false);
-    }, [customer.id]);
-
     return (
       <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-blue-600 border-2 border-blue-400">
-        {!imageLoadError ? (
-          <img 
-            src={avatarUrl}
-            alt={customer.name || 'Customer Avatar'} 
-            className="w-full h-full object-cover rounded-full"
-            onError={() => setImageLoadError(true)}
-          />
-        ) : (
-          <span className="text-white text-lg font-bold">{initials}</span>
-        )}
+        <img 
+          src={avatarUrl}
+          alt={customer.name || 'Customer Avatar'} 
+          className="w-full h-full object-cover rounded-full"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            target.parentElement!.innerHTML = `<span class="text-white text-lg font-bold">${initials}</span>`;
+          }}
+        />
       </div>
     )
   }
