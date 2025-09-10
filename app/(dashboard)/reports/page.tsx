@@ -137,6 +137,7 @@ export default function ReportsPage() {
   const [showCustomersFilter, setShowCustomersFilter] = useState(false);
   const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
   const [selectedCustomerGroupIds, setSelectedCustomerGroupIds] = useState<string[]>([]);
+  const [showSalesReportsModal, setShowSalesReportsModal] = useState(false);
   
   const handlePeriodicReportsClick = () => {
     setCurrentView('periodic');
@@ -235,6 +236,14 @@ export default function ReportsPage() {
             <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
               <DocumentChartBarIcon className="h-5 w-5 mb-1" />
               <span className="text-sm">تقرير مفصل</span>
+            </button>
+
+            <button 
+              onClick={() => setShowSalesReportsModal(true)}
+              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+            >
+              <ChartBarIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">تقارير البيع</span>
             </button>
 
             <button 
@@ -667,7 +676,98 @@ export default function ReportsPage() {
           initialSelectedCustomers={selectedCustomerIds}
           initialSelectedGroups={selectedCustomerGroupIds}
         />
+
+        {/* Sales Reports Sidebar */}
+        <SalesReportsSidebar
+          isOpen={showSalesReportsModal}
+          onClose={() => setShowSalesReportsModal(false)}
+        />
       </div>
     </DashboardLayout>
   );
 }
+
+// Sales Reports Sidebar Component
+interface SalesReportsSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const SalesReportsSidebar = ({ isOpen, onClose }: SalesReportsSidebarProps) => {
+  const salesReports = [
+    'الاصناف',
+    'التصنيفات الرئيسية',
+    'العملاء',
+    'المستخدمين',
+    'أنواع الدفع',
+    'انواع الدفع من قبل المستخدمين',
+    'انواع الدفع من قبل العملاء',
+    'المرتجعات',
+    'فواتير العملاء',
+    'المبيعات اليوميه',
+    'المبيعات بالساعه',
+    'هامش الربح',
+    'الفواتير الغير مدفوعه'
+  ];
+
+  const handleReportClick = (reportName: string) => {
+    console.log('Selected report:', reportName);
+    // Here you can add functionality for each report in the future
+  };
+
+  return (
+    <>
+      {/* Background Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/30 z-40"
+          onClick={onClose}
+        />
+      )}
+      
+      {/* Sliding Sidebar */}
+      <div className={`fixed top-[108px] right-0 h-[calc(100vh-108px)] w-96 bg-[#374151] border-l border-gray-600 transform transition-transform duration-300 ease-in-out z-50 ${
+        isOpen ? 'translate-x-0' : 'translate-x-full'
+      }`}>
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-600">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white p-1 rounded transition-colors"
+          >
+            <ChevronLeftIcon className="h-5 w-5" />
+          </button>
+          <h2 className="text-lg font-semibold text-white text-right">تقارير البيع</h2>
+        </div>
+
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto scrollbar-hide p-4">
+          <div className="space-y-3">
+            {salesReports.map((report, index) => (
+              <button
+                key={index}
+                onClick={() => handleReportClick(report)}
+                className="w-full bg-[#2B3544] hover:bg-[#3B4754] border border-gray-600 rounded-lg p-4 text-right text-white transition-colors duration-200 hover:border-blue-500 group"
+              >
+                <div className="flex items-center justify-between">
+                  <ChartBarIcon className="h-5 w-5 text-blue-400 group-hover:text-blue-300" />
+                  <span className="font-medium">{report}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-600">
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors duration-200"
+          >
+            إغلاق
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
