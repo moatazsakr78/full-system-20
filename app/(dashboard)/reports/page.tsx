@@ -353,6 +353,10 @@ export default function ReportsPage() {
   const [productsReportData, setProductsReportData] = useState<any[]>([]);
   const [totalSalesAmount, setTotalSalesAmount] = useState<string>('0.00');
   const [loading, setLoading] = useState(false);
+  const [openTabs, setOpenTabs] = useState<{ id: string; title: string; active: boolean }[]>([
+    { id: 'main', title: 'التقارير', active: true }
+  ]);
+  const [activeTab, setActiveTab] = useState<string>('main');
   
   const handlePeriodicReportsClick = () => {
     setCurrentView('periodic');
@@ -360,6 +364,53 @@ export default function ReportsPage() {
 
   const handleBackToMain = () => {
     setCurrentView('main');
+  };
+
+  // Tab management functions
+  const addTab = (id: string, title: string) => {
+    const existingTab = openTabs.find(tab => tab.id === id);
+    if (!existingTab) {
+      setOpenTabs(prev => [
+        ...prev.map(tab => ({ ...tab, active: false })),
+        { id, title, active: true }
+      ]);
+    } else {
+      setOpenTabs(prev => prev.map(tab => ({
+        ...tab,
+        active: tab.id === id
+      })));
+    }
+    setActiveTab(id);
+  };
+
+  const closeTab = (tabId: string) => {
+    if (tabId === 'main') return; // Can't close main tab
+    
+    const newTabs = openTabs.filter(tab => tab.id !== tabId);
+    setOpenTabs(newTabs);
+    
+    if (activeTab === tabId) {
+      const lastTab = newTabs[newTabs.length - 1];
+      const newActiveTab = lastTab?.id || 'main';
+      setActiveTab(newActiveTab);
+      setShowProductsReport(newActiveTab === 'products');
+      
+      // Clear products data if closing products tab
+      if (tabId === 'products') {
+        setProductsReportData([]);
+      }
+    }
+  };
+
+  const switchTab = (tabId: string) => {
+    setOpenTabs(prev => prev.map(tab => ({
+      ...tab,
+      active: tab.id === tabId
+    })));
+    setActiveTab(tabId);
+    
+    // Update legacy showProductsReport state for compatibility
+    setShowProductsReport(tabId === 'products');
   };
 
   // Fetch total sales amount on component mount (using sale_items for consistency)
@@ -497,12 +548,14 @@ export default function ReportsPage() {
   };
   
   const handleProductsReportClick = () => {
+    addTab('products', 'الأصناف');
     setShowProductsReport(true);
     setShowSalesReportsModal(false);
     fetchProductsReport();
   };
   
   const handleBackToMainReports = async () => {
+    switchTab('main');
     setShowProductsReport(false);
     setShowSalesReportsModal(false);
     setProductsReportData([]);
@@ -946,6 +999,9 @@ export default function ReportsPage() {
                                 if (report === 'الاصناف') {
                                   handleProductsReportClick();
                                 } else {
+                                  // Add tab for other reports but don't implement functionality yet
+                                  const reportId = report.replace(/\s+/g, '_');
+                                  addTab(reportId, report);
                                   console.log('Selected report:', report);
                                 }
                               }}
@@ -1057,9 +1113,46 @@ export default function ReportsPage() {
               )}
 
               {/* Main Content Area - Table */}
-              <div className="flex-1 min-w-0 overflow-hidden">
-                <div className="h-full overflow-y-auto scrollbar-hide bg-[#2B3544]" style={{maxHeight: '100%'}}>
-                  {showProductsReport ? (
+              <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
+                {/* Tabs Bar - Only for table area, not sidebar */}
+                <div className="bg-[#374151] border-b border-gray-600 flex-shrink-0">
+                  <div className="flex items-center overflow-x-auto scrollbar-hide">
+                    {openTabs.map((tab) => (
+                      <div key={tab.id} className="flex items-center">
+                        <button
+                          onClick={() => switchTab(tab.id)}
+                          className={`px-4 py-2 text-sm font-medium border-r border-gray-600 flex items-center gap-2 transition-colors ${
+                            tab.active 
+                              ? 'bg-[#2B3544] text-white border-b-2 border-blue-400' 
+                              : 'text-gray-300 hover:text-white hover:bg-[#4B5563]'
+                          }`}
+                        >
+                          {tab.id === 'main' && (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                          )}
+                          <span>{tab.title}</span>
+                          {tab.id !== 'main' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                closeTab(tab.id);
+                              }}
+                              className="ml-2 hover:text-red-400 transition-colors"
+                            >
+                              <XMarkIcon className="w-4 h-4" />
+                            </button>
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Table Content */}
+                <div className="flex-1 overflow-y-auto scrollbar-hide bg-[#2B3544]" style={{maxHeight: '100%'}}>
+                  {activeTab === 'products' ? (
                     <>
                       {loading && (
                         <div className="flex items-center justify-center h-32">
@@ -1083,7 +1176,7 @@ export default function ReportsPage() {
                         </>
                       )}
                     </>
-                  ) : (
+                  ) : activeTab === 'main' ? (
                     <ResizableTable
                       className="w-full"
                       columns={tableColumns}
@@ -1100,6 +1193,17 @@ export default function ReportsPage() {
                         // Handle double click if needed
                       }}
                     />
+                  ) : (
+                    /* Other Reports - Not implemented yet */
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <DocumentTextIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-white mb-2">
+                          {openTabs.find(tab => tab.id === activeTab)?.title}
+                        </h3>
+                        <p className="text-gray-400">هذا التقرير قيد التطوير</p>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
