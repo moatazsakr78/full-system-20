@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/app/components/layout/DashboardLayout';
+import Sidebar from '@/app/components/layout/Sidebar';
+import TopHeader from '@/app/components/layout/TopHeader';
 import ResizableTable from '@/app/components/tables/ResizableTable';
 import SimpleDateFilterModal, { DateFilter } from '@/app/components/SimpleDateFilterModal';
 import { supabase } from '@/app/lib/supabase/client';
@@ -337,6 +338,7 @@ const productsTableColumns = [
 ];
 
 export default function ReportsPage() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentView, setCurrentView] = useState('main'); // 'main' or 'periodic'
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [showDateFilter, setShowDateFilter] = useState(false);
@@ -357,6 +359,10 @@ export default function ReportsPage() {
     { id: 'main', title: 'التقارير', active: true }
   ]);
   const [activeTab, setActiveTab] = useState<string>('main');
+  
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
   
   const handlePeriodicReportsClick = () => {
     setCurrentView('periodic');
@@ -585,11 +591,18 @@ export default function ReportsPage() {
   };
 
   return (
-    <DashboardLayout showSidebar={true} showTopHeader={true} showTopBar={false}>
-      <div className="w-full flex flex-col bg-[#2B3544] overflow-hidden" style={{height: 'calc(100vh - 60px)', maxHeight: 'calc(100vh - 60px)'}}>
+    <div className="h-screen bg-[#2B3544] overflow-hidden">
+      {/* Top Header */}
+      <TopHeader onMenuClick={toggleSidebar} isMenuOpen={isSidebarOpen} />
+      
+      {/* Sidebar */}
+      <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
+      
+      {/* Main Content Container */}
+      <div className="h-full pt-12 overflow-hidden flex flex-col">
         
-        {/* Top Action Buttons Toolbar - Fixed Height */}
-        <div className="bg-[#374151] px-4 py-1.5 w-full flex-shrink-0">
+        {/* Top Action Buttons Toolbar - Full Width */}
+        <div className="bg-[#374151] border-b border-gray-600 px-4 py-2 w-full">
           <div className="flex items-center justify-start gap-1 overflow-x-auto scrollbar-hide">
             <button 
               onClick={() => setCurrentView('main')}
@@ -702,7 +715,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Main Content Area - Fill remaining height */}
+        {/* Content Area with Sidebar and Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {currentView === 'periodic' ? (
             /* Periodic Reports Content */
@@ -1112,8 +1125,8 @@ export default function ReportsPage() {
                 </div>
               )}
 
-              {/* Main Content Area - Table */}
-              <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
+              {/* Main Content Area */}
+              <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Tabs Bar - Only for table area, not sidebar */}
                 <div className="bg-[#374151] border-b border-gray-600 flex-shrink-0">
                   <div className="flex items-center overflow-x-auto scrollbar-hide">
@@ -1150,8 +1163,8 @@ export default function ReportsPage() {
                   </div>
                 </div>
 
-                {/* Table Content */}
-                <div className="flex-1 overflow-y-auto scrollbar-hide bg-[#2B3544]" style={{maxHeight: '100%'}}>
+                {/* Table Container */}
+                <div className="flex-1 overflow-hidden bg-[#2B3544]">
                   {activeTab === 'products' ? (
                     <>
                       {loading && (
@@ -1162,7 +1175,7 @@ export default function ReportsPage() {
                       {!loading && (
                         <>
                           <ResizableTable
-                            className="w-full"
+                            className="h-full w-full"
                             columns={productsTableColumns}
                             data={productsReportData}
                             selectedRowId={null}
@@ -1178,7 +1191,7 @@ export default function ReportsPage() {
                     </>
                   ) : activeTab === 'main' ? (
                     <ResizableTable
-                      className="w-full"
+                      className="h-full w-full"
                       columns={tableColumns}
                       data={reportsData}
                       selectedRowId={selectedReport?.id || null}
@@ -1210,6 +1223,7 @@ export default function ReportsPage() {
             </>
           )}
         </div>
+      </div>
 
         {/* Date Filter Modal */}
         <SimpleDateFilterModal
@@ -1257,8 +1271,7 @@ export default function ReportsPage() {
           initialSelectedGroups={selectedCustomerGroupIds}
         />
 
-      </div>
-    </DashboardLayout>
+    </div>
   );
 }
 
