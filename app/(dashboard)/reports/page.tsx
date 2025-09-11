@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/components/layout/DashboardLayout';
 import ResizableTable from '@/app/components/tables/ResizableTable';
 import SimpleDateFilterModal, { DateFilter } from '@/app/components/SimpleDateFilterModal';
+import { supabase } from '@/app/lib/supabase/client';
 import ProductsFilterModal from '@/app/components/ProductsFilterModal';
 import CustomersFilterModal from '@/app/components/CustomersFilterModal';
 import { 
@@ -125,6 +126,216 @@ const tableColumns = [
   }
 ];
 
+// Table columns for products report
+const productsTableColumns = [
+  { 
+    id: 'index', 
+    header: '#', 
+    accessor: '#', 
+    width: 60,
+    render: (value: any, item: any, index: number) => (
+      <span className="text-gray-400 font-medium">{index + 1}</span>
+    )
+  },
+  { 
+    id: 'category_name', 
+    header: 'المجموعة', 
+    accessor: 'category_name', 
+    width: 120,
+    render: (value: string) => <span className="text-white font-medium">{value || 'غير محدد'}</span>
+  },
+  { 
+    id: 'product_name', 
+    header: 'اسم المنتج', 
+    accessor: 'product_name', 
+    width: 200,
+    render: (value: string) => <span className="text-white font-medium">{value}</span>
+  },
+  { 
+    id: 'total_quantity_sold', 
+    header: 'الكمية', 
+    accessor: 'total_quantity_sold', 
+    width: 80,
+    render: (value: number) => <span className="text-gray-300">{value || 0}</span>
+  },
+  { 
+    id: 'branch_name', 
+    header: 'الفرع', 
+    accessor: 'branch_name', 
+    width: 100,
+    render: (value: string) => <span className="text-gray-300">{value || 'جميع الفروع'}</span>
+  },
+  { 
+    id: 'total_sales_amount', 
+    header: 'الاجمالي', 
+    accessor: 'total_sales_amount', 
+    width: 120,
+    render: (value: number) => <span className="text-white font-medium">EGP {(value || 0).toFixed(2)}</span>
+  },
+  { 
+    id: 'current_sale_price', 
+    header: 'سعر البيع', 
+    accessor: 'current_sale_price', 
+    width: 100,
+    render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
+  },
+  { 
+    id: 'total_sale_price', 
+    header: 'إجمالي سعر البيع', 
+    accessor: 'total_sale_price', 
+    width: 150,
+    render: (value: any, item: any) => {
+      const quantity = item.total_quantity_sold || 0;
+      const price = parseFloat(item.current_sale_price || '0');
+      const total = quantity * price;
+      return (
+        <span className="text-white">
+          <span className="text-blue-400">{quantity}</span>
+          <span className="text-gray-300">*</span>
+          <span className="text-green-400">{price.toFixed(2)}</span>
+          <span className="text-gray-300"> = </span>
+          <span className="text-white">{total.toFixed(2)}</span>
+        </span>
+      );
+    }
+  },
+  { 
+    id: 'wholesale_price', 
+    header: 'سعر الجملة', 
+    accessor: 'wholesale_price', 
+    width: 100,
+    render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
+  },
+  { 
+    id: 'total_wholesale_price', 
+    header: 'إجمالي سعر الجملة', 
+    accessor: 'total_wholesale_price', 
+    width: 150,
+    render: (value: any, item: any) => {
+      const quantity = item.total_quantity_sold || 0;
+      const price = parseFloat(item.wholesale_price || '0');
+      const total = quantity * price;
+      return (
+        <span className="text-white">
+          <span className="text-blue-400">{quantity}</span>
+          <span className="text-gray-300">*</span>
+          <span className="text-green-400">{price.toFixed(2)}</span>
+          <span className="text-gray-300"> = </span>
+          <span className="text-white">{total.toFixed(2)}</span>
+        </span>
+      );
+    }
+  },
+  { 
+    id: 'price1', 
+    header: 'سعر 1', 
+    accessor: 'price1', 
+    width: 80,
+    render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
+  },
+  { 
+    id: 'total_price1', 
+    header: 'إجمالي سعر 1', 
+    accessor: 'total_price1', 
+    width: 150,
+    render: (value: any, item: any) => {
+      const quantity = item.total_quantity_sold || 0;
+      const price = parseFloat(item.price1 || '0');
+      const total = quantity * price;
+      return (
+        <span className="text-white">
+          <span className="text-blue-400">{quantity}</span>
+          <span className="text-gray-300">*</span>
+          <span className="text-green-400">{price.toFixed(2)}</span>
+          <span className="text-gray-300"> = </span>
+          <span className="text-white">{total.toFixed(2)}</span>
+        </span>
+      );
+    }
+  },
+  { 
+    id: 'price2', 
+    header: 'سعر 2', 
+    accessor: 'price2', 
+    width: 80,
+    render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
+  },
+  { 
+    id: 'total_price2', 
+    header: 'إجمالي سعر 2', 
+    accessor: 'total_price2', 
+    width: 150,
+    render: (value: any, item: any) => {
+      const quantity = item.total_quantity_sold || 0;
+      const price = parseFloat(item.price2 || '0');
+      const total = quantity * price;
+      return (
+        <span className="text-white">
+          <span className="text-blue-400">{quantity}</span>
+          <span className="text-gray-300">*</span>
+          <span className="text-green-400">{price.toFixed(2)}</span>
+          <span className="text-gray-300"> = </span>
+          <span className="text-white">{total.toFixed(2)}</span>
+        </span>
+      );
+    }
+  },
+  { 
+    id: 'price3', 
+    header: 'سعر 3', 
+    accessor: 'price3', 
+    width: 80,
+    render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
+  },
+  { 
+    id: 'total_price3', 
+    header: 'إجمالي سعر 3', 
+    accessor: 'total_price3', 
+    width: 150,
+    render: (value: any, item: any) => {
+      const quantity = item.total_quantity_sold || 0;
+      const price = parseFloat(item.price3 || '0');
+      const total = quantity * price;
+      return (
+        <span className="text-white">
+          <span className="text-blue-400">{quantity}</span>
+          <span className="text-gray-300">*</span>
+          <span className="text-green-400">{price.toFixed(2)}</span>
+          <span className="text-gray-300"> = </span>
+          <span className="text-white">{total.toFixed(2)}</span>
+        </span>
+      );
+    }
+  },
+  { 
+    id: 'price4', 
+    header: 'سعر 4', 
+    accessor: 'price4', 
+    width: 80,
+    render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
+  },
+  { 
+    id: 'total_price4', 
+    header: 'إجمالي سعر 4', 
+    accessor: 'total_price4', 
+    width: 150,
+    render: (value: any, item: any) => {
+      const quantity = item.total_quantity_sold || 0;
+      const price = parseFloat(item.price4 || '0');
+      const total = quantity * price;
+      return (
+        <span className="text-white">
+          <span className="text-blue-400">{quantity}</span>
+          <span className="text-gray-300">*</span>
+          <span className="text-green-400">{price.toFixed(2)}</span>
+          <span className="text-gray-300"> = </span>
+          <span className="text-white">{total.toFixed(2)}</span>
+        </span>
+      );
+    }
+  }
+];
+
 export default function ReportsPage() {
   const [currentView, setCurrentView] = useState('main'); // 'main' or 'periodic'
   const [selectedReport, setSelectedReport] = useState<any>(null);
@@ -138,6 +349,10 @@ export default function ReportsPage() {
   const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
   const [selectedCustomerGroupIds, setSelectedCustomerGroupIds] = useState<string[]>([]);
   const [showSalesReportsModal, setShowSalesReportsModal] = useState(false);
+  const [showProductsReport, setShowProductsReport] = useState(false);
+  const [productsReportData, setProductsReportData] = useState<any[]>([]);
+  const [totalSalesAmount, setTotalSalesAmount] = useState<string>('0.00');
+  const [loading, setLoading] = useState(false);
   
   const handlePeriodicReportsClick = () => {
     setCurrentView('periodic');
@@ -145,6 +360,175 @@ export default function ReportsPage() {
 
   const handleBackToMain = () => {
     setCurrentView('main');
+  };
+
+  // Fetch total sales amount on component mount (using sale_items for consistency)
+  useEffect(() => {
+    const fetchTotalSales = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('sale_items')
+          .select(`
+            quantity,
+            unit_price,
+            sales!inner(created_at)
+          `)
+          .gte('sales.created_at', '2024-01-01');
+        
+        if (error) {
+          console.error('Error fetching total sales:', error);
+          return;
+        }
+        
+        const total = data?.reduce((sum: number, item: any) => {
+          const lineTotal = (item.quantity || 0) * (item.unit_price || 0);
+          return sum + lineTotal;
+        }, 0) || 0;
+        
+        setTotalSalesAmount(total.toFixed(2));
+      } catch (error) {
+        console.error('Error calculating total sales:', error);
+      }
+    };
+    
+    fetchTotalSales();
+  }, []);
+  
+  // Function to fetch products report data
+  const fetchProductsReport = async () => {
+    setLoading(true);
+    try {
+      let salesQuery = supabase
+        .from('sale_items')
+        .select(`
+          product_id,
+          quantity,
+          unit_price,
+          products!inner(
+            id,
+            name,
+            price,
+            wholesale_price,
+            price1,
+            price2,
+            price3,
+            price4,
+            categories(name)
+          ),
+          sales!inner(
+            branch_id,
+            created_at,
+            branches(name)
+          )
+        `);
+        
+      // Apply date filters
+      if (dateFilter.type === 'today') {
+        const today = new Date().toISOString().split('T')[0];
+        salesQuery = salesQuery.gte('sales.created_at', today + 'T00:00:00');
+      } else if (dateFilter.type === 'current_week') {
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        salesQuery = salesQuery.gte('sales.created_at', weekStart.toISOString());
+      } else if (dateFilter.type === 'current_month') {
+        const monthStart = new Date();
+        monthStart.setDate(1);
+        salesQuery = salesQuery.gte('sales.created_at', monthStart.toISOString());
+      } else if (dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate) {
+        salesQuery = salesQuery
+          .gte('sales.created_at', dateFilter.startDate.toISOString())
+          .lte('sales.created_at', dateFilter.endDate.toISOString());
+      } else {
+        salesQuery = salesQuery.gte('sales.created_at', '2024-01-01T00:00:00');
+      }
+      
+      const { data: salesData, error: salesError } = await salesQuery;
+      
+      if (salesError) {
+        console.error('Error fetching sales data:', salesError);
+        return;
+      }
+      
+      // Process the data to aggregate by product
+      const productMap = new Map();
+      
+      salesData?.forEach((saleItem: any) => {
+        const productId = saleItem.product_id;
+        const product = saleItem.products;
+        const branch = saleItem.sales?.branches;
+        const quantity = saleItem.quantity || 0;
+        const totalAmount = (saleItem.quantity || 0) * (saleItem.unit_price || 0);
+        
+        if (productMap.has(productId)) {
+          const existing = productMap.get(productId);
+          existing.total_quantity_sold += quantity;
+          existing.total_sales_amount += totalAmount;
+        } else {
+          productMap.set(productId, {
+            product_id: productId,
+            product_name: product?.name || 'منتج غير محدد',
+            category_name: product?.categories?.name || 'غير محدد',
+            branch_name: branch?.name || 'غير محدد',
+            total_quantity_sold: quantity,
+            total_sales_amount: totalAmount,
+            current_sale_price: product?.price || '0.00',
+            wholesale_price: product?.wholesale_price || '0.00',
+            price1: product?.price1 || '0.00',
+            price2: product?.price2 || '0.00',
+            price3: product?.price3 || '0.00',
+            price4: product?.price4 || '0.00'
+          });
+        }
+      });
+      
+      const processedData = Array.from(productMap.values())
+        .sort((a, b) => b.total_quantity_sold - a.total_quantity_sold);
+      
+      setProductsReportData(processedData);
+      
+      // Update the total sales amount to match the filtered products
+      const filteredTotal = processedData.reduce((sum, product) => sum + (product.total_sales_amount || 0), 0);
+      setTotalSalesAmount(filteredTotal.toFixed(2));
+    } catch (error) {
+      console.error('Error fetching products report:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleProductsReportClick = () => {
+    setShowProductsReport(true);
+    setShowSalesReportsModal(false);
+    fetchProductsReport();
+  };
+  
+  const handleBackToMainReports = async () => {
+    setShowProductsReport(false);
+    setShowSalesReportsModal(false);
+    setProductsReportData([]);
+    
+    // Restore the original total sales amount
+    try {
+      const { data, error } = await supabase
+        .from('sale_items')
+        .select(`
+          quantity,
+          unit_price,
+          sales!inner(created_at)
+        `)
+        .gte('sales.created_at', '2024-01-01');
+      
+      if (!error && data) {
+        const total = data.reduce((sum: number, item: any) => {
+          const lineTotal = (item.quantity || 0) * (item.unit_price || 0);
+          return sum + lineTotal;
+        }, 0);
+        
+        setTotalSalesAmount(total.toFixed(2));
+      }
+    } catch (error) {
+      console.error('Error restoring total sales:', error);
+    }
   };
 
   return (
@@ -523,116 +907,200 @@ export default function ReportsPage() {
               {/* Right Sidebar */}
               {showReportsSidebar && (
                 <div className="w-80 bg-[#3B4754] border-r border-gray-600 flex flex-col overflow-hidden">
-                  {/* Balance Section */}
-                  <div className="p-3 border-b border-gray-600 flex-shrink-0">
-                    <div className="bg-blue-600 rounded-lg p-3 text-center text-white">
-                      <div className="text-xl font-bold mb-1">EGP 190,322.00</div>
-                      <div className="text-xs opacity-90">رصيد الحساب</div>
-                    </div>
-                  </div>
+                  {/* Show Sales Reports or Normal Sidebar */}
+                  {showSalesReportsModal ? (
+                    /* Sales Reports Content */
+                    <>
+                      {/* Header */}
+                      <div className="p-3 border-b border-gray-600 flex-shrink-0 flex items-center justify-between">
+                        <button
+                          onClick={() => setShowSalesReportsModal(false)}
+                          className="text-gray-400 hover:text-white p-1 rounded transition-colors"
+                        >
+                          <ChevronLeftIcon className="h-5 w-5" />
+                        </button>
+                        <h2 className="text-lg font-semibold text-white text-right">تقارير البيع</h2>
+                      </div>
 
-                  {/* Report Information - Scrollable */}
-                  <div className="flex-1 overflow-y-auto scrollbar-hide">
-                    {selectedReport && (
-                      <div className="p-3 border-b border-gray-600">
-                        <h3 className="text-white font-medium mb-2 text-right">معلومات التقرير</h3>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-white">{selectedReport.type}</span>
-                            <span className="text-gray-400">نوع التقرير</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-white">{selectedReport.date}</span>
-                            <span className="text-gray-400">تاريخ التقرير</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-white">{selectedReport.amount}</span>
-                            <span className="text-gray-400">المبلغ الإجمالي</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-white">{selectedReport.invoice_count}</span>
-                            <span className="text-gray-400">عدد الفواتير</span>
-                          </div>
+                      {/* Sales Reports List - Scrollable */}
+                      <div className="flex-1 overflow-y-auto scrollbar-hide p-3">
+                        <div className="space-y-3">
+                          {[
+                            'الاصناف',
+                            'التصنيفات الرئيسية',
+                            'العملاء',
+                            'المستخدمين',
+                            'أنواع الدفع',
+                            'انواع الدفع من قبل المستخدمين',
+                            'انواع الدفع من قبل العملاء',
+                            'المرتجعات',
+                            'فواتير العملاء',
+                            'المبيعات اليوميه',
+                            'المبيعات بالساعه',
+                            'هامش الربح',
+                            'الفواتير الغير مدفوعه'
+                          ].map((report, index) => (
+                            <button
+                              key={index}
+                              onClick={() => {
+                                if (report === 'الاصناف') {
+                                  handleProductsReportClick();
+                                } else {
+                                  console.log('Selected report:', report);
+                                }
+                              }}
+                              className="w-full bg-[#2B3544] hover:bg-[#3B4754] border border-gray-600 rounded-lg p-4 text-right text-white transition-colors duration-200 hover:border-blue-500 group"
+                            >
+                              <div className="flex items-center justify-between">
+                                <ChartBarIcon className="h-5 w-5 text-blue-400 group-hover:text-blue-300" />
+                                <span className="font-medium">{report}</span>
+                              </div>
+                            </button>
+                          ))}
                         </div>
                       </div>
-                    )}
-
-                    {/* Summary Statistics */}
-                    <div className="p-3 border-b border-gray-600">
-                      <h3 className="text-white font-medium mb-2 text-right">إحصائيات التقرير</h3>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white">1</span>
-                          <span className="text-gray-400">عدد التقارير</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white">EGP 480.00</span>
-                          <span className="text-gray-400">إجمالي المشتريات</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white">EGP 480.00</span>
-                          <span className="text-gray-400">متوسط قيمة الطلبية</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-white">7/15/2025</span>
-                          <span className="text-gray-400">آخر تحديث</span>
+                    </>
+                  ) : (
+                    /* Normal Sidebar Content */
+                    <>
+                      {/* Balance Section */}
+                      <div className="p-3 border-b border-gray-600 flex-shrink-0">
+                        <div className="bg-blue-600 rounded-lg p-3 text-center text-white">
+                          <div className="text-xl font-bold mb-1">EGP {totalSalesAmount}</div>
+                          <div className="text-xs opacity-90">{showProductsReport ? 'إجمالي المبيعات' : 'رصيد الحساب'}</div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Message Area */}
-                    <div className="p-3 text-center text-gray-500 text-sm">
-                      {selectedReport ? 'تفاصيل إضافية للتقرير المحدد' : 'اختر تقريراً لعرض التفاصيل'}
-                    </div>
-                  </div>
+                      {/* Report Information - Scrollable */}
+                      <div className="flex-1 overflow-y-auto scrollbar-hide">
+                        {selectedReport && (
+                          <div className="p-3 border-b border-gray-600">
+                            <h3 className="text-white font-medium mb-2 text-right">معلومات التقرير</h3>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-white">{selectedReport.type}</span>
+                                <span className="text-gray-400">نوع التقرير</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-white">{selectedReport.date}</span>
+                                <span className="text-gray-400">تاريخ التقرير</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-white">{selectedReport.amount}</span>
+                                <span className="text-gray-400">المبلغ الإجمالي</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-white">{selectedReport.invoice_count}</span>
+                                <span className="text-gray-400">عدد الفواتير</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
-                  {/* Date Filter Button - Fixed at Bottom */}
-                  <div className="p-2 border-t border-gray-600 flex-shrink-0 bg-[#3B4754]">
-                    <button
-                      onClick={() => setShowDateFilter(true)}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded font-medium flex items-center justify-center gap-2 transition-colors text-sm"
-                    >
-                      <CalendarDaysIcon className="h-4 w-4" />
-                      <span>التاريخ</span>
-                    </button>
-                    
-                    {/* Current Filter Display */}
-                    {dateFilter.type !== 'all' && (
-                      <div className="mt-1.5 text-center">
-                        <span className="text-xs text-blue-400 break-words leading-tight">
-                          {dateFilter.type === 'today' && 'عرض تقارير اليوم'}
-                          {dateFilter.type === 'current_week' && 'عرض تقارير الأسبوع الحالي'}
-                          {dateFilter.type === 'last_week' && 'عرض تقارير الأسبوع الماضي'}
-                          {dateFilter.type === 'current_month' && 'عرض تقارير الشهر الحالي'}
-                          {dateFilter.type === 'last_month' && 'عرض تقارير الشهر الماضي'}
-                          {dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate && 
-                            <span className="break-words">{`من ${dateFilter.startDate.toLocaleDateString('ar-SA')} إلى ${dateFilter.endDate.toLocaleDateString('ar-SA')}`}</span>}
-                        </span>
+                        {/* Summary Statistics */}
+                        <div className="p-3 border-b border-gray-600">
+                          <h3 className="text-white font-medium mb-2 text-right">إحصائيات التقرير</h3>
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white">1</span>
+                              <span className="text-gray-400">عدد التقارير</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white">EGP 480.00</span>
+                              <span className="text-gray-400">إجمالي المشتريات</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white">EGP 480.00</span>
+                              <span className="text-gray-400">متوسط قيمة الطلبية</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-white">7/15/2025</span>
+                              <span className="text-gray-400">آخر تحديث</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Message Area */}
+                        <div className="p-3 text-center text-gray-500 text-sm">
+                          {selectedReport ? 'تفاصيل إضافية للتقرير المحدد' : 'اختر تقريراً لعرض التفاصيل'}
+                        </div>
                       </div>
-                    )}
-                  </div>
+
+                      {/* Date Filter Button - Fixed at Bottom */}
+                      <div className="p-2 border-t border-gray-600 flex-shrink-0 bg-[#3B4754]">
+                        <button
+                          onClick={() => setShowDateFilter(true)}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded font-medium flex items-center justify-center gap-2 transition-colors text-sm"
+                        >
+                          <CalendarDaysIcon className="h-4 w-4" />
+                          <span>التاريخ</span>
+                        </button>
+                        
+                        {/* Current Filter Display */}
+                        {dateFilter.type !== 'all' && (
+                          <div className="mt-1.5 text-center">
+                            <span className="text-xs text-blue-400 break-words leading-tight">
+                              {dateFilter.type === 'today' && 'عرض تقارير اليوم'}
+                              {dateFilter.type === 'current_week' && 'عرض تقارير الأسبوع الحالي'}
+                              {dateFilter.type === 'last_week' && 'عرض تقارير الأسبوع الماضي'}
+                              {dateFilter.type === 'current_month' && 'عرض تقارير الشهر الحالي'}
+                              {dateFilter.type === 'last_month' && 'عرض تقارير الشهر الماضي'}
+                              {dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate && 
+                                <span className="break-words">{`من ${dateFilter.startDate.toLocaleDateString('ar-SA')} إلى ${dateFilter.endDate.toLocaleDateString('ar-SA')}`}</span>}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
               {/* Main Content Area - Table */}
               <div className="flex-1 min-w-0 overflow-hidden">
                 <div className="h-full overflow-y-auto scrollbar-hide bg-[#2B3544]" style={{maxHeight: '100%'}}>
-                  <ResizableTable
-                    className="w-full"
-                    columns={tableColumns}
-                    data={reportsData}
-                    selectedRowId={selectedReport?.id || null}
-                    onRowClick={(report, index) => {
-                      if (selectedReport?.id === report.id) {
-                        setSelectedReport(null);
-                      } else {
-                        setSelectedReport(report);
-                      }
-                    }}
-                    onRowDoubleClick={(report, index) => {
-                      // Handle double click if needed
-                    }}
-                  />
+                  {showProductsReport ? (
+                    <>
+                      {loading && (
+                        <div className="flex items-center justify-center h-32">
+                          <div className="text-white">جاري تحميل البيانات...</div>
+                        </div>
+                      )}
+                      {!loading && (
+                        <>
+                          <ResizableTable
+                            className="w-full"
+                            columns={productsTableColumns}
+                            data={productsReportData}
+                            selectedRowId={null}
+                            onRowClick={(product, index) => {
+                              console.log('Selected product:', product);
+                            }}
+                            onRowDoubleClick={(product, index) => {
+                              // Handle double click if needed
+                            }}
+                          />
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <ResizableTable
+                      className="w-full"
+                      columns={tableColumns}
+                      data={reportsData}
+                      selectedRowId={selectedReport?.id || null}
+                      onRowClick={(report, index) => {
+                        if (selectedReport?.id === report.id) {
+                          setSelectedReport(null);
+                        } else {
+                          setSelectedReport(report);
+                        }
+                      }}
+                      onRowDoubleClick={(report, index) => {
+                        // Handle double click if needed
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             </>
@@ -644,7 +1112,11 @@ export default function ReportsPage() {
           isOpen={showDateFilter}
           onClose={() => setShowDateFilter(false)}
           onDateFilterChange={(filter) => {
-            setDateFilter(filter)
+            setDateFilter(filter);
+            if (showProductsReport) {
+              // Re-fetch products report when date filter changes
+              setTimeout(() => fetchProductsReport(), 100);
+            }
           }}
           currentFilter={dateFilter}
         />
@@ -658,6 +1130,10 @@ export default function ReportsPage() {
             setSelectedCategoryIds(categoryIds)
             console.log('Selected Products:', productIds)
             console.log('Selected Categories:', categoryIds)
+            if (showProductsReport) {
+              // Re-fetch products report when product filter changes
+              setTimeout(() => fetchProductsReport(), 100);
+            }
           }}
           initialSelectedProducts={selectedProductIds}
           initialSelectedCategories={selectedCategoryIds}
@@ -677,97 +1153,8 @@ export default function ReportsPage() {
           initialSelectedGroups={selectedCustomerGroupIds}
         />
 
-        {/* Sales Reports Sidebar */}
-        <SalesReportsSidebar
-          isOpen={showSalesReportsModal}
-          onClose={() => setShowSalesReportsModal(false)}
-        />
       </div>
     </DashboardLayout>
   );
 }
 
-// Sales Reports Sidebar Component
-interface SalesReportsSidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const SalesReportsSidebar = ({ isOpen, onClose }: SalesReportsSidebarProps) => {
-  const salesReports = [
-    'الاصناف',
-    'التصنيفات الرئيسية',
-    'العملاء',
-    'المستخدمين',
-    'أنواع الدفع',
-    'انواع الدفع من قبل المستخدمين',
-    'انواع الدفع من قبل العملاء',
-    'المرتجعات',
-    'فواتير العملاء',
-    'المبيعات اليوميه',
-    'المبيعات بالساعه',
-    'هامش الربح',
-    'الفواتير الغير مدفوعه'
-  ];
-
-  const handleReportClick = (reportName: string) => {
-    console.log('Selected report:', reportName);
-    // Here you can add functionality for each report in the future
-  };
-
-  return (
-    <>
-      {/* Background Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/30 z-40"
-          onClick={onClose}
-        />
-      )}
-      
-      {/* Sliding Sidebar */}
-      <div className={`fixed top-[108px] right-0 h-[calc(100vh-108px)] w-96 bg-[#374151] border-l border-gray-600 transform transition-transform duration-300 ease-in-out z-50 ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-600">
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white p-1 rounded transition-colors"
-          >
-            <ChevronLeftIcon className="h-5 w-5" />
-          </button>
-          <h2 className="text-lg font-semibold text-white text-right">تقارير البيع</h2>
-        </div>
-
-        {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto scrollbar-hide p-4">
-          <div className="space-y-3">
-            {salesReports.map((report, index) => (
-              <button
-                key={index}
-                onClick={() => handleReportClick(report)}
-                className="w-full bg-[#2B3544] hover:bg-[#3B4754] border border-gray-600 rounded-lg p-4 text-right text-white transition-colors duration-200 hover:border-blue-500 group"
-              >
-                <div className="flex items-center justify-between">
-                  <ChartBarIcon className="h-5 w-5 text-blue-400 group-hover:text-blue-300" />
-                  <span className="font-medium">{report}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-600">
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors duration-200"
-          >
-            إغلاق
-          </button>
-        </div>
-      </div>
-    </>
-  );
-};
