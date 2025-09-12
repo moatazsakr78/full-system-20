@@ -66,46 +66,70 @@ export default function MobileHome({
   // Get real products from database
   const { products: databaseProducts, isLoading } = useProducts();
 
-  // Convert database products to website format
+  // Convert database products to website format with colors
   useEffect(() => {
-    try {
-      if (databaseProducts && databaseProducts.length > 0) {
-        const convertedProducts: Product[] = databaseProducts
-          .filter((dbProduct: DatabaseProduct) => !dbProduct.is_hidden) // Hide hidden products
-          .map((dbProduct: DatabaseProduct) => {
-            // Calculate if product has discount
-            const hasDiscount = dbProduct.discount_percentage && dbProduct.discount_percentage > 0;
-            const finalPrice = hasDiscount 
-              ? Number(dbProduct.price) * (1 - Number(dbProduct.discount_percentage) / 100)
-              : Number(dbProduct.price);
-            
-            return {
-              id: dbProduct.id,
-              name: dbProduct.name || 'منتج بدون اسم',
-              description: dbProduct.description || '',
-              price: finalPrice,
-              wholesale_price: Number(dbProduct.wholesale_price) || undefined,
-              originalPrice: hasDiscount ? Number(dbProduct.price) : undefined,
-              image: dbProduct.main_image_url || undefined,
-              images: dbProduct.main_image_url ? [dbProduct.main_image_url] : [],
-              colors: [], // Will be populated from product variants if needed
-              category: dbProduct.category?.name || 'عام',
-              brand: 'El Farouk Group',
-              stock: dbProduct.stock || 0,
-              rating: Number(dbProduct.rating) || 0,
-              reviews: dbProduct.rating_count || 0,
-              isOnSale: hasDiscount || false,
-              discount: hasDiscount && dbProduct.discount_percentage ? Math.round(Number(dbProduct.discount_percentage)) : undefined,
-              tags: [],
-              isFeatured: dbProduct.is_featured || false
-            };
-          });
-        setWebsiteProducts(convertedProducts);
+    const fetchProductsWithColors = async () => {
+      try {
+        if (databaseProducts && databaseProducts.length > 0) {
+          // First, fetch all product variants for colors
+          const { supabase } = await import('../../app/lib/supabase/client');
+          const { data: variants, error: variantsError } = await supabase
+            .from('product_variants')
+            .select('*')
+            .eq('variant_type', 'color');
+
+          if (variantsError) {
+            console.error('Error fetching product variants:', variantsError);
+          }
+
+          const convertedProducts: Product[] = databaseProducts
+            .filter((dbProduct: DatabaseProduct) => !dbProduct.is_hidden) // Hide hidden products
+            .map((dbProduct: DatabaseProduct) => {
+              // Calculate if product has discount
+              const hasDiscount = dbProduct.discount_percentage && dbProduct.discount_percentage > 0;
+              const finalPrice = hasDiscount 
+                ? Number(dbProduct.price) * (1 - Number(dbProduct.discount_percentage) / 100)
+                : Number(dbProduct.price);
+              
+              // Get colors for this product
+              const productColors = variants?.filter(v => v.product_id === dbProduct.id) || [];
+              const colors = productColors.map(variant => ({
+                id: variant.id,
+                name: variant.color_name || variant.name || 'لون غير محدد',
+                hex: variant.color_hex || '#000000',
+                image_url: variant.image_url || null
+              }));
+              
+              return {
+                id: dbProduct.id,
+                name: dbProduct.name || 'منتج بدون اسم',
+                description: dbProduct.description || '',
+                price: finalPrice,
+                wholesale_price: Number(dbProduct.wholesale_price) || undefined,
+                originalPrice: hasDiscount ? Number(dbProduct.price) : undefined,
+                image: dbProduct.main_image_url || undefined,
+                images: dbProduct.main_image_url ? [dbProduct.main_image_url] : [],
+                colors: colors, // Real colors from product variants
+                category: dbProduct.category?.name || 'عام',
+                brand: 'El Farouk Group',
+                stock: dbProduct.stock || 0,
+                rating: Number(dbProduct.rating) || 0,
+                reviews: dbProduct.rating_count || 0,
+                isOnSale: hasDiscount || false,
+                discount: hasDiscount && dbProduct.discount_percentage ? Math.round(Number(dbProduct.discount_percentage)) : undefined,
+                tags: [],
+                isFeatured: dbProduct.is_featured || false
+              };
+            });
+          setWebsiteProducts(convertedProducts);
+        }
+      } catch (error) {
+        console.error('Error converting database products:', error);
+        setWebsiteProducts([]);
       }
-    } catch (error) {
-      console.error('Error converting database products:', error);
-      setWebsiteProducts([]);
-    }
+    };
+
+    fetchProductsWithColors();
   }, [databaseProducts]);
 
   // Fetch categories from database
