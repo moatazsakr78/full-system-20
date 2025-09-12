@@ -106,7 +106,7 @@ export default function TabletHome({
               
               // Get colors for this product
               const productColors = variants?.filter(v => v.product_id === dbProduct.id) || [];
-              const colors = productColors.map(variant => ({
+              const colors = productColors.map((variant: any) => ({
                 id: variant.id,
                 name: variant.color_name || variant.name || 'لون غير محدد',
                 hex: variant.color_hex || '#000000',
