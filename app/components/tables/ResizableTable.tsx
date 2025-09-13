@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+
+const EMPTY_SENSORS: any[] = []
 
 interface Column {
   id: string
@@ -60,11 +62,18 @@ function SortableHeader({ column, width, onResize, onResizeStateChange }: Sortab
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+
+    // Set resizing state immediately
     setIsResizing(true)
     onResizeStateChange(true)
+
+    // Store initial values
     resizeStartX.current = e.clientX
     resizeStartWidth.current = width
+
+    // Prevent text selection during resize
     document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'col-resize'
   }, [width, onResizeStateChange])
 
   useEffect(() => {
@@ -80,6 +89,7 @@ function SortableHeader({ column, width, onResize, onResizeStateChange }: Sortab
       setIsResizing(false)
       onResizeStateChange(false)
       document.body.style.userSelect = ''
+      document.body.style.cursor = ''
     }
 
     if (isResizing) {
@@ -103,17 +113,27 @@ function SortableHeader({ column, width, onResize, onResizeStateChange }: Sortab
       {/* Resize areas - completely separate from draggable content */}
       <div
         className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize z-20"
-        onMouseDown={handleResizeStart}
+        onMouseDown={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          handleResizeStart(e)
+        }}
+        style={{ pointerEvents: 'auto' }}
       />
       <div
         className="absolute -left-2 top-0 bottom-0 w-4 cursor-col-resize z-10"
-        onMouseDown={handleResizeStart}
+        onMouseDown={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          handleResizeStart(e)
+        }}
+        style={{ pointerEvents: 'auto' }}
       />
-      
+
       {/* Draggable header content */}
-      <div 
+      <div
         className="flex items-center justify-between relative z-0"
-        {...listeners}
+        {...(isResizing ? {} : listeners)}
       >
         <span className="text-gray-200 truncate">{column.header}</span>
       </div>
@@ -156,9 +176,9 @@ export default function ResizableTable({ columns: initialColumns, data, classNam
 
   // Update columns when initialColumns change
   useEffect(() => {
-    setColumns(initialColumns.map(col => ({ 
-      ...col, 
-      width: col.width || col.minWidth || 100 
+    setColumns(initialColumns.map(col => ({
+      ...col,
+      width: col.width || col.minWidth || 100
     })))
   }, [initialColumns])
 
@@ -184,6 +204,8 @@ export default function ResizableTable({ columns: initialColumns, data, classNam
       })
     }
   }, [])
+
+  const emptyDragEnd = useCallback(() => {}, [])
 
   const handleColumnResize = useCallback((columnId: string, newWidth: number) => {
     setColumns(prev => prev.map(col => 
@@ -217,9 +239,9 @@ export default function ResizableTable({ columns: initialColumns, data, classNam
       >
         <DndContext
           id={tableId}
-          sensors={isAnyColumnResizing ? [] : sensors}
+          sensors={sensors}
           collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
+          onDragEnd={isAnyColumnResizing ? emptyDragEnd : handleDragEnd}
         >
           <table className="text-sm w-full" style={{ minWidth: `${totalWidth}px`, tableLayout: 'fixed' }}>
           <thead className="bg-[#374151] border-b border-gray-600 sticky top-0">
