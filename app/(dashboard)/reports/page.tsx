@@ -14,10 +14,10 @@ import {
   saveTableConfig,
   updateColumnVisibility
 } from '@/app/lib/utils/tableStorage';
-import { 
-  ChevronLeftIcon, 
+import {
+  ChevronLeftIcon,
   ChevronRightIcon,
-  ChartBarIcon, 
+  ChartBarIcon,
   DocumentArrowDownIcon,
   PrinterIcon,
   ShoppingCartIcon,
@@ -35,7 +35,9 @@ import {
   ArrowPathIcon,
   CalendarIcon,
   XMarkIcon,
-  TableCellsIcon
+  TableCellsIcon,
+  StarIcon,
+  ClipboardDocumentIcon
 } from '@heroicons/react/24/outline';
 
 // Sample reports data - matching the customer details table structure
@@ -201,14 +203,14 @@ const productsTableColumns = [
     visible: true,
     render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
   },
-  { 
-    id: 'total_sale_price', 
-    header: 'إجمالي سعر البيع', 
-    accessor: 'total_sale_price', 
+  {
+    id: 'total_sale_price',
+    header: 'إجمالي سعر البيع',
+    accessor: 'total_sale_price',
     width: 150,
     render: (value: any, item: any) => {
-      const quantity = item.total_quantity_sold || 0;
       const price = parseFloat(item.current_sale_price || '0');
+      const quantity = item.priceBreakdown?.get(price) || 0;
       const total = quantity * price;
       return (
         <span className="text-white">
@@ -228,14 +230,14 @@ const productsTableColumns = [
     width: 100,
     render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
   },
-  { 
-    id: 'total_wholesale_price', 
-    header: 'إجمالي سعر الجملة', 
-    accessor: 'total_wholesale_price', 
+  {
+    id: 'total_wholesale_price',
+    header: 'إجمالي سعر الجملة',
+    accessor: 'total_wholesale_price',
     width: 150,
     render: (value: any, item: any) => {
-      const quantity = item.total_quantity_sold || 0;
       const price = parseFloat(item.wholesale_price || '0');
+      const quantity = item.priceBreakdown?.get(price) || 0;
       const total = quantity * price;
       return (
         <span className="text-white">
@@ -255,14 +257,14 @@ const productsTableColumns = [
     width: 80,
     render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
   },
-  { 
-    id: 'total_price1', 
-    header: 'إجمالي سعر 1', 
-    accessor: 'total_price1', 
+  {
+    id: 'total_price1',
+    header: 'إجمالي سعر 1',
+    accessor: 'total_price1',
     width: 150,
     render: (value: any, item: any) => {
-      const quantity = item.total_quantity_sold || 0;
       const price = parseFloat(item.price1 || '0');
+      const quantity = item.priceBreakdown?.get(price) || 0;
       const total = quantity * price;
       return (
         <span className="text-white">
@@ -282,14 +284,14 @@ const productsTableColumns = [
     width: 80,
     render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
   },
-  { 
-    id: 'total_price2', 
-    header: 'إجمالي سعر 2', 
-    accessor: 'total_price2', 
+  {
+    id: 'total_price2',
+    header: 'إجمالي سعر 2',
+    accessor: 'total_price2',
     width: 150,
     render: (value: any, item: any) => {
-      const quantity = item.total_quantity_sold || 0;
       const price = parseFloat(item.price2 || '0');
+      const quantity = item.priceBreakdown?.get(price) || 0;
       const total = quantity * price;
       return (
         <span className="text-white">
@@ -309,14 +311,14 @@ const productsTableColumns = [
     width: 80,
     render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
   },
-  { 
-    id: 'total_price3', 
-    header: 'إجمالي سعر 3', 
-    accessor: 'total_price3', 
+  {
+    id: 'total_price3',
+    header: 'إجمالي سعر 3',
+    accessor: 'total_price3',
     width: 150,
     render: (value: any, item: any) => {
-      const quantity = item.total_quantity_sold || 0;
       const price = parseFloat(item.price3 || '0');
+      const quantity = item.priceBreakdown?.get(price) || 0;
       const total = quantity * price;
       return (
         <span className="text-white">
@@ -336,14 +338,14 @@ const productsTableColumns = [
     width: 80,
     render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
   },
-  { 
-    id: 'total_price4', 
-    header: 'إجمالي سعر 4', 
-    accessor: 'total_price4', 
+  {
+    id: 'total_price4',
+    header: 'إجمالي سعر 4',
+    accessor: 'total_price4',
     width: 150,
     render: (value: any, item: any) => {
-      const quantity = item.total_quantity_sold || 0;
       const price = parseFloat(item.price4 || '0');
+      const quantity = item.priceBreakdown?.get(price) || 0;
       const total = quantity * price;
       return (
         <span className="text-white">
@@ -685,13 +687,25 @@ export default function ReportsPage() {
         const product = saleItem.products;
         const branch = saleItem.sales?.branches;
         const quantity = saleItem.quantity || 0;
-        const totalAmount = (saleItem.quantity || 0) * (parseFloat(saleItem.unit_price) || 0);
+        const unitPrice = parseFloat(saleItem.unit_price) || 0;
+        const totalAmount = quantity * unitPrice;
 
         if (productMap.has(productId)) {
           const existing = productMap.get(productId);
           existing.total_quantity_sold += quantity;
           existing.total_sales_amount += totalAmount;
+
+          // Track quantities by actual selling price
+          if (!existing.priceBreakdown) {
+            existing.priceBreakdown = new Map();
+          }
+          const currentQty = existing.priceBreakdown.get(unitPrice) || 0;
+          existing.priceBreakdown.set(unitPrice, currentQty + quantity);
         } else {
+          // Initialize price breakdown
+          const priceBreakdown = new Map();
+          priceBreakdown.set(unitPrice, quantity);
+
           productMap.set(productId, {
             product_id: productId,
             product_name: product?.name || 'منتج غير محدد',
@@ -704,7 +718,8 @@ export default function ReportsPage() {
             price1: product?.price1 || '0.00',
             price2: product?.price2 || '0.00',
             price3: product?.price3 || '0.00',
-            price4: product?.price4 || '0.00'
+            price4: product?.price4 || '0.00',
+            priceBreakdown: priceBreakdown
           });
         }
       });
@@ -1275,7 +1290,7 @@ export default function ReportsPage() {
                           <CalendarDaysIcon className="h-4 w-4" />
                           <span>التاريخ</span>
                         </button>
-                        
+
                         {/* Current Filter Display */}
                         {dateFilter.type !== 'all' && (
                           <div className="mt-1.5 text-center">
@@ -1285,7 +1300,7 @@ export default function ReportsPage() {
                               {dateFilter.type === 'last_week' && 'عرض تقارير الأسبوع الماضي'}
                               {dateFilter.type === 'current_month' && 'عرض تقارير الشهر الحالي'}
                               {dateFilter.type === 'last_month' && 'عرض تقارير الشهر الماضي'}
-                              {dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate && 
+                              {dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate &&
                                 <span className="break-words">{`من ${dateFilter.startDate.toLocaleDateString('ar-SA')} إلى ${dateFilter.endDate.toLocaleDateString('ar-SA')}`}</span>}
                             </span>
                           </div>
@@ -1303,8 +1318,8 @@ export default function ReportsPage() {
                   <div className="flex items-center overflow-x-auto scrollbar-hide">
                     {openTabs.map((tab) => (
                       <div key={tab.id} className={`flex items-center border-r border-gray-600 ${
-                        tab.active 
-                          ? 'bg-[#2B3544] text-white border-b-2 border-blue-400' 
+                        tab.active
+                          ? 'bg-[#2B3544] text-white border-b-2 border-blue-400'
                           : 'text-gray-300 hover:text-white hover:bg-[#4B5563]'
                       }`}>
                         <button
@@ -1380,23 +1395,184 @@ export default function ReportsPage() {
                       )}
                     </>
                   ) : activeTab === 'main' ? (
-                    <ResizableTable
-                      className="h-full w-full"
-                      columns={filteredMainColumns}
-                      data={reportsData}
-                      selectedRowId={selectedReport?.id || null}
-                      reportType="MAIN_REPORT"
-                      onRowClick={(report, index) => {
-                        if (selectedReport?.id === report.id) {
-                          setSelectedReport(null);
-                        } else {
-                          setSelectedReport(report);
-                        }
-                      }}
-                      onRowDoubleClick={(report, index) => {
-                        // Handle double click if needed
-                      }}
-                    />
+                    /* Reports List Container */
+                    <div className="h-full overflow-y-auto scrollbar-hide p-4">
+                      {/* Reports Sections */}
+                      <div className="space-y-6">
+                        {/* Sales Reports */}
+                        <div>
+                          <h2 className="text-lg font-semibold text-white mb-3 text-right flex items-center gap-2">
+                            <ChartBarIcon className="h-5 w-5 text-blue-400" />
+                            المبيعات
+                          </h2>
+                          <div className="bg-[#374151] border border-gray-600 rounded-lg overflow-hidden">
+                            {[
+                              'الأصناف',
+                              'التصنيفات الرئيسية',
+                              'العملاء',
+                              'الضرائب',
+                              'المستخدمين',
+                              'أنواع الدفع من قبل المستخدمين',
+                              'أنواع الدفع من قبل العملاء',
+                              'المستخدمين',
+                              'فواتير العملاء',
+                              'المبيعات اليومية',
+                              'Hourly sales',
+                              'Hourly sales by product groups',
+                              'Table or order number',
+                              'هامش الربح',
+                              'مبيعات غير مدفوعة',
+                              'الخردة',
+                              'Voided items',
+                              'Discounts granted',
+                              'Items discounts',
+                              'Stock movement'
+                            ].map((report, index) => (
+                              <button
+                                key={index}
+                                onClick={() => {
+                                  if (report === 'الأصناف') {
+                                    openProductsReport();
+                                  } else {
+                                    console.log('Selected report:', report);
+                                  }
+                                }}
+                                className="group w-full bg-[#374151] hover:bg-[#3B4754] text-right text-white transition-all duration-200 flex items-center justify-between text-sm p-2"
+                              >
+                                {/* Left side - Report icon */}
+                                <div className="flex items-center gap-2">
+                                  <DocumentChartBarIcon className="w-4 h-4 text-blue-400" />
+                                </div>
+
+                                {/* Center - Report name */}
+                                <div className="flex-1 text-right mr-1.5">
+                                  <span>{report}</span>
+                                </div>
+
+                                {/* Right side - Star for favorites */}
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="p-1 hover:bg-yellow-500/20 rounded transition-colors cursor-pointer">
+                                    <StarIcon className="w-4 h-4 text-yellow-400" />
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Purchase Reports */}
+                        <div>
+                          <h2 className="text-lg font-semibold text-white mb-3 text-right flex items-center gap-2">
+                            <ShoppingCartIcon className="h-5 w-5 text-green-400" />
+                            المشتريات
+                          </h2>
+                          <div className="bg-[#374151] border border-gray-600 rounded-lg overflow-hidden">
+                            {[
+                              'الأصناف',
+                              'الموردين',
+                              'مشتريات غير مدفوعة',
+                              'Purchase discounts',
+                              'Purchased items discounts',
+                              'Purchase invoice list',
+                              'Tax rates'
+                            ].map((report, index) => (
+                              <button
+                                key={index}
+                                className="group w-full bg-[#374151] hover:bg-[#3B4754] text-right text-white transition-all duration-200 flex items-center justify-between text-sm p-2"
+                              >
+                                {/* Left side - Report icon */}
+                                <div className="flex items-center gap-2">
+                                  <DocumentChartBarIcon className="w-4 h-4 text-blue-400" />
+                                </div>
+
+                                {/* Center - Report name */}
+                                <div className="flex-1 text-right mr-1.5">
+                                  <span>{report}</span>
+                                </div>
+
+                                {/* Right side - Star for favorites */}
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="p-1 hover:bg-yellow-500/20 rounded transition-colors cursor-pointer">
+                                    <StarIcon className="w-4 h-4 text-yellow-400" />
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Loss and Damage */}
+                        <div>
+                          <h2 className="text-lg font-semibold text-white mb-3 text-right flex items-center gap-2">
+                            <ArchiveBoxIcon className="h-5 w-5 text-red-400" />
+                            Loss and damage
+                          </h2>
+                          <div className="bg-[#374151] border border-gray-600 rounded-lg overflow-hidden">
+                            {[
+                              'Products'
+                            ].map((report, index) => (
+                              <button
+                                key={index}
+                                className="group w-full bg-[#374151] hover:bg-[#3B4754] text-right text-white transition-all duration-200 flex items-center justify-between text-sm p-2"
+                              >
+                                {/* Left side - Report icon */}
+                                <div className="flex items-center gap-2">
+                                  <DocumentChartBarIcon className="w-4 h-4 text-blue-400" />
+                                </div>
+
+                                {/* Center - Report name */}
+                                <div className="flex-1 text-right mr-1.5">
+                                  <span>{report}</span>
+                                </div>
+
+                                {/* Right side - Star for favorites */}
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="p-1 hover:bg-yellow-500/20 rounded transition-colors cursor-pointer">
+                                    <StarIcon className="w-4 h-4 text-yellow-400" />
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Inventory Control */}
+                        <div>
+                          <h2 className="text-lg font-semibold text-white mb-3 text-right flex items-center gap-2">
+                            <ArchiveBoxIcon className="h-5 w-5 text-orange-400" />
+                            مراقبة المخزون
+                          </h2>
+                          <div className="bg-[#374151] border border-gray-600 rounded-lg overflow-hidden">
+                            {[
+                              'قائمة المنتجات المروا طلبها',
+                              'تحذير لطعامي المتوني'
+                            ].map((report, index) => (
+                              <button
+                                key={index}
+                                className="group w-full bg-[#374151] hover:bg-[#3B4754] text-right text-white transition-all duration-200 flex items-center justify-between text-sm p-2"
+                              >
+                                {/* Left side - Report icon */}
+                                <div className="flex items-center gap-2">
+                                  <DocumentChartBarIcon className="w-4 h-4 text-blue-400" />
+                                </div>
+
+                                {/* Center - Report name */}
+                                <div className="flex-1 text-right mr-1.5">
+                                  <span>{report}</span>
+                                </div>
+
+                                {/* Right side - Star for favorites */}
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="p-1 hover:bg-yellow-500/20 rounded transition-colors cursor-pointer">
+                                    <StarIcon className="w-4 h-4 text-yellow-400" />
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     /* Other Reports - Not implemented yet */
                     <div className="flex items-center justify-center h-full">
