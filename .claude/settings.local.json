@@ -249,7 +249,10 @@
       "Bash(start http://localhost:3001/reports)",
       "Bash(start http://localhost:3002/customers)",
       "Bash(start http://localhost:3002/reports)",
-      "Bash(start http://localhost:3003/reports)"
+      "Bash(start http://localhost:3003/reports)",
+      "Bash(start http://localhost:3005/reports)",
+      "Bash(start test-table-persistence.html)",
+      "Bash(start instant-visibility-test.html)"
     ],
     "deny": [],
     "additionalDirectories": [

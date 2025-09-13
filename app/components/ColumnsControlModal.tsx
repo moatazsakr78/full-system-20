@@ -29,20 +29,27 @@ export default function ColumnsControlModal({
   }, [columns])
 
   const handleColumnToggle = (columnId: string) => {
-    const updatedColumns = localColumns.map(col => 
+    const updatedColumns = localColumns.map(col =>
       col.id === columnId ? { ...col, visible: !col.visible } : col
     )
     setLocalColumns(updatedColumns)
+
+    // Apply changes immediately for instant preview
+    onColumnsChange(updatedColumns)
   }
 
   const handleSelectAll = () => {
     const updatedColumns = localColumns.map(col => ({ ...col, visible: true }))
     setLocalColumns(updatedColumns)
+    // Apply changes immediately for instant preview
+    onColumnsChange(updatedColumns)
   }
 
   const handleDeselectAll = () => {
     const updatedColumns = localColumns.map(col => ({ ...col, visible: false }))
     setLocalColumns(updatedColumns)
+    // Apply changes immediately for instant preview
+    onColumnsChange(updatedColumns)
   }
 
   const handleApply = () => {
@@ -68,7 +75,10 @@ export default function ColumnsControlModal({
           
           {/* Header */}
           <div className="px-6 py-4 border-b border-[#4A5568] flex items-center justify-between">
-            <h3 className="text-lg font-medium text-white text-right">إدارة الأعمدة</h3>
+            <div className="text-right">
+              <h3 className="text-lg font-medium text-white">إدارة الأعمدة</h3>
+              <p className="text-sm text-blue-400 mt-1">✨ التطبيق فوري أثناء التحديد</p>
+            </div>
             <button
               onClick={handleCancel}
               className="p-2 text-gray-400 hover:text-white hover:bg-gray-600/30 rounded-full transition-colors"
