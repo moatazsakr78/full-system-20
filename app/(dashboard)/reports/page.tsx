@@ -8,6 +8,7 @@ import SimpleDateFilterModal, { DateFilter } from '@/app/components/SimpleDateFi
 import { supabase } from '@/app/lib/supabase/client';
 import ProductsFilterModal from '@/app/components/ProductsFilterModal';
 import CustomersFilterModal from '@/app/components/CustomersFilterModal';
+import ColumnsControlModal from '@/app/components/ColumnsControlModal';
 import { 
   ChevronLeftIcon, 
   ChevronRightIcon,
@@ -28,7 +29,8 @@ import {
   ClockIcon,
   ArrowPathIcon,
   CalendarIcon,
-  XMarkIcon
+  XMarkIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline';
 
 // Sample reports data - matching the customer details table structure
@@ -69,6 +71,7 @@ const tableColumns = [
     header: '#', 
     accessor: '#', 
     width: 60,
+    visible: true,
     render: (value: any, item: any, index: number) => (
       <span className="text-gray-400 font-medium">{index + 1}</span>
     )
@@ -78,6 +81,7 @@ const tableColumns = [
     header: 'نوع التقرير', 
     accessor: 'type', 
     width: 150,
+    visible: true,
     render: (value: string) => <span className="text-white font-medium">{value}</span>
   },
   { 
@@ -85,6 +89,7 @@ const tableColumns = [
     header: 'التاريخ', 
     accessor: 'date', 
     width: 120,
+    visible: true,
     render: (value: string) => <span className="text-gray-300">{value}</span>
   },
   { 
@@ -92,6 +97,7 @@ const tableColumns = [
     header: 'المبلغ الإجمالي', 
     accessor: 'amount', 
     width: 150,
+    visible: true,
     render: (value: string) => <span className="text-white font-medium">{value}</span>
   },
   { 
@@ -99,6 +105,7 @@ const tableColumns = [
     header: 'الحالة', 
     accessor: 'status', 
     width: 100,
+    visible: true,
     render: (value: string) => (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
         value === 'مكتمل' 
@@ -116,6 +123,7 @@ const tableColumns = [
     header: 'عدد الفواتير', 
     accessor: 'invoice_count', 
     width: 100,
+    visible: true,
     render: (value: number) => <span className="text-gray-300">{value}</span>
   },
   { 
@@ -123,6 +131,7 @@ const tableColumns = [
     header: 'عدد العملاء', 
     accessor: 'customer_count', 
     width: 100,
+    visible: true,
     render: (value: number) => <span className="text-gray-300">{value}</span>
   }
 ];
@@ -134,6 +143,7 @@ const productsTableColumns = [
     header: '#', 
     accessor: '#', 
     width: 60,
+    visible: true,
     render: (value: any, item: any, index: number) => (
       <span className="text-gray-400 font-medium">{index + 1}</span>
     )
@@ -143,6 +153,7 @@ const productsTableColumns = [
     header: 'المجموعة', 
     accessor: 'category_name', 
     width: 120,
+    visible: true,
     render: (value: string) => <span className="text-white font-medium">{value || 'غير محدد'}</span>
   },
   { 
@@ -150,6 +161,7 @@ const productsTableColumns = [
     header: 'اسم المنتج', 
     accessor: 'product_name', 
     width: 200,
+    visible: true,
     render: (value: string) => <span className="text-white font-medium">{value}</span>
   },
   { 
@@ -157,6 +169,7 @@ const productsTableColumns = [
     header: 'الكمية', 
     accessor: 'total_quantity_sold', 
     width: 80,
+    visible: true,
     render: (value: number) => <span className="text-gray-300">{value || 0}</span>
   },
   { 
@@ -164,6 +177,7 @@ const productsTableColumns = [
     header: 'الفرع', 
     accessor: 'branch_name', 
     width: 100,
+    visible: true,
     render: (value: string) => <span className="text-gray-300">{value || 'جميع الفروع'}</span>
   },
   { 
@@ -171,6 +185,7 @@ const productsTableColumns = [
     header: 'الاجمالي', 
     accessor: 'total_sales_amount', 
     width: 120,
+    visible: true,
     render: (value: number) => <span className="text-white font-medium">EGP {(value || 0).toFixed(2)}</span>
   },
   { 
@@ -178,6 +193,7 @@ const productsTableColumns = [
     header: 'سعر البيع', 
     accessor: 'current_sale_price', 
     width: 100,
+    visible: true,
     render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
   },
   { 
@@ -359,6 +375,9 @@ export default function ReportsPage() {
     { id: 'main', title: 'التقارير', active: true }
   ]);
   const [activeTab, setActiveTab] = useState<string>('main');
+  const [showColumnsModal, setShowColumnsModal] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({});
+  const [currentReportType, setCurrentReportType] = useState<string>('');
   
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -371,6 +390,58 @@ export default function ReportsPage() {
   const handleBackToMain = () => {
     setCurrentView('main');
   };
+
+  // Initialize visible columns state for both report types
+  useEffect(() => {
+    const initializeVisibleColumns = () => {
+      const mainReportColumns = ['index', 'type', 'date', 'amount', 'status', 'invoice_count', 'customer_count'];
+      const productsReportColumns = ['index', 'category_name', 'product_name', 'total_quantity_sold', 'branch_name', 'total_sales_amount', 'current_sale_price', 'total_sale_price', 'wholesale_price', 'total_wholesale_price', 'price1', 'total_price1', 'price2', 'total_price2', 'price3', 'total_price3', 'price4', 'total_price4'];
+
+      const initialVisible: {[key: string]: boolean} = {};
+
+      // Initialize main report columns
+      mainReportColumns.forEach(colId => {
+        initialVisible[colId] = true;
+      });
+
+      // Initialize products report columns
+      productsReportColumns.forEach(colId => {
+        initialVisible[colId] = true;
+      });
+
+      setVisibleColumns(initialVisible);
+    };
+
+    initializeVisibleColumns();
+  }, []);
+
+  // Column management functions
+  const handleColumnsChange = (updatedColumns: {id: string, header: string, visible: boolean}[]) => {
+    const newVisibleColumns: {[key: string]: boolean} = {};
+    updatedColumns.forEach(col => {
+      newVisibleColumns[col.id] = col.visible;
+    });
+    setVisibleColumns(prev => ({
+      ...prev,
+      ...newVisibleColumns
+    }));
+  };
+
+  // Get columns for display based on visibility
+  const getFilteredColumns = (columns: any[]) => {
+    return columns.filter(col => visibleColumns[col.id] !== false);
+  };
+
+  // Prepare columns data for the modal
+  const getColumnsForModal = (reportType: string) => {
+    const columns = reportType === 'products' ? productsTableColumns : tableColumns;
+    return columns.map(col => ({
+      id: col.id,
+      header: col.header,
+      visible: visibleColumns[col.id] !== false
+    }));
+  };
+
 
   // Tab management functions
   const addTab = (id: string, title: string) => {
@@ -419,7 +490,26 @@ export default function ReportsPage() {
     setShowProductsReport(tabId === 'products');
   };
 
-  // Fetch total sales amount on component mount (using sale_items for consistency)
+  const openProductsReport = () => {
+    // Check if products tab already exists
+    const productsTabExists = openTabs.some(tab => tab.id === 'products');
+    
+    if (!productsTabExists) {
+      // Add products tab
+      setOpenTabs(prev => [
+        ...prev.map(tab => ({ ...tab, active: false })),
+        { id: 'products', title: 'تقرير المنتجات', active: true }
+      ]);
+      setActiveTab('products');
+      setShowProductsReport(true);
+      fetchProductsReport();
+    } else {
+      // Switch to existing products tab
+      switchTab('products');
+    }
+  };
+
+  // Fetch total sales amount and load column preferences on component mount
   useEffect(() => {
     const fetchTotalSales = async () => {
       try {
@@ -447,7 +537,7 @@ export default function ReportsPage() {
         console.error('Error calculating total sales:', error);
       }
     };
-    
+
     fetchTotalSales();
   }, []);
   
@@ -461,7 +551,7 @@ export default function ReportsPage() {
           product_id,
           quantity,
           unit_price,
-          products!inner(
+          products(
             id,
             name,
             price,
@@ -472,7 +562,7 @@ export default function ReportsPage() {
             price4,
             categories(name)
           ),
-          sales!inner(
+          sales(
             branch_id,
             created_at,
             branches(name)
@@ -500,22 +590,25 @@ export default function ReportsPage() {
       }
       
       const { data: salesData, error: salesError } = await salesQuery;
-      
+
       if (salesError) {
         console.error('Error fetching sales data:', salesError);
+        alert(`خطأ في جلب البيانات: ${salesError.message}`);
         return;
       }
-      
+
+      console.log('Fetched sales data:', salesData);
+
       // Process the data to aggregate by product
       const productMap = new Map();
-      
+
       salesData?.forEach((saleItem: any) => {
         const productId = saleItem.product_id;
         const product = saleItem.products;
         const branch = saleItem.sales?.branches;
         const quantity = saleItem.quantity || 0;
-        const totalAmount = (saleItem.quantity || 0) * (saleItem.unit_price || 0);
-        
+        const totalAmount = (saleItem.quantity || 0) * (parseFloat(saleItem.unit_price) || 0);
+
         if (productMap.has(productId)) {
           const existing = productMap.get(productId);
           existing.total_quantity_sold += quantity;
@@ -627,7 +720,7 @@ export default function ReportsPage() {
             </button>
 
             <button 
-              onClick={() => setShowProductsFilter(true)}
+              onClick={openProductsReport}
               className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] ${
                 selectedProductIds.length > 0 || selectedCategoryIds.length > 0
                   ? 'text-green-400 bg-green-500/10'
@@ -1131,14 +1224,14 @@ export default function ReportsPage() {
                 <div className="bg-[#374151] border-b border-gray-600 flex-shrink-0">
                   <div className="flex items-center overflow-x-auto scrollbar-hide">
                     {openTabs.map((tab) => (
-                      <div key={tab.id} className="flex items-center">
+                      <div key={tab.id} className={`flex items-center border-r border-gray-600 ${
+                        tab.active 
+                          ? 'bg-[#2B3544] text-white border-b-2 border-blue-400' 
+                          : 'text-gray-300 hover:text-white hover:bg-[#4B5563]'
+                      }`}>
                         <button
                           onClick={() => switchTab(tab.id)}
-                          className={`px-4 py-2 text-sm font-medium border-r border-gray-600 flex items-center gap-2 transition-colors ${
-                            tab.active 
-                              ? 'bg-[#2B3544] text-white border-b-2 border-blue-400' 
-                              : 'text-gray-300 hover:text-white hover:bg-[#4B5563]'
-                          }`}
+                          className="px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors"
                         >
                           {tab.id === 'main' && (
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1146,18 +1239,34 @@ export default function ReportsPage() {
                             </svg>
                           )}
                           <span>{tab.title}</span>
-                          {tab.id !== 'main' && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                closeTab(tab.id);
-                              }}
-                              className="ml-2 hover:text-red-400 transition-colors"
-                            >
-                              <XMarkIcon className="w-4 h-4" />
-                            </button>
-                          )}
                         </button>
+                        
+                        {/* Column Manager Button - Always visible */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentReportType(tab.id === 'main' ? 'main' : tab.id);
+                            setShowColumnsModal(true);
+                          }}
+                          className="ml-1 p-1 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+                          title="إدارة الأعمدة"
+                        >
+                          <Cog6ToothIcon className="w-4 h-4" />
+                        </button>
+                        
+                        {/* Close Tab Button - Only for non-main tabs */}
+                        {tab.id !== 'main' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              closeTab(tab.id);
+                            }}
+                            className="ml-1 p-1 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                            title="إغلاق"
+                          >
+                            <XMarkIcon className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1176,7 +1285,7 @@ export default function ReportsPage() {
                         <>
                           <ResizableTable
                             className="h-full w-full"
-                            columns={productsTableColumns}
+                            columns={getFilteredColumns(productsTableColumns)}
                             data={productsReportData}
                             selectedRowId={null}
                             onRowClick={(product, index) => {
@@ -1192,7 +1301,7 @@ export default function ReportsPage() {
                   ) : activeTab === 'main' ? (
                     <ResizableTable
                       className="h-full w-full"
-                      columns={tableColumns}
+                      columns={getFilteredColumns(tableColumns)}
                       data={reportsData}
                       selectedRowId={selectedReport?.id || null}
                       onRowClick={(report, index) => {
@@ -1269,6 +1378,14 @@ export default function ReportsPage() {
           }}
           initialSelectedCustomers={selectedCustomerIds}
           initialSelectedGroups={selectedCustomerGroupIds}
+        />
+
+        {/* Columns Control Modal */}
+        <ColumnsControlModal
+          isOpen={showColumnsModal}
+          onClose={() => setShowColumnsModal(false)}
+          columns={getColumnsForModal(currentReportType)}
+          onColumnsChange={handleColumnsChange}
         />
 
     </div>

@@ -27,6 +27,9 @@ export interface TableColumn {
   label: string
   sortable?: boolean
   render?: (value: any, row: any) => React.ReactNode
+  visible?: boolean
+  width?: number
+  id?: string
 }
 
 export interface DataTableProps {

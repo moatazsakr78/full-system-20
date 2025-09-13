@@ -71,9 +71,11 @@ export function useBranches() {
       if (error) throw error
 
       return (data || []).reduce((acc, item) => {
-        acc[item.branch_id] = {
-          quantity: item.quantity,
-          min_stock: item.min_stock || 0
+        if (item.branch_id) {
+          acc[item.branch_id] = {
+            quantity: item.quantity,
+            min_stock: item.min_stock || 0
+          }
         }
         return acc
       }, {} as Record<string, { quantity: number, min_stock: number }>)
