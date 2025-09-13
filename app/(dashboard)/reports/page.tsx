@@ -35,7 +35,7 @@ import {
   ArrowPathIcon,
   CalendarIcon,
   XMarkIcon,
-  Cog6ToothIcon
+  TableCellsIcon
 } from '@heroicons/react/24/outline';
 
 // Sample reports data - matching the customer details table structure
@@ -1318,20 +1318,22 @@ export default function ReportsPage() {
                           )}
                           <span>{tab.title}</span>
                         </button>
-                        
-                        {/* Column Manager Button - Always visible */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCurrentReportType(tab.id === 'main' ? 'main' : tab.id);
-                            setShowColumnsModal(true);
-                          }}
-                          className="ml-1 p-1 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
-                          title="إدارة الأعمدة"
-                        >
-                          <Cog6ToothIcon className="w-4 h-4" />
-                        </button>
-                        
+
+                        {/* Column Manager Button - Only for non-main tabs */}
+                        {tab.id !== 'main' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentReportType(tab.id === 'main' ? 'main' : tab.id);
+                              setShowColumnsModal(true);
+                            }}
+                            className="ml-1 p-1 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+                            title="إدارة الأعمدة"
+                          >
+                            <TableCellsIcon className="w-4 h-4" />
+                          </button>
+                        )}
+
                         {/* Close Tab Button - Only for non-main tabs */}
                         {tab.id !== 'main' && (
                           <button
