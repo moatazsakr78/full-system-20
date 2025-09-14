@@ -90,6 +90,8 @@ function SortableHeader({ column, width, onResize, onResizeStateChange, onResize
     }
 
     const handleMouseUp = () => {
+      console.log(`🖱️ Mouse up detected for column: ${column.id}, current width: ${width}px`)
+
       setIsResizing(false)
       onResizeStateChange(false)
       document.body.style.userSelect = ''
@@ -97,8 +99,10 @@ function SortableHeader({ column, width, onResize, onResizeStateChange, onResize
 
       // Save the final width on mouse up (when user releases the mouse)
       if (onResizeComplete) {
+        console.log(`💾 Calling onResizeComplete for ${column.id} with width ${width}px`)
         onResizeComplete(column.id, width) // Use current width state
-        console.log(`🖱️ Mouse released - saving column width: ${column.id} = ${width}px`)
+      } else {
+        console.warn(`⚠️ onResizeComplete not provided for column: ${column.id}`)
       }
     }
 
@@ -185,11 +189,26 @@ export default function ResizableTable({
       columnsForStorage = savedConfig.columns.map(col => ({
         id: col.id,
         width: col.id === columnId ? newWidth : col.width,
-        visible: col.visible,
+        visible: col.visible !== false, // ensure boolean
         order: col.order
       }))
+
+      // Check if the column exists in saved config, if not add it
+      const columnExists = savedConfig.columns.some(col => col.id === columnId)
+      if (!columnExists) {
+        const originalCol = columns.find(col => col.id === columnId)
+        if (originalCol) {
+          columnsForStorage.push({
+            id: columnId,
+            width: newWidth,
+            visible: true,
+            order: savedConfig.columns.length
+          })
+        }
+      }
     } else {
       // Create new config from current columns
+      console.log(`📝 Creating new config from current columns`)
       columnsForStorage = columns.map((col, index) => ({
         id: col.id,
         width: col.id === columnId ? newWidth : (col.width || 100),
@@ -197,6 +216,8 @@ export default function ResizableTable({
         order: index
       }))
     }
+
+    console.log(`💾 Columns for storage:`, columnsForStorage.map(col => ({ id: col.id, width: col.width })))
 
     updateColumnWidth(reportType, columnId, newWidth, columnsForStorage)
     console.log(`📐 Column width saved successfully for ${reportType}: ${columnId} = ${newWidth}px`)

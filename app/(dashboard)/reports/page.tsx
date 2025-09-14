@@ -470,12 +470,13 @@ export default function ReportsPage() {
     // Get saved config to preserve width and order settings
     const savedConfig = loadTableConfig(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT');
 
-    const allColumns = currentColumns.map(col => {
+    const allColumns = currentColumns.map((col, index) => {
       const savedCol = savedConfig?.columns.find(saved => saved.id === col.id);
       return {
         id: col.id,
         width: savedCol?.width || col.width || 100,
-        visible: newVisibleColumns[col.id] !== false
+        visible: newVisibleColumns[col.id] !== false,
+        order: savedCol?.order !== undefined ? savedCol.order : index
       };
     });
 

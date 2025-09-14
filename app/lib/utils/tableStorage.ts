@@ -191,6 +191,14 @@ export function updateColumnWidth(
   allColumns: { id: string; width?: number; visible?: boolean }[]
 ): void {
   try {
+    console.log(`📐 updateColumnWidth called:`, {
+      reportType,
+      columnId,
+      newWidth,
+      totalColumns: allColumns.length,
+      allColumnWidths: allColumns.map(col => ({ id: col.id, width: col.width }))
+    })
+
     // Update the column width in the provided array
     const updatedColumns = allColumns.map(col =>
       col.id === columnId
@@ -198,7 +206,13 @@ export function updateColumnWidth(
         : col
     )
 
+    console.log(`💾 About to save config with updated widths:`,
+      updatedColumns.map(col => ({ id: col.id, width: col.width, visible: col.visible }))
+    )
+
     saveTableConfig(reportType, updatedColumns)
+
+    console.log(`✅ Column width update completed for ${columnId}`)
   } catch (error) {
     console.warn('Failed to update column width:', error)
   }
