@@ -540,13 +540,13 @@ export default function ReportsPage() {
     const filtered = getFilteredColumns(tableColumns);
     console.log(`🔄 Main columns updated (${filtered.length} visible):`, filtered.map(col => ({ id: col.id, header: col.header, width: col.width })));
     return filtered;
-  }, [getFilteredColumns, tableColumns, visibleColumns]);
+  }, [getFilteredColumns]);
 
   const filteredProductsColumns = useMemo(() => {
     const filtered = getFilteredColumns(productsTableColumns);
     console.log(`🔄 Products columns updated (${filtered.length} visible):`, filtered.map(col => ({ id: col.id, header: col.header, width: col.width })));
     return filtered;
-  }, [getFilteredColumns, productsTableColumns, visibleColumns]);
+  }, [getFilteredColumns]);
 
   // Prepare columns data for the modal
   const getColumnsForModal = (reportType: string) => {

@@ -73,7 +73,7 @@ export default function ColumnsControlModal({
           <div className="px-6 py-4 border-b border-[#4A5568] flex items-center justify-between">
             <div className="text-right">
               <h3 className="text-lg font-medium text-white">إدارة الأعمدة</h3>
-              <p className="text-sm text-blue-400 mt-1">🎯 اختر الأعمدة ثم اضغط "تطبيق"</p>
+              <p className="text-sm text-blue-400 mt-1">🎯 اختر الأعمدة ثم اضغط &quot;تطبيق&quot;</p>
             </div>
             <button
               onClick={handleCancel}
