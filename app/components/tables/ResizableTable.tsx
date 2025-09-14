@@ -34,9 +34,10 @@ interface SortableHeaderProps {
   width: number
   onResize: (columnId: string, newWidth: number) => void
   onResizeStateChange: (isResizing: boolean) => void
+  onResizeComplete?: (columnId: string, newWidth: number) => void
 }
 
-function SortableHeader({ column, width, onResize, onResizeStateChange }: SortableHeaderProps) {
+function SortableHeader({ column, width, onResize, onResizeStateChange, onResizeComplete }: SortableHeaderProps) {
   const {
     attributes,
     listeners,
@@ -93,6 +94,12 @@ function SortableHeader({ column, width, onResize, onResizeStateChange }: Sortab
       onResizeStateChange(false)
       document.body.style.userSelect = ''
       document.body.style.cursor = ''
+
+      // Save the final width on mouse up (when user releases the mouse)
+      if (onResizeComplete) {
+        onResizeComplete(column.id, width) // Use current width state
+        console.log(`🖱️ Mouse released - saving column width: ${column.id} = ${width}px`)
+      }
     }
 
     if (isResizing) {
@@ -162,44 +169,33 @@ export default function ResizableTable({
   const [isInitialized, setIsInitialized] = useState(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Debounced save function - only saves after user stops resizing
-  const debouncedSave = useCallback((
-    action: 'resize' | 'reorder',
-    updatedColumns: Column[],
-    newOrder?: string[]
-  ) => {
-    // Clear existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-    }
+  // Immediate save function for resize complete (on mouse up)
+  const saveColumnWidth = useCallback((columnId: string, newWidth: number) => {
+    if (!reportType) return
 
-    // Set new timeout to save after 500ms of inactivity
-    saveTimeoutRef.current = setTimeout(() => {
-      if (!reportType) return
+    const columnsForStorage = columns.map(col => ({
+      id: col.id,
+      width: col.id === columnId ? newWidth : (col.width || 100),
+      visible: true // assume visible since it's in the table
+    }))
 
-      const columnsForStorage = updatedColumns.map(col => ({
-        id: col.id,
-        width: col.width || 100,
-        visible: true // assume visible since it's in the table
-      }))
-
-      if (action === 'reorder' && newOrder) {
-        updateColumnOrder(reportType, newOrder, columnsForStorage)
-        console.log(`🔄 Column order saved for ${reportType} (debounced)`)
-      } else {
-        // Find which column was resized by comparing with current columns
-        const columnId = updatedColumns.find((col, index) =>
-          col.width !== columns[index]?.width
-        )?.id
-
-        if (columnId) {
-          const newWidth = updatedColumns.find(col => col.id === columnId)?.width || 100
-          updateColumnWidth(reportType, columnId, newWidth, columnsForStorage)
-          console.log(`📐 Column width saved for ${reportType}: ${columnId} = ${newWidth}px (debounced)`)
-        }
-      }
-    }, 500) // Save after 500ms of no activity
+    updateColumnWidth(reportType, columnId, newWidth, columnsForStorage)
+    console.log(`📐 Column width saved immediately for ${reportType}: ${columnId} = ${newWidth}px (on mouse up)`)
   }, [reportType, columns])
+
+  // Immediate save function for column reorder
+  const saveColumnOrder = useCallback((newOrder: string[], reorderedColumns: Column[]) => {
+    if (!reportType) return
+
+    const columnsForStorage = reorderedColumns.map(col => ({
+      id: col.id,
+      width: col.width || 100,
+      visible: true // assume visible since it's in the table
+    }))
+
+    updateColumnOrder(reportType, newOrder, columnsForStorage)
+    console.log(`🔄 Column order saved immediately for ${reportType}`)
+  }, [reportType])
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -298,13 +294,41 @@ export default function ResizableTable({
     initializeColumns()
   }, [initialColumns, reportType, isInitialized])
 
-  // Update columns when initialColumns change (but only if not using saved config)
+  // Update columns when initialColumns change - always update to reflect visibility changes
   useEffect(() => {
     if (!isInitialized || !reportType) {
       setColumns(initialColumns.map(col => ({
         ...col,
         width: col.width || col.minWidth || 100
       })))
+    } else {
+      // Re-initialize columns to reflect any visibility changes
+      const savedConfig = loadTableConfig(reportType)
+
+      if (savedConfig && savedConfig.columns.length > 0) {
+        const configuredColumns = savedConfig.columns
+          .sort((a, b) => a.order - b.order)
+          .map(savedCol => {
+            const originalCol = initialColumns.find(col => col.id === savedCol.id)
+            if (!originalCol || !savedCol.visible) return null
+
+            return {
+              ...originalCol,
+              width: savedCol.width
+            }
+          })
+          .filter(Boolean) as Column[]
+
+        const configuredIds = new Set(savedConfig.columns.map(col => col.id))
+        const newColumns = initialColumns
+          .filter(col => !configuredIds.has(col.id))
+          .map(col => ({ ...col, width: col.width || col.minWidth || 100 }))
+
+        const finalColumns = [...configuredColumns, ...newColumns]
+        setColumns(finalColumns)
+
+        console.log(`🔄 ResizableTable: Updated columns based on new initialColumns (${finalColumns.length} visible)`)
+      }
     }
   }, [initialColumns, isInitialized, reportType])
 
@@ -328,10 +352,10 @@ export default function ResizableTable({
         const newIndex = columns.findIndex(col => col.id === over.id)
         const reorderedColumns = arrayMove(columns, oldIndex, newIndex)
 
-        // Use debounced save for reordering
+        // Save column order immediately
         if (reportType) {
           const newOrder = reorderedColumns.map(col => col.id)
-          debouncedSave('reorder', reorderedColumns, newOrder)
+          saveColumnOrder(newOrder, reorderedColumns)
         }
 
         // Notify parent component of changes
@@ -342,7 +366,7 @@ export default function ResizableTable({
         return reorderedColumns
       })
     }
-  }, [reportType, onColumnsChange, debouncedSave])
+  }, [reportType, onColumnsChange, saveColumnOrder])
 
   const emptyDragEnd = useCallback(() => {}, [])
 
@@ -352,11 +376,6 @@ export default function ResizableTable({
         col.id === columnId ? { ...col, width: newWidth } : col
       )
 
-      // Use debounced save for resizing - only saves after user stops resizing
-      if (reportType) {
-        debouncedSave('resize', updatedColumns)
-      }
-
       // Notify parent component of changes immediately for UI responsiveness
       if (onColumnsChange) {
         onColumnsChange(updatedColumns)
@@ -364,7 +383,13 @@ export default function ResizableTable({
 
       return updatedColumns
     })
-  }, [reportType, onColumnsChange, debouncedSave])
+  }, [onColumnsChange])
+
+  // Handle resize complete (when mouse is released)
+  const handleResizeComplete = useCallback((columnId: string, finalWidth: number) => {
+    // Save to localStorage immediately when resize is complete
+    saveColumnWidth(columnId, finalWidth)
+  }, [saveColumnWidth])
 
   // Update container width whenever columns change
   useEffect(() => {
@@ -407,6 +432,7 @@ export default function ResizableTable({
                     width={column.width || 100}
                     onResize={handleColumnResize}
                     onResizeStateChange={setIsAnyColumnResizing}
+                    onResizeComplete={handleResizeComplete}
                   />
                 ))}
               </tr>

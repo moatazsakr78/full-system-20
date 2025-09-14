@@ -385,6 +385,7 @@ export default function ReportsPage() {
   const [showColumnsModal, setShowColumnsModal] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({});
   const [currentReportType, setCurrentReportType] = useState<string>('');
+  const [tableRefreshKey, setTableRefreshKey] = useState<number>(0);
   
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -424,18 +425,28 @@ export default function ReportsPage() {
 
       setVisibleColumns(initialVisible);
 
-      console.log('Initialized columns visibility from localStorage:', initialVisible);
+      console.log('✅ Initialized columns visibility from localStorage:', initialVisible);
+      console.log('📊 Main report columns:', mainReportColumns.filter(id => initialVisible[id]).length, 'visible out of', mainReportColumns.length);
+      console.log('📊 Products report columns:', productsReportColumns.filter(id => initialVisible[id]).length, 'visible out of', productsReportColumns.length);
     };
 
     initializeVisibleColumns();
   }, []);
 
-  // Column management functions
+  // Column management functions - Enhanced for instant application
   const handleColumnsChange = (updatedColumns: {id: string, header: string, visible: boolean}[]) => {
+    console.log(`🎯 Starting column visibility update for ${updatedColumns.length} columns`);
+
     const newVisibleColumns: {[key: string]: boolean} = {};
     updatedColumns.forEach(col => {
       newVisibleColumns[col.id] = col.visible;
     });
+
+    // Count changes
+    const visibleCount = Object.values(newVisibleColumns).filter(Boolean).length;
+    const hiddenCount = Object.values(newVisibleColumns).filter(v => !v).length;
+
+    console.log(`📊 Column changes: ${visibleCount} visible, ${hiddenCount} hidden`);
 
     // Update state immediately for instant UI response
     setVisibleColumns(prev => {
@@ -444,19 +455,43 @@ export default function ReportsPage() {
         ...newVisibleColumns
       };
 
-      // Log the immediate state change for debugging
-      console.log(`✅ Visibility state updated immediately for instant UI response:`, updated);
+      console.log(`⚡ INSTANT STATE UPDATE - Visibility changed for columns:`,
+        Object.entries(newVisibleColumns).filter(([id, visible]) => prev[id] !== visible)
+      );
+      console.log(`🔄 This will trigger useMemo recalculation NOW for instant UI update`);
+
       return updated;
     });
 
-    // Save to localStorage based on current report type (with debounced save from table)
+    // Save to localStorage immediately (no debounce needed for visibility changes)
     const reportType = currentReportType === 'products' ? 'PRODUCTS_REPORT' : 'MAIN_REPORT';
-    const allColumns = reportType === 'PRODUCTS_REPORT'
-      ? productsTableColumns.map(col => ({ id: col.id, width: col.width || 100, visible: newVisibleColumns[col.id] }))
-      : tableColumns.map(col => ({ id: col.id, width: col.width || 100, visible: newVisibleColumns[col.id] }));
+    const currentColumns = reportType === 'PRODUCTS_REPORT' ? productsTableColumns : tableColumns;
 
+    // Get saved config to preserve width and order settings
+    const savedConfig = loadTableConfig(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT');
+
+    const allColumns = currentColumns.map(col => {
+      const savedCol = savedConfig?.columns.find(saved => saved.id === col.id);
+      return {
+        id: col.id,
+        width: savedCol?.width || col.width || 100,
+        visible: newVisibleColumns[col.id] !== false
+      };
+    });
+
+    // Update visibility in localStorage immediately
     updateColumnVisibility(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT', newVisibleColumns, allColumns);
-    console.log(`💾 Column visibility saved to localStorage for ${reportType}:`, newVisibleColumns);
+    console.log(`💾 Column visibility saved immediately to localStorage for ${reportType}`);
+    console.log(`✅ APPLIED INSTANTLY: ${visibleCount} columns now visible, ${hiddenCount} columns hidden`);
+
+    // Force table refresh by updating refresh key (this ensures immediate rendering)
+    setTableRefreshKey(prev => prev + 1);
+
+    // Close the modal after applying changes (minimal delay to show the effect)
+    setTimeout(() => {
+      setShowColumnsModal(false);
+      console.log(`🎯 Modal closed - changes should be immediately visible in the table`);
+    }, 150);
   };
 
   // Get columns for display based on visibility, order, and width from localStorage and current state
@@ -472,7 +507,7 @@ export default function ReportsPage() {
           const originalCol = columns.find(col => col.id === savedCol.id);
           if (!originalCol) return null; // Skip missing columns
 
-          // Use current state visibility if available, otherwise fall back to saved visibility
+          // PRIORITIZE current state visibility over saved config for immediate UI updates
           const isVisible = visibleColumns[savedCol.id] !== undefined
             ? visibleColumns[savedCol.id]
             : savedCol.visible;
@@ -502,15 +537,15 @@ export default function ReportsPage() {
   // Memoized filtered columns for better performance and immediate updates
   const filteredMainColumns = useMemo(() => {
     const filtered = getFilteredColumns(tableColumns);
-    console.log(`🔄 Main columns updated:`, filtered.map(col => ({ id: col.id, header: col.header, width: col.width })));
+    console.log(`🔄 Main columns updated (${filtered.length} visible):`, filtered.map(col => ({ id: col.id, header: col.header, width: col.width })));
     return filtered;
-  }, [getFilteredColumns, tableColumns]);
+  }, [getFilteredColumns, tableColumns, visibleColumns]);
 
   const filteredProductsColumns = useMemo(() => {
     const filtered = getFilteredColumns(productsTableColumns);
-    console.log(`🔄 Products columns updated:`, filtered.map(col => ({ id: col.id, header: col.header, width: col.width })));
+    console.log(`🔄 Products columns updated (${filtered.length} visible):`, filtered.map(col => ({ id: col.id, header: col.header, width: col.width })));
     return filtered;
-  }, [getFilteredColumns, productsTableColumns]);
+  }, [getFilteredColumns, productsTableColumns, visibleColumns]);
 
   // Prepare columns data for the modal
   const getColumnsForModal = (reportType: string) => {
@@ -578,7 +613,7 @@ export default function ReportsPage() {
       // Add products tab
       setOpenTabs(prev => [
         ...prev.map(tab => ({ ...tab, active: false })),
-        { id: 'products', title: 'تقرير المنتجات', active: true }
+        { id: 'products', title: 'الأصناف', active: true }
       ]);
       setActiveTab('products');
       setShowProductsReport(true);
@@ -1379,6 +1414,7 @@ export default function ReportsPage() {
                       {!loading && (
                         <>
                           <ResizableTable
+                            key={`products-table-${filteredProductsColumns.length}-${tableRefreshKey}`}
                             className="h-full w-full"
                             columns={filteredProductsColumns}
                             data={productsReportData}
