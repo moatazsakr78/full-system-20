@@ -27,7 +27,9 @@ interface LegacyTableConfig {
 // Report type mapping for consistency
 const REPORT_TYPE_MAP = {
   'MAIN_REPORT': 'main',
-  'PRODUCTS_REPORT': 'products'
+  'PRODUCTS_REPORT': 'products',
+  'CATEGORIES_REPORT': 'categories',
+  'CUSTOMERS_REPORT': 'customers'
 } as const;
 
 type ReportType = keyof typeof REPORT_TYPE_MAP;
@@ -38,7 +40,9 @@ type ReportType = keyof typeof REPORT_TYPE_MAP;
 class HybridTableStorage {
   private readonly LEGACY_STORAGE_KEYS = {
     MAIN_REPORT: 'pos-reports-main-table-config',
-    PRODUCTS_REPORT: 'pos-reports-products-table-config'
+    PRODUCTS_REPORT: 'pos-reports-products-table-config',
+    CATEGORIES_REPORT: 'pos-reports-categories-table-config',
+    CUSTOMERS_REPORT: 'pos-reports-customers-table-config'
   } as const;
 
   private readonly CONFIG_VERSION = '2.1.0';

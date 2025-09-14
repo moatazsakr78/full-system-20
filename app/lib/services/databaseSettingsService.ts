@@ -101,10 +101,10 @@ class DatabaseSettingsService {
       if (this.isCacheValid(cacheKey)) {
         const cached = this.cache.get(cacheKey)!;
         // console.log(`📦 Settings loaded from cache for ${reportType}:`, {
-          userId: currentUserId,
-          columns: cached.data.columns.length,
-          cachedAt: new Date(cached.timestamp).toLocaleString('ar-SA')
-        });
+        //   userId: currentUserId,
+        //   columns: cached.data.columns.length,
+        //   cachedAt: new Date(cached.timestamp).toLocaleString('ar-SA')
+        // });
         return cached.data;
       }
 
@@ -143,11 +143,11 @@ class DatabaseSettingsService {
       });
 
       // console.log(`✅ Settings loaded from database for ${reportType}:`, {
-        userId: currentUserId,
-        columns: preferences.columns.length,
-        visibleColumns: preferences.columns.filter(col => col.visible).length,
-        lastUpdated: new Date(preferences.timestamp).toLocaleString('ar-SA')
-      });
+      //   userId: currentUserId,
+      //   columns: preferences.columns.length,
+      //   visibleColumns: preferences.columns.filter(col => col.visible).length,
+      //   lastUpdated: new Date(preferences.timestamp).toLocaleString('ar-SA')
+      // });
 
       return preferences;
 
@@ -220,12 +220,12 @@ class DatabaseSettingsService {
             }
 
             // console.log(`💾 Settings saved to database for ${reportType}:`, {
-              userId: currentUserId,
-              columns: columns.length,
-              visibleColumns: columns.filter(col => col.visible).length,
-              hiddenColumns: columns.filter(col => !col.visible).length,
-              savedAt: new Date().toLocaleString('ar-SA')
-            });
+            //   userId: currentUserId,
+            //   columns: columns.length,
+            //   visibleColumns: columns.filter(col => col.visible).length,
+            //   hiddenColumns: columns.filter(col => !col.visible).length,
+            //   savedAt: new Date().toLocaleString('ar-SA')
+            // });
 
             // Clean up pending saves
             this.pendingSaves.delete(cacheKey);

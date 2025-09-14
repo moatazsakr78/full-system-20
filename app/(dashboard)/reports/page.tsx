@@ -204,6 +204,170 @@ const tableColumns = [
   }
 ];
 
+// Table columns for customers report
+const customersTableColumns = [
+  {
+    id: 'index',
+    header: '#',
+    accessor: '#',
+    width: 60,
+    visible: true,
+    render: (value: any, item: any, index: number) => (
+      <span className="text-gray-400 font-medium">{index + 1}</span>
+    )
+  },
+  {
+    id: 'customer_name',
+    header: 'اسم العميل',
+    accessor: 'customer_name',
+    width: 180,
+    visible: true,
+    render: (value: string) => <span className="text-white font-medium">{value || 'غير محدد'}</span>
+  },
+  {
+    id: 'category',
+    header: 'الفئة',
+    accessor: 'category',
+    width: 100,
+    visible: true,
+    render: (value: string) => <span className="text-gray-300">{value || 'عام'}</span>
+  },
+  {
+    id: 'rank',
+    header: 'الرتبة',
+    accessor: 'rank',
+    width: 100,
+    visible: true,
+    render: (value: string) => <span className="text-gray-300">{value || 'برونزي'}</span>
+  },
+  {
+    id: 'phone',
+    header: 'رقم الهاتف',
+    accessor: 'phone',
+    width: 120,
+    visible: true,
+    render: (value: string) => <span className="text-gray-300 font-mono">{value || 'غير محدد'}</span>
+  },
+  {
+    id: 'backup_phone',
+    header: 'الاحتياطي',
+    accessor: 'backup_phone',
+    width: 120,
+    visible: true,
+    render: (value: string) => <span className="text-gray-300 font-mono">{value || 'غير محدد'}</span>
+  },
+  {
+    id: 'city',
+    header: 'المدينة',
+    accessor: 'city',
+    width: 100,
+    visible: true,
+    render: (value: string) => <span className="text-gray-300">{value || 'غير محدد'}</span>
+  },
+  {
+    id: 'created_at',
+    header: 'تاريخ الانشاء',
+    accessor: 'created_at',
+    width: 100,
+    visible: true,
+    render: (value: string) => {
+      if (!value) return <span className="text-gray-400">غير محدد</span>;
+      const date = new Date(value);
+      return <span className="text-gray-300">{date.toLocaleDateString('ar-SA')}</span>;
+    }
+  },
+  {
+    id: 'invoice_count',
+    header: 'عدد الفواتير',
+    accessor: 'invoice_count',
+    width: 100,
+    visible: true,
+    render: (value: number) => <span className="text-blue-400 font-medium">{value || 0}</span>
+  },
+  {
+    id: 'total_amount',
+    header: 'الإجمالي',
+    accessor: 'total_amount',
+    width: 120,
+    visible: true,
+    render: (value: number) => <span className="text-green-400 font-medium">EGP {(value || 0).toFixed(2)}</span>
+  },
+  {
+    id: 'total_profit',
+    header: 'الربح',
+    accessor: 'total_profit',
+    width: 120,
+    visible: true,
+    render: (value: number) => {
+      const profit = value || 0;
+      const colorClass = profit >= 0 ? 'text-green-400' : 'text-red-400';
+      return <span className={`${colorClass} font-medium`}>EGP {profit.toFixed(2)}</span>;
+    }
+  }
+];
+
+// Table columns for categories report
+const categoriesTableColumns = [
+  {
+    id: 'index',
+    header: '#',
+    accessor: '#',
+    width: 60,
+    visible: true,
+    render: (value: any, item: any, index: number) => (
+      <span className="text-gray-400 font-medium">{index + 1}</span>
+    )
+  },
+  {
+    id: 'category_name',
+    header: 'اسم التصنيف',
+    accessor: 'category_name',
+    width: 200,
+    visible: true,
+    render: (value: string) => <span className="text-white font-medium">{value || 'غير محدد'}</span>
+  },
+  {
+    id: 'total_quantity_sold',
+    header: 'الكمية المباعة',
+    accessor: 'total_quantity_sold',
+    width: 120,
+    visible: true,
+    render: (value: number) => <span className="text-gray-300">{value || 0}</span>
+  },
+  {
+    id: 'branch_name',
+    header: 'الفرع',
+    accessor: 'branch_name',
+    width: 100,
+    visible: true,
+    render: (value: string) => <span className="text-gray-300">{value || 'جميع الفروع'}</span>
+  },
+  {
+    id: 'total_sales_amount',
+    header: 'الاجمالي',
+    accessor: 'total_sales_amount',
+    width: 120,
+    visible: true,
+    render: (value: number) => <span className="text-white font-medium">EGP {(value || 0).toFixed(2)}</span>
+  },
+  {
+    id: 'products_count',
+    header: 'عدد المنتجات',
+    accessor: 'products_count',
+    width: 100,
+    visible: true,
+    render: (value: number) => <span className="text-gray-300">{value || 0}</span>
+  },
+  {
+    id: 'avg_price',
+    header: 'متوسط السعر',
+    accessor: 'avg_price',
+    width: 100,
+    visible: true,
+    render: (value: number) => <span className="text-gray-300">EGP {(value || 0).toFixed(2)}</span>
+  }
+];
+
 // Table columns for products report
 const productsTableColumns = [
   { 
@@ -438,6 +602,10 @@ function ReportsPageContent() {
   const [showSalesReportsModal, setShowSalesReportsModal] = useState(false);
   const [showProductsReport, setShowProductsReport] = useState(false);
   const [productsReportData, setProductsReportData] = useState<any[]>([]);
+  const [showCategoriesReport, setShowCategoriesReport] = useState(false);
+  const [categoriesReportData, setCategoriesReportData] = useState<any[]>([]);
+  const [showCustomersReport, setShowCustomersReport] = useState(false);
+  const [customersReportData, setCustomersReportData] = useState<any[]>([]);
   const [totalSalesAmount, setTotalSalesAmount] = useState<string>('0.00');
   const [loading, setLoading] = useState(false);
   const [openTabs, setOpenTabs] = useState<{ id: string; title: string; active: boolean }[]>([
@@ -462,8 +630,12 @@ function ReportsPageContent() {
 
   // Enhanced column management with improved event handling
   const handleColumnsChange = async (updatedColumns: {id: string, header: string, visible: boolean}[]) => {
-    const reportType = currentReportType === 'products' ? 'PRODUCTS_REPORT' : 'MAIN_REPORT';
-    const currentColumns = reportType === 'PRODUCTS_REPORT' ? productsTableColumns : tableColumns;
+    const reportType = currentReportType === 'products' ? 'PRODUCTS_REPORT' :
+                      currentReportType === 'categories' ? 'CATEGORIES_REPORT' :
+                      currentReportType === 'customers' ? 'CUSTOMERS_REPORT' : 'MAIN_REPORT';
+    const currentColumns = reportType === 'PRODUCTS_REPORT' ? productsTableColumns :
+                          reportType === 'CATEGORIES_REPORT' ? categoriesTableColumns :
+                          reportType === 'CUSTOMERS_REPORT' ? customersTableColumns : tableColumns;
 
     try {
       // Create visibility map from updated columns
@@ -473,7 +645,7 @@ function ReportsPageContent() {
       });
 
       // Get current saved config to preserve existing settings
-      const savedConfig = await loadTableConfig(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT');
+      const savedConfig = await loadTableConfig(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT' | 'CATEGORIES_REPORT' | 'CUSTOMERS_REPORT');
 
       // Build complete column configuration preserving widths and order
       const allColumns = currentColumns.map((col, index) => {
@@ -489,7 +661,7 @@ function ReportsPageContent() {
       });
 
       // Save to database through hybrid storage
-      await updateColumnVisibility(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT', visibilityMap, allColumns);
+      await updateColumnVisibility(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT' | 'CATEGORIES_REPORT' | 'CUSTOMERS_REPORT', visibilityMap, allColumns);
 
       const visibleCount = Object.values(visibilityMap).filter(Boolean).length;
 
@@ -505,7 +677,9 @@ function ReportsPageContent() {
         // Dispatch event with clear identification for visibility changes only
         window.dispatchEvent(new CustomEvent('tableConfigChanged', {
           detail: {
-            reportType: reportType === 'PRODUCTS_REPORT' ? 'products' : 'main',
+            reportType: reportType === 'PRODUCTS_REPORT' ? 'products' :
+                       reportType === 'CATEGORIES_REPORT' ? 'categories' :
+                       reportType === 'CUSTOMERS_REPORT' ? 'customers' : 'main',
             source: 'ColumnManagement',
             action: 'visibilityUpdate',
             visibleCount,
@@ -527,11 +701,15 @@ function ReportsPageContent() {
 
   // Prepare columns data for the modal based on saved config with async loading
   const getColumnsForModal = async (reportType: string) => {
-    const columns = reportType === 'products' ? productsTableColumns : tableColumns;
-    const configType = reportType === 'products' ? 'PRODUCTS_REPORT' : 'MAIN_REPORT';
+    const columns = reportType === 'products' ? productsTableColumns :
+                   reportType === 'categories' ? categoriesTableColumns :
+                   reportType === 'customers' ? customersTableColumns : tableColumns;
+    const configType = reportType === 'products' ? 'PRODUCTS_REPORT' :
+                      reportType === 'categories' ? 'CATEGORIES_REPORT' :
+                      reportType === 'customers' ? 'CUSTOMERS_REPORT' : 'MAIN_REPORT';
 
     try {
-      const savedConfig = await loadTableConfig(configType as 'MAIN_REPORT' | 'PRODUCTS_REPORT');
+      const savedConfig = await loadTableConfig(configType as 'MAIN_REPORT' | 'PRODUCTS_REPORT' | 'CATEGORIES_REPORT' | 'CUSTOMERS_REPORT');
 
       return columns.map(col => {
         const savedCol = savedConfig?.columns.find(saved => saved.id === col.id);
@@ -598,12 +776,14 @@ function ReportsPageContent() {
     
     // Update legacy showProductsReport state for compatibility
     setShowProductsReport(tabId === 'products');
+    setShowCategoriesReport(tabId === 'categories');
+    setShowCustomersReport(tabId === 'customers');
   };
 
   const openProductsReport = () => {
     // Check if products tab already exists
     const productsTabExists = openTabs.some(tab => tab.id === 'products');
-    
+
     if (!productsTabExists) {
       // Add products tab
       setOpenTabs(prev => [
@@ -616,6 +796,44 @@ function ReportsPageContent() {
     } else {
       // Switch to existing products tab
       switchTab('products');
+    }
+  };
+
+  const openCategoriesReport = () => {
+    // Check if categories tab already exists
+    const categoriesTabExists = openTabs.some(tab => tab.id === 'categories');
+
+    if (!categoriesTabExists) {
+      // Add categories tab
+      setOpenTabs(prev => [
+        ...prev.map(tab => ({ ...tab, active: false })),
+        { id: 'categories', title: 'التصنيفات الرئيسية', active: true }
+      ]);
+      setActiveTab('categories');
+      setShowCategoriesReport(true);
+      fetchCategoriesReport();
+    } else {
+      // Switch to existing categories tab
+      switchTab('categories');
+    }
+  };
+
+  const openCustomersReport = () => {
+    // Check if customers tab already exists
+    const customersTabExists = openTabs.some(tab => tab.id === 'customers');
+
+    if (!customersTabExists) {
+      // Add customers tab
+      setOpenTabs(prev => [
+        ...prev.map(tab => ({ ...tab, active: false })),
+        { id: 'customers', title: 'العملاء', active: true }
+      ]);
+      setActiveTab('customers');
+      setShowCustomersReport(true);
+      fetchCustomersReport();
+    } else {
+      // Switch to existing customers tab
+      switchTab('customers');
     }
   };
 
@@ -682,6 +900,252 @@ function ReportsPageContent() {
     };
   }, []); // Empty dependency array for mount-only effect
   
+  // Function to fetch customers report data with accurate profit calculation
+  const fetchCustomersReport = async () => {
+    setLoading(true);
+    try {
+      // Get customers with their group information
+      const { data: customersData, error: customersError } = await supabase
+        .from('customers')
+        .select(`
+          id,
+          name,
+          phone,
+          backup_phone,
+          city,
+          category,
+          rank,
+          created_at,
+          customer_groups(name)
+        `)
+        .eq('is_active', true);
+
+      if (customersError) {
+        console.error('Error fetching customers:', customersError);
+        alert(`خطأ في جلب بيانات العملاء: ${customersError.message}`);
+        return;
+      }
+
+      // Get sales data with detailed items for accurate profit calculation
+      let salesQuery = supabase
+        .from('sales')
+        .select(`
+          id,
+          customer_id,
+          total_amount,
+          created_at,
+          sale_items(
+            id,
+            quantity,
+            unit_price,
+            cost_price
+          )
+        `);
+
+      // Apply date filters
+      if (dateFilter.type === 'today') {
+        const today = new Date().toISOString().split('T')[0];
+        salesQuery = salesQuery.gte('created_at', today + 'T00:00:00');
+      } else if (dateFilter.type === 'current_week') {
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        salesQuery = salesQuery.gte('created_at', weekStart.toISOString());
+      } else if (dateFilter.type === 'current_month') {
+        const monthStart = new Date();
+        monthStart.setDate(1);
+        salesQuery = salesQuery.gte('created_at', monthStart.toISOString());
+      } else if (dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate) {
+        salesQuery = salesQuery
+          .gte('created_at', dateFilter.startDate.toISOString())
+          .lte('created_at', dateFilter.endDate.toISOString());
+      } else {
+        // Default to all time
+        salesQuery = salesQuery.gte('created_at', '2024-01-01T00:00:00');
+      }
+
+      const { data: salesData, error: salesError } = await salesQuery;
+
+      if (salesError) {
+        console.error('Error fetching sales data:', salesError);
+        alert(`خطأ في جلب بيانات المبيعات: ${salesError.message}`);
+        return;
+      }
+
+      // Process data to calculate customer statistics with accurate profit
+      const customerMap = new Map();
+
+      // Initialize all customers with zero values
+      customersData?.forEach((customer: any) => {
+        customerMap.set(customer.id, {
+          customer_id: customer.id,
+          customer_name: customer.name,
+          phone: customer.phone,
+          backup_phone: customer.backup_phone,
+          city: customer.city,
+          category: customer.category,
+          rank: customer.rank,
+          created_at: customer.created_at,
+          invoice_count: 0,
+          total_amount: 0,
+          total_profit: 0
+        });
+      });
+
+      // Calculate sales statistics for each customer
+      salesData?.forEach((sale: any) => {
+        if (!sale.customer_id || !customerMap.has(sale.customer_id)) return;
+
+        const customerStats = customerMap.get(sale.customer_id);
+        customerStats.invoice_count += 1;
+        customerStats.total_amount += parseFloat(sale.total_amount) || 0;
+
+        // Calculate accurate profit from sale items
+        // Profit = (unit_price - cost_price) * quantity for each item
+        if (sale.sale_items && Array.isArray(sale.sale_items)) {
+          sale.sale_items.forEach((item: any) => {
+            const quantity = item.quantity || 0;
+            const unitPrice = parseFloat(item.unit_price) || 0;
+            const costPrice = parseFloat(item.cost_price) || 0;
+
+            // Calculate profit per item: (selling price - cost price) × quantity
+            const itemProfit = (unitPrice - costPrice) * quantity;
+            customerStats.total_profit += itemProfit;
+          });
+        }
+      });
+
+      // Convert map to array and sort by total amount (highest first)
+      const processedData = Array.from(customerMap.values()).sort((a, b) =>
+        b.total_amount - a.total_amount
+      );
+
+      setCustomersReportData(processedData);
+
+      // Update total sales amount to match the filtered customers
+      const filteredTotal = processedData.reduce((sum, customer) =>
+        sum + (customer.total_amount || 0), 0
+      );
+      setTotalSalesAmount(filteredTotal.toFixed(2));
+
+    } catch (error) {
+      console.error('Error fetching customers report:', error);
+      alert('حدث خطأ أثناء جلب تقرير العملاء');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to fetch categories report data
+  const fetchCategoriesReport = async () => {
+    setLoading(true);
+    try {
+      let salesQuery = supabase
+        .from('sale_items')
+        .select(`
+          product_id,
+          quantity,
+          unit_price,
+          products(
+            id,
+            name,
+            price,
+            categories(
+              id,
+              name
+            )
+          ),
+          sales(
+            branch_id,
+            created_at,
+            branches(name)
+          )
+        `);
+
+      // Apply date filters
+      if (dateFilter.type === 'today') {
+        const today = new Date().toISOString().split('T')[0];
+        salesQuery = salesQuery.gte('sales.created_at', today + 'T00:00:00');
+      } else if (dateFilter.type === 'current_week') {
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        salesQuery = salesQuery.gte('sales.created_at', weekStart.toISOString());
+      } else if (dateFilter.type === 'current_month') {
+        const monthStart = new Date();
+        monthStart.setDate(1);
+        salesQuery = salesQuery.gte('sales.created_at', monthStart.toISOString());
+      } else if (dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate) {
+        salesQuery = salesQuery
+          .gte('sales.created_at', dateFilter.startDate.toISOString())
+          .lte('sales.created_at', dateFilter.endDate.toISOString());
+      } else {
+        salesQuery = salesQuery.gte('sales.created_at', '2024-01-01T00:00:00');
+      }
+
+      const { data: salesData, error: salesError } = await salesQuery;
+
+      if (salesError) {
+        console.error('Error fetching sales data:', salesError);
+        alert(`خطأ في جلب البيانات: ${salesError.message}`);
+        return;
+      }
+
+      // Process the data to aggregate by category
+      const categoryMap = new Map();
+
+      salesData?.forEach((saleItem: any) => {
+        const product = saleItem.products;
+        const category = product?.categories;
+        const branch = saleItem.sales?.branches;
+        const quantity = saleItem.quantity || 0;
+        const unitPrice = parseFloat(saleItem.unit_price) || 0;
+        const totalAmount = quantity * unitPrice;
+
+        const categoryId = category?.id || 'uncategorized';
+        const categoryName = category?.name || 'غير محدد';
+
+        if (categoryMap.has(categoryId)) {
+          const existing = categoryMap.get(categoryId);
+          existing.total_quantity_sold += quantity;
+          existing.total_sales_amount += totalAmount;
+          existing.products_count = existing.products_count || new Set();
+          existing.products_count.add(product?.id);
+          existing.prices = existing.prices || [];
+          existing.prices.push(unitPrice);
+        } else {
+          const productsSet = new Set();
+          productsSet.add(product?.id);
+
+          categoryMap.set(categoryId, {
+            category_id: categoryId,
+            category_name: categoryName,
+            branch_name: branch?.name || 'غير محدد',
+            total_quantity_sold: quantity,
+            total_sales_amount: totalAmount,
+            products_count: productsSet,
+            prices: [unitPrice]
+          });
+        }
+      });
+
+      const processedData = Array.from(categoryMap.values()).map(category => ({
+        ...category,
+        products_count: category.products_count.size,
+        avg_price: category.prices.length > 0 ?
+          category.prices.reduce((sum: number, price: number) => sum + price, 0) / category.prices.length : 0
+      })).sort((a, b) => b.total_quantity_sold - a.total_quantity_sold);
+
+      setCategoriesReportData(processedData);
+
+      // Update the total sales amount to match the filtered categories
+      const filteredTotal = processedData.reduce((sum, category) => sum + (category.total_sales_amount || 0), 0);
+      setTotalSalesAmount(filteredTotal.toFixed(2));
+    } catch (error) {
+      console.error('Error fetching categories report:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Function to fetch products report data
   const fetchProductsReport = async () => {
     setLoading(true);
@@ -804,12 +1268,30 @@ function ReportsPageContent() {
     setShowSalesReportsModal(false);
     fetchProductsReport();
   };
+
+  const handleCategoriesReportClick = () => {
+    addTab('categories', 'التصنيفات الرئيسية');
+    setShowCategoriesReport(true);
+    setShowSalesReportsModal(false);
+    fetchCategoriesReport();
+  };
+
+  const handleCustomersReportClick = () => {
+    addTab('customers', 'العملاء');
+    setShowCustomersReport(true);
+    setShowSalesReportsModal(false);
+    fetchCustomersReport();
+  };
   
   const handleBackToMainReports = async () => {
     switchTab('main');
     setShowProductsReport(false);
+    setShowCategoriesReport(false);
+    setShowCustomersReport(false);
     setShowSalesReportsModal(false);
     setProductsReportData([]);
+    setCategoriesReportData([]);
+    setCustomersReportData([]);
     
     // Restore the original total sales amount
     try {
@@ -1256,6 +1738,10 @@ function ReportsPageContent() {
                               onClick={() => {
                                 if (report === 'الاصناف') {
                                   handleProductsReportClick();
+                                } else if (report === 'التصنيفات الرئيسية') {
+                                  handleCategoriesReportClick();
+                                } else if (report === 'العملاء') {
+                                  handleCustomersReportClick();
                                 } else {
                                   // Add tab for other reports but don't implement functionality yet
                                   const reportId = report.replace(/\s+/g, '_');
@@ -1453,6 +1939,58 @@ function ReportsPageContent() {
                         </>
                       )}
                     </>
+                  ) : activeTab === 'categories' ? (
+                    <>
+                      {loading && (
+                        <div className="flex items-center justify-center h-32">
+                          <div className="text-white">جاري تحميل البيانات...</div>
+                        </div>
+                      )}
+                      {!loading && (
+                        <>
+                          <ResizableTable
+                            className="h-full w-full"
+                            columns={categoriesTableColumns}
+                            data={categoriesReportData}
+                            selectedRowId={null}
+                            reportType="CATEGORIES_REPORT"
+                            showToast={showToast}
+                            onRowClick={(category, index) => {
+                              // Handle category row click
+                            }}
+                            onRowDoubleClick={(category, index) => {
+                              // Handle double click if needed
+                            }}
+                          />
+                        </>
+                      )}
+                    </>
+                  ) : activeTab === 'customers' ? (
+                    <>
+                      {loading && (
+                        <div className="flex items-center justify-center h-32">
+                          <div className="text-white">جاري تحميل البيانات...</div>
+                        </div>
+                      )}
+                      {!loading && (
+                        <>
+                          <ResizableTable
+                            className="h-full w-full"
+                            columns={customersTableColumns}
+                            data={customersReportData}
+                            selectedRowId={null}
+                            reportType="CUSTOMERS_REPORT"
+                            showToast={showToast}
+                            onRowClick={(customer, index) => {
+                              // Handle customer row click
+                            }}
+                            onRowDoubleClick={(customer, index) => {
+                              // Handle double click if needed
+                            }}
+                          />
+                        </>
+                      )}
+                    </>
                   ) : activeTab === 'main' ? (
                     /* Reports List Container */
                     <div className="h-full overflow-y-auto scrollbar-hide p-4">
@@ -1492,6 +2030,10 @@ function ReportsPageContent() {
                                 onClick={() => {
                                   if (report === 'الأصناف') {
                                     openProductsReport();
+                                  } else if (report === 'التصنيفات الرئيسية') {
+                                    openCategoriesReport();
+                                  } else if (report === 'العملاء') {
+                                    openCustomersReport();
                                   }
                                 }}
                                 className="group w-full bg-[#374151] hover:bg-[#3B4754] text-right text-white transition-all duration-200 flex items-center justify-between text-sm p-2"
@@ -1658,6 +2200,14 @@ function ReportsPageContent() {
             if (showProductsReport) {
               // Re-fetch products report when date filter changes
               setTimeout(() => fetchProductsReport(), 100);
+            }
+            if (showCategoriesReport) {
+              // Re-fetch categories report when date filter changes
+              setTimeout(() => fetchCategoriesReport(), 100);
+            }
+            if (showCustomersReport) {
+              // Re-fetch customers report when date filter changes
+              setTimeout(() => fetchCustomersReport(), 100);
             }
           }}
           currentFilter={dateFilter}
