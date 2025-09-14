@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Persistence Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-center">🧪 Table Persistence Test</h1>
+
+        <div class="bg-gray-800 p-6 rounded-lg mb-6">
+            <h2 class="text-xl font-semibold mb-4">📊 Current localStorage Data</h2>
+            <div id="storage-info" class="space-y-2"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold mb-4">🔧 Test Main Report Config</h3>
+                <button onclick="testMainReport()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded mb-4">
+                    Test Main Report Persistence
+                </button>
+                <div id="main-report-results" class="space-y-2"></div>
+            </div>
+
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold mb-4">📦 Test Products Report Config</h3>
+                <button onclick="testProductsReport()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded mb-4">
+                    Test Products Report Persistence
+                </button>
+                <div id="products-report-results" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-lg mt-6">
+            <h3 class="text-lg font-semibold mb-4">🧹 Test Actions</h3>
+            <div class="flex gap-4">
+                <button onclick="clearAllConfigs()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">
+                    Clear All Configs
+                </button>
+                <button onclick="refreshDisplay()" class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded">
+                    Refresh Display
+                </button>
+                <button onclick="validateConfigs()" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded">
+                    Validate Configs
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-lg mt-6">
+            <h3 class="text-lg font-semibold mb-4">📝 Test Results Log</h3>
+            <div id="test-log" class="bg-gray-900 p-4 rounded text-sm font-mono h-64 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <script>
+        // Table storage utility functions (copied from your implementation)
+        const STORAGE_KEYS = {
+            MAIN_REPORT: 'pos-reports-main-table-config',
+            PRODUCTS_REPORT: 'pos-reports-products-table-config',
+        }
+
+        const CONFIG_EXPIRY = 365 * 24 * 60 * 60 * 1000 // 1 year
+        const CONFIG_VERSION = '1.0.0'
+
+        function log(message) {
+            const logElement = document.getElementById('test-log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function saveTableConfig(reportType, columns, columnOrder) {
+            try {
+                const columnConfigs = columns.map((col, index) => ({
+                    id: col.id,
+                    width: col.width || 100,
+                    order: columnOrder ? columnOrder.indexOf(col.id) : index,
+                    visible: col.visible !== false
+                }))
+
+                const config = {
+                    columns: columnConfigs,
+                    timestamp: Date.now(),
+                    version: CONFIG_VERSION
+                }
+
+                const storageKey = STORAGE_KEYS[reportType]
+                localStorage.setItem(storageKey, JSON.stringify(config))
+
+                log(`✅ Saved config for ${reportType}: ${config.columns.length} columns`)
+                return true
+            } catch (error) {
+                log(`❌ Failed to save config for ${reportType}: ${error.message}`)
+                return false
+            }
+        }
+
+        function loadTableConfig(reportType) {
+            try {
+                const storageKey = STORAGE_KEYS[reportType]
+                const storedConfig = localStorage.getItem(storageKey)
+
+                if (!storedConfig) {
+                    log(`📭 No saved config found for ${reportType}`)
+                    return null
+                }
+
+                const config = JSON.parse(storedConfig)
+
+                if (!config.columns || !Array.isArray(config.columns) || !config.timestamp) {
+                    log(`🚫 Invalid config structure for ${reportType}`)
+                    localStorage.removeItem(storageKey)
+                    return null
+                }
+
+                const ageInMs = Date.now() - config.timestamp
+                const isExpired = ageInMs > CONFIG_EXPIRY
+
+                if (isExpired) {
+                    localStorage.removeItem(storageKey)
+                    log(`⏰ Expired config removed for ${reportType}`)
+                    return null
+                }
+
+                log(`✅ Loaded valid config for ${reportType}: ${config.columns.length} columns`)
+                return config
+            } catch (error) {
+                log(`❌ Failed to load config for ${reportType}: ${error.message}`)
+                return null
+            }
+        }
+
+        function testMainReport() {
+            log('🧪 Testing Main Report Configuration...')
+
+            const testColumns = [
+                { id: 'index', width: 60, visible: true },
+                { id: 'type', width: 200, visible: true },
+                { id: 'date', width: 150, visible: false }, // Test hiding this
+                { id: 'amount', width: 180, visible: true },
+                { id: 'status', width: 120, visible: true },
+            ]
+
+            // Save test config
+            const saved = saveTableConfig('MAIN_REPORT', testColumns)
+            if (!saved) return
+
+            // Load and verify
+            const loaded = loadTableConfig('MAIN_REPORT')
+            if (!loaded) {
+                log('❌ Failed to load saved main report config')
+                return
+            }
+
+            // Verify data integrity
+            const visibleColumns = loaded.columns.filter(col => col.visible)
+            const hiddenColumns = loaded.columns.filter(col => !col.visible)
+
+            log(`✅ Main Report Test Passed: ${visibleColumns.length} visible, ${hiddenColumns.length} hidden`)
+
+            // Display results
+            const resultsDiv = document.getElementById('main-report-results')
+            resultsDiv.innerHTML = `
+                <div class="text-green-400">✅ Test Passed</div>
+                <div class="text-sm">Visible: ${visibleColumns.length}</div>
+                <div class="text-sm">Hidden: ${hiddenColumns.length}</div>
+                <div class="text-sm">Total: ${loaded.columns.length}</div>
+            `
+        }
+
+        function testProductsReport() {
+            log('🧪 Testing Products Report Configuration...')
+
+            const testColumns = [
+                { id: 'index', width: 60, visible: true },
+                { id: 'category_name', width: 120, visible: true },
+                { id: 'product_name', width: 250, visible: true },
+                { id: 'total_quantity_sold', width: 100, visible: false }, // Test hiding
+                { id: 'branch_name', width: 150, visible: true },
+                { id: 'total_sales_amount', width: 180, visible: true },
+                { id: 'current_sale_price', width: 120, visible: false }, // Test hiding
+                { id: 'wholesale_price', width: 120, visible: true },
+            ]
+
+            // Save test config
+            const saved = saveTableConfig('PRODUCTS_REPORT', testColumns)
+            if (!saved) return
+
+            // Load and verify
+            const loaded = loadTableConfig('PRODUCTS_REPORT')
+            if (!loaded) {
+                log('❌ Failed to load saved products report config')
+                return
+            }
+
+            // Verify data integrity
+            const visibleColumns = loaded.columns.filter(col => col.visible)
+            const hiddenColumns = loaded.columns.filter(col => !col.visible)
+
+            log(`✅ Products Report Test Passed: ${visibleColumns.length} visible, ${hiddenColumns.length} hidden`)
+
+            // Display results
+            const resultsDiv = document.getElementById('products-report-results')
+            resultsDiv.innerHTML = `
+                <div class="text-green-400">✅ Test Passed</div>
+                <div class="text-sm">Visible: ${visibleColumns.length}</div>
+                <div class="text-sm">Hidden: ${hiddenColumns.length}</div>
+                <div class="text-sm">Total: ${loaded.columns.length}</div>
+            `
+        }
+
+        function clearAllConfigs() {
+            log('🧹 Clearing all table configurations...')
+
+            Object.values(STORAGE_KEYS).forEach(key => {
+                localStorage.removeItem(key)
+            })
+
+            log('✅ All configurations cleared')
+            refreshDisplay()
+        }
+
+        function validateConfigs() {
+            log('🔍 Validating all configurations...')
+
+            let isHealthy = true
+            const issues = []
+
+            Object.entries(STORAGE_KEYS).forEach(([reportType, storageKey]) => {
+                try {
+                    const config = loadTableConfig(reportType)
+                    if (!config) {
+                        issues.push(`No valid config for ${reportType}`)
+                        return
+                    }
+
+                    const invalidColumns = config.columns.filter(col =>
+                        !col.id || typeof col.width !== 'number' || typeof col.visible !== 'boolean'
+                    )
+
+                    if (invalidColumns.length > 0) {
+                        issues.push(`Invalid columns in ${reportType}: ${invalidColumns.length}`)
+                        isHealthy = false
+                    }
+                } catch (error) {
+                    issues.push(`Error validating ${reportType}: ${error.message}`)
+                    isHealthy = false
+                }
+            })
+
+            if (isHealthy && issues.length === 0) {
+                log('✅ All configurations are valid and healthy')
+            } else {
+                issues.forEach(issue => log(`⚠️ ${issue}`))
+            }
+        }
+
+        function refreshDisplay() {
+            log('🔄 Refreshing display...')
+            displayStorageInfo()
+        }
+
+        function displayStorageInfo() {
+            const storageDiv = document.getElementById('storage-info')
+
+            try {
+                let totalSize = 0
+                let tableConfigsSize = 0
+                const configs = {}
+
+                // Analyze each config
+                Object.entries(STORAGE_KEYS).forEach(([reportType, storageKey]) => {
+                    const rawData = localStorage.getItem(storageKey)
+                    if (rawData) {
+                        const size = new Blob([rawData]).size
+                        tableConfigsSize += size
+
+                        try {
+                            const config = JSON.parse(rawData)
+                            const age = Date.now() - config.timestamp
+                            configs[reportType] = {
+                                exists: true,
+                                size: size,
+                                columns: config.columns?.length || 0,
+                                age: Math.round(age / (1000 * 60 * 60 * 24)),
+                                visible: config.columns?.filter(col => col.visible).length || 0,
+                                version: config.version
+                            }
+                        } catch (error) {
+                            configs[reportType] = { exists: true, error: error.message }
+                        }
+                    } else {
+                        configs[reportType] = { exists: false }
+                    }
+                })
+
+                // Calculate total localStorage usage
+                for (let key in localStorage) {
+                    if (localStorage.hasOwnProperty(key)) {
+                        totalSize += localStorage[key].length + key.length
+                    }
+                }
+
+                // Display results
+                storageDiv.innerHTML = `
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <h4 class="font-semibold text-blue-400">📊 Main Report</h4>
+                            ${configs.MAIN_REPORT?.exists ? `
+                                <div class="text-sm">✅ Exists (${configs.MAIN_REPORT.columns} columns)</div>
+                                <div class="text-sm">👁️ Visible: ${configs.MAIN_REPORT.visible}</div>
+                                <div class="text-sm">📅 Age: ${configs.MAIN_REPORT.age} days</div>
+                                <div class="text-sm">💾 Size: ${configs.MAIN_REPORT.size} bytes</div>
+                            ` : '<div class="text-sm text-gray-400">❌ No config found</div>'}
+                        </div>
+                        <div class="space-y-2">
+                            <h4 class="font-semibold text-green-400">📦 Products Report</h4>
+                            ${configs.PRODUCTS_REPORT?.exists ? `
+                                <div class="text-sm">✅ Exists (${configs.PRODUCTS_REPORT.columns} columns)</div>
+                                <div class="text-sm">👁️ Visible: ${configs.PRODUCTS_REPORT.visible}</div>
+                                <div class="text-sm">📅 Age: ${configs.PRODUCTS_REPORT.age} days</div>
+                                <div class="text-sm">💾 Size: ${configs.PRODUCTS_REPORT.size} bytes</div>
+                            ` : '<div class="text-sm text-gray-400">❌ No config found</div>'}
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-700">
+                        <div class="text-sm">📦 Total localStorage: ${totalSize} bytes</div>
+                        <div class="text-sm">🗂️ Table configs: ${tableConfigsSize} bytes</div>
+                    </div>
+                `
+            } catch (error) {
+                storageDiv.innerHTML = `<div class="text-red-400">❌ Error: ${error.message}</div>`
+            }
+        }
+
+        // Initialize display
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Table Persistence Test initialized')
+            refreshDisplay()
+        })
+    </script>
+</body>
+</html>

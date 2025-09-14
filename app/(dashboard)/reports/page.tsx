@@ -9,6 +9,7 @@ import { supabase } from '@/app/lib/supabase/client';
 import ProductsFilterModal from '@/app/components/ProductsFilterModal';
 import CustomersFilterModal from '@/app/components/CustomersFilterModal';
 import ColumnsControlModal from '@/app/components/ColumnsControlModal';
+import ToastProvider, { useToast } from '@/app/components/ui/ToastProvider';
 import {
   loadTableConfig,
   saveTableConfig,
@@ -360,7 +361,8 @@ const productsTableColumns = [
   }
 ];
 
-export default function ReportsPage() {
+function ReportsPageContent() {
+  const { showToast } = useToast();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentView, setCurrentView] = useState('main'); // 'main' or 'periodic'
   const [selectedReport, setSelectedReport] = useState<any>(null);
@@ -383,9 +385,7 @@ export default function ReportsPage() {
   ]);
   const [activeTab, setActiveTab] = useState<string>('main');
   const [showColumnsModal, setShowColumnsModal] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({});
   const [currentReportType, setCurrentReportType] = useState<string>('');
-  const [tableRefreshKey, setTableRefreshKey] = useState<number>(0);
   
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -399,163 +399,64 @@ export default function ReportsPage() {
     setCurrentView('main');
   };
 
-  // Initialize visible columns state for both report types with localStorage support
-  useEffect(() => {
-    const initializeVisibleColumns = () => {
-      const mainReportColumns = ['index', 'type', 'date', 'amount', 'status', 'invoice_count', 'customer_count'];
-      const productsReportColumns = ['index', 'category_name', 'product_name', 'total_quantity_sold', 'branch_name', 'total_sales_amount', 'current_sale_price', 'total_sale_price', 'wholesale_price', 'total_wholesale_price', 'price1', 'total_price1', 'price2', 'total_price2', 'price3', 'total_price3', 'price4', 'total_price4'];
 
-      const initialVisible: {[key: string]: boolean} = {};
-
-      // Load saved configuration from localStorage
-      const mainConfig = loadTableConfig('MAIN_REPORT');
-      const productsConfig = loadTableConfig('PRODUCTS_REPORT');
-
-      // Initialize main report columns
-      mainReportColumns.forEach(colId => {
-        const savedColumn = mainConfig?.columns.find(col => col.id === colId);
-        initialVisible[colId] = savedColumn?.visible !== false; // default to true
-      });
-
-      // Initialize products report columns
-      productsReportColumns.forEach(colId => {
-        const savedColumn = productsConfig?.columns.find(col => col.id === colId);
-        initialVisible[colId] = savedColumn?.visible !== false; // default to true
-      });
-
-      setVisibleColumns(initialVisible);
-
-      console.log('✅ Initialized columns visibility from localStorage:', initialVisible);
-      console.log('📊 Main report columns:', mainReportColumns.filter(id => initialVisible[id]).length, 'visible out of', mainReportColumns.length);
-      console.log('📊 Products report columns:', productsReportColumns.filter(id => initialVisible[id]).length, 'visible out of', productsReportColumns.length);
-    };
-
-    initializeVisibleColumns();
-  }, []);
-
-  // Column management functions - Enhanced for instant application
+  // Enhanced column management with stable persistence
   const handleColumnsChange = (updatedColumns: {id: string, header: string, visible: boolean}[]) => {
-    console.log(`🎯 Starting column visibility update for ${updatedColumns.length} columns`);
+    console.log(`🎯 Applying column visibility changes for ${updatedColumns.length} columns`);
 
-    const newVisibleColumns: {[key: string]: boolean} = {};
-    updatedColumns.forEach(col => {
-      newVisibleColumns[col.id] = col.visible;
-    });
-
-    // Count changes
-    const visibleCount = Object.values(newVisibleColumns).filter(Boolean).length;
-    const hiddenCount = Object.values(newVisibleColumns).filter(v => !v).length;
-
-    console.log(`📊 Column changes: ${visibleCount} visible, ${hiddenCount} hidden`);
-
-    // Update state immediately for instant UI response
-    setVisibleColumns(prev => {
-      const updated = {
-        ...prev,
-        ...newVisibleColumns
-      };
-
-      console.log(`⚡ INSTANT STATE UPDATE - Visibility changed for columns:`,
-        Object.entries(newVisibleColumns).filter(([id, visible]) => prev[id] !== visible)
-      );
-      console.log(`🔄 This will trigger useMemo recalculation NOW for instant UI update`);
-
-      return updated;
-    });
-
-    // Save to localStorage immediately (no debounce needed for visibility changes)
     const reportType = currentReportType === 'products' ? 'PRODUCTS_REPORT' : 'MAIN_REPORT';
     const currentColumns = reportType === 'PRODUCTS_REPORT' ? productsTableColumns : tableColumns;
 
-    // Get saved config to preserve width and order settings
+    // Get existing config to preserve width and order
     const savedConfig = loadTableConfig(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT');
 
+    // Create visibility map
+    const visibilityMap: {[key: string]: boolean} = {};
+    updatedColumns.forEach(col => {
+      visibilityMap[col.id] = col.visible;
+    });
+
+    // Build complete column configuration
     const allColumns = currentColumns.map((col, index) => {
       const savedCol = savedConfig?.columns.find(saved => saved.id === col.id);
+      const updatedCol = updatedColumns.find(updated => updated.id === col.id);
+
       return {
         id: col.id,
         width: savedCol?.width || col.width || 100,
-        visible: newVisibleColumns[col.id] !== false,
+        visible: updatedCol ? updatedCol.visible : (savedCol?.visible !== false),
         order: savedCol?.order !== undefined ? savedCol.order : index
       };
     });
 
-    // Update visibility in localStorage immediately
-    updateColumnVisibility(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT', newVisibleColumns, allColumns);
-    console.log(`💾 Column visibility saved immediately to localStorage for ${reportType}`);
-    console.log(`✅ APPLIED INSTANTLY: ${visibleCount} columns now visible, ${hiddenCount} columns hidden`);
+    // Save immediately to localStorage
+    updateColumnVisibility(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT', visibilityMap, allColumns);
 
-    // Force table refresh by updating refresh key (this ensures immediate rendering)
-    setTableRefreshKey(prev => prev + 1);
+    const visibleCount = Object.values(visibilityMap).filter(Boolean).length;
+    console.log(`✅ Column visibility saved: ${visibleCount} visible columns in ${reportType}`);
 
-    // Close the modal after applying changes (minimal delay to show the effect)
-    setTimeout(() => {
-      setShowColumnsModal(false);
-      console.log(`🎯 Modal closed - changes should be immediately visible in the table`);
-    }, 150);
+    // Show success toast
+    showToast(`✅ تم حفظ إعدادات الأعمدة بنجاح - ${visibleCount} عمود ظاهر`, 'success', 2000);
+
+    // Close modal immediately - ResizableTable will handle the update automatically
+    setShowColumnsModal(false);
   };
 
-  // Get columns for display based on visibility, order, and width from localStorage and current state
-  const getFilteredColumns = useCallback((columns: any[]) => {
-    const reportType = columns === productsTableColumns ? 'PRODUCTS_REPORT' : 'MAIN_REPORT';
-    const config = loadTableConfig(reportType);
 
-    if (config && config.columns.length > 0) {
-      // Apply saved configuration: order, width, and current visibility state
-      const configuredColumns = config.columns
-        .sort((a, b) => a.order - b.order) // Sort by saved order
-        .map(savedCol => {
-          const originalCol = columns.find(col => col.id === savedCol.id);
-          if (!originalCol) return null; // Skip missing columns
-
-          // PRIORITIZE current state visibility over saved config for immediate UI updates
-          const isVisible = visibleColumns[savedCol.id] !== undefined
-            ? visibleColumns[savedCol.id]
-            : savedCol.visible;
-
-          if (!isVisible) return null; // Skip invisible columns
-
-          return {
-            ...originalCol,
-            width: savedCol.width // Apply saved width
-          };
-        })
-        .filter(Boolean); // Remove null values
-
-      // Add any new columns that weren't in saved config (for backwards compatibility)
-      const configuredIds = new Set(config.columns.map(col => col.id));
-      const newColumns = columns
-        .filter(col => !configuredIds.has(col.id) && visibleColumns[col.id] !== false)
-        .map(col => ({ ...col, width: col.width || 100 }));
-
-      return [...configuredColumns, ...newColumns];
-    }
-
-    // Fallback to visibility state only if no saved config
-    return columns.filter(col => visibleColumns[col.id] !== false);
-  }, [visibleColumns]);
-
-  // Memoized filtered columns for better performance and immediate updates
-  const filteredMainColumns = useMemo(() => {
-    const filtered = getFilteredColumns(tableColumns);
-    console.log(`🔄 Main columns updated (${filtered.length} visible):`, filtered.map(col => ({ id: col.id, header: col.header, width: col.width })));
-    return filtered;
-  }, [getFilteredColumns]);
-
-  const filteredProductsColumns = useMemo(() => {
-    const filtered = getFilteredColumns(productsTableColumns);
-    console.log(`🔄 Products columns updated (${filtered.length} visible):`, filtered.map(col => ({ id: col.id, header: col.header, width: col.width })));
-    return filtered;
-  }, [getFilteredColumns]);
-
-  // Prepare columns data for the modal
+  // Prepare columns data for the modal based on saved config
   const getColumnsForModal = (reportType: string) => {
     const columns = reportType === 'products' ? productsTableColumns : tableColumns;
-    return columns.map(col => ({
-      id: col.id,
-      header: col.header,
-      visible: visibleColumns[col.id] !== false
-    }));
+    const configType = reportType === 'products' ? 'PRODUCTS_REPORT' : 'MAIN_REPORT';
+    const savedConfig = loadTableConfig(configType as 'MAIN_REPORT' | 'PRODUCTS_REPORT');
+
+    return columns.map(col => {
+      const savedCol = savedConfig?.columns.find(saved => saved.id === col.id);
+      return {
+        id: col.id,
+        header: col.header,
+        visible: savedCol?.visible !== false // Default to true if not found
+      };
+    });
   };
 
 
@@ -1415,12 +1316,13 @@ export default function ReportsPage() {
                       {!loading && (
                         <>
                           <ResizableTable
-                            key={`products-table-${filteredProductsColumns.length}-${tableRefreshKey}`}
+                            key="products-table-stable"
                             className="h-full w-full"
-                            columns={filteredProductsColumns}
+                            columns={productsTableColumns}
                             data={productsReportData}
                             selectedRowId={null}
                             reportType="PRODUCTS_REPORT"
+                            showToast={showToast}
                             onRowClick={(product, index) => {
                               console.log('Selected product:', product);
                             }}
@@ -1684,6 +1586,14 @@ export default function ReportsPage() {
         />
 
     </div>
+  );
+}
+
+export default function ReportsPage() {
+  return (
+    <ToastProvider>
+      <ReportsPageContent />
+    </ToastProvider>
   );
 }
 

@@ -27,6 +27,7 @@ interface ResizableTableProps {
   selectedRowId?: string | null
   reportType?: 'MAIN_REPORT' | 'PRODUCTS_REPORT' // for localStorage key
   onColumnsChange?: (columns: Column[]) => void // callback for parent component
+  showToast?: (message: string, type?: 'success' | 'error' | 'info', duration?: number) => void
 }
 
 interface SortableHeaderProps {
@@ -163,15 +164,14 @@ export default function ResizableTable({
   onRowDoubleClick,
   selectedRowId,
   reportType,
-  onColumnsChange
+  onColumnsChange,
+  showToast
 }: ResizableTableProps) {
   const [columns, setColumns] = useState<Column[]>([])
   const [isAnyColumnResizing, setIsAnyColumnResizing] = useState(false)
   const [tableId, setTableId] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(0)
-  const [isInitialized, setIsInitialized] = useState(false)
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Immediate save function for resize complete (on mouse up)
   const saveColumnWidth = useCallback((columnId: string, newWidth: number) => {
@@ -221,6 +221,11 @@ export default function ResizableTable({
 
     updateColumnWidth(reportType, columnId, newWidth, columnsForStorage)
     console.log(`📐 Column width saved successfully for ${reportType}: ${columnId} = ${newWidth}px`)
+
+    // Show toast notification if available
+    if (showToast) {
+      showToast(`📐 تم حفظ عرض العمود بنجاح`, 'success', 1500)
+    }
   }, [reportType, columns])
 
   // Immediate save function for column reorder
@@ -257,16 +262,112 @@ export default function ResizableTable({
 
     updateColumnOrder(reportType, newOrder, columnsForStorage)
     console.log(`🔄 Column order saved successfully for ${reportType}`)
+
+    // Show toast notification if available (with delay to avoid interference)
+    if (showToast) {
+      setTimeout(() => {
+        showToast(`🔄 تم حفظ ترتيب الأعمدة بنجاح`, 'success', 1500)
+      }, 100)
+    }
   }, [reportType])
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
-      }
+  // Stable column initialization function
+  const initializeColumns = useCallback(() => {
+    if (!reportType) {
+      // No reportType - use basic columns
+      setColumns(initialColumns.map(col => ({
+        ...col,
+        width: col.width || col.minWidth || 100
+      })))
+      return
     }
-  }, [])
+
+    try {
+      // Load saved configuration from localStorage
+      const savedConfig = loadTableConfig(reportType)
+
+      if (savedConfig && savedConfig.columns.length > 0) {
+        console.log(`🔄 Loading saved config for ${reportType}`)
+
+        // Apply saved configuration: order, width, and visibility
+        const configuredColumns = savedConfig.columns
+          .filter(savedCol => savedCol.visible) // Only include visible columns
+          .sort((a, b) => a.order - b.order) // Sort by saved order
+          .map(savedCol => {
+            const originalCol = initialColumns.find(col => col.id === savedCol.id)
+            if (!originalCol) return null // Skip missing columns
+
+            return {
+              ...originalCol,
+              width: savedCol.width // Apply saved width
+            }
+          })
+          .filter(Boolean) as Column[] // Remove null values
+
+        // Add any new columns that weren't in saved config (for backwards compatibility)
+        const configuredIds = new Set(savedConfig.columns.map(col => col.id))
+        const newColumns = initialColumns
+          .filter(col => !configuredIds.has(col.id))
+          .map(col => ({ ...col, width: col.width || col.minWidth || 100 }))
+
+        const finalColumns = [...configuredColumns, ...newColumns]
+        console.log(`✅ Loaded ${finalColumns.length} visible columns for ${reportType}`)
+        setColumns(finalColumns)
+      } else {
+        // No saved config, use all initial columns with default widths
+        const defaultColumns = initialColumns.map(col => ({
+          ...col,
+          width: col.width || col.minWidth || 100
+        }))
+        console.log(`📝 Using default columns for ${reportType}`)
+        setColumns(defaultColumns)
+      }
+    } catch (error) {
+      console.error('Error loading table config:', error)
+      // Fallback to initial columns
+      setColumns(initialColumns.map(col => ({
+        ...col,
+        width: col.width || col.minWidth || 100
+      })))
+    }
+  }, [initialColumns, reportType])
+
+  // Initialize table when component mounts or reportType changes
+  useEffect(() => {
+    initializeColumns()
+  }, [initializeColumns])
+
+  // Listen for storage changes from other components (like column visibility changes)
+  useEffect(() => {
+    if (!reportType) return
+
+    const handleStorageChange = (event?: any) => {
+      // Ignore events from the same component to avoid loops
+      if (event?.detail?.reportType === reportType && event?.detail?.source === 'ResizableTable') {
+        return
+      }
+
+      console.log(`🔄 Detected storage change for ${reportType}, refreshing columns...`)
+      // Small delay to ensure localStorage has been updated and avoid render conflicts
+      setTimeout(() => {
+        try {
+          initializeColumns()
+        } catch (error) {
+          console.error('Error refreshing columns after storage change:', error)
+        }
+      }, 200)
+    }
+
+    // Listen for custom storage events
+    window.addEventListener('tableConfigChanged', handleStorageChange)
+    // Also listen for direct storage events
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      window.removeEventListener('tableConfigChanged', handleStorageChange)
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [reportType, initializeColumns])
 
   // Fix hydration mismatch by setting tableId on client side only
   useEffect(() => {
@@ -289,117 +390,6 @@ export default function ResizableTable({
     }
   }, [])
 
-  // Initialize columns with saved configuration when reportType is available
-  useEffect(() => {
-    if (!reportType || isInitialized) return
-
-    const initializeColumns = () => {
-      try {
-        // Load saved configuration from localStorage
-        const savedConfig = loadTableConfig(reportType)
-
-        if (savedConfig && savedConfig.columns.length > 0) {
-          console.log(`🔄 Loading saved table config for ${reportType}:`, savedConfig)
-
-          // Apply saved configuration: order, width, and visibility
-          const configuredColumns = savedConfig.columns
-            .sort((a, b) => a.order - b.order) // Sort by saved order
-            .map(savedCol => {
-              const originalCol = initialColumns.find(col => col.id === savedCol.id)
-              if (!originalCol || !savedCol.visible) return null // Skip invisible or missing columns
-
-              console.log(`📏 Restoring column ${savedCol.id} with width: ${savedCol.width}px`)
-
-              return {
-                ...originalCol,
-                width: savedCol.width // Apply saved width
-              }
-            })
-            .filter(Boolean) as Column[] // Remove null values
-
-          // Add any new columns that weren't in saved config (for backwards compatibility)
-          const configuredIds = new Set(savedConfig.columns.map(col => col.id))
-          const newColumns = initialColumns
-            .filter(col => !configuredIds.has(col.id))
-            .map(col => ({ ...col, width: col.width || col.minWidth || 100 }))
-
-          const finalColumns = [...configuredColumns, ...newColumns]
-
-          console.log(`✅ Applied saved config for ${reportType}:`, {
-            totalColumns: finalColumns.length,
-            visibleColumns: finalColumns.length,
-            configuredFromStorage: configuredColumns.length,
-            newColumns: newColumns.length,
-            columnWidths: finalColumns.map(col => ({ id: col.id, width: col.width }))
-          })
-
-          setColumns(finalColumns)
-        } else {
-          // No saved config, use initial columns with default widths
-          const defaultColumns = initialColumns.map(col => ({
-            ...col,
-            width: col.width || col.minWidth || 100
-          }))
-
-          console.log(`📝 No saved config found for ${reportType}, using defaults`)
-          setColumns(defaultColumns)
-        }
-      } catch (error) {
-        console.error('Error initializing table columns:', error)
-        // Fallback to initial columns
-        setColumns(initialColumns.map(col => ({
-          ...col,
-          width: col.width || col.minWidth || 100
-        })))
-      }
-
-      setIsInitialized(true)
-    }
-
-    initializeColumns()
-  }, [initialColumns, reportType, isInitialized])
-
-  // Update columns when initialColumns change - always update to reflect visibility changes
-  useEffect(() => {
-    if (!isInitialized || !reportType) {
-      setColumns(initialColumns.map(col => ({
-        ...col,
-        width: col.width || col.minWidth || 100
-      })))
-    } else {
-      // Re-initialize columns to reflect any visibility changes
-      const savedConfig = loadTableConfig(reportType)
-
-      if (savedConfig && savedConfig.columns.length > 0) {
-        const configuredColumns = savedConfig.columns
-          .sort((a, b) => a.order - b.order)
-          .map(savedCol => {
-            const originalCol = initialColumns.find(col => col.id === savedCol.id)
-            if (!originalCol || !savedCol.visible) return null
-
-            console.log(`🔄 Re-applying column ${savedCol.id} with saved width: ${savedCol.width}px`)
-
-            return {
-              ...originalCol,
-              width: savedCol.width
-            }
-          })
-          .filter(Boolean) as Column[]
-
-        const configuredIds = new Set(savedConfig.columns.map(col => col.id))
-        const newColumns = initialColumns
-          .filter(col => !configuredIds.has(col.id))
-          .map(col => ({ ...col, width: col.width || col.minWidth || 100 }))
-
-        const finalColumns = [...configuredColumns, ...newColumns]
-        setColumns(finalColumns)
-
-        console.log(`🔄 ResizableTable: Updated columns based on new initialColumns (${finalColumns.length} visible)`)
-        console.log(`📊 Column widths re-applied:`, finalColumns.map(col => ({ id: col.id, width: col.width })))
-      }
-    }
-  }, [initialColumns, isInitialized, reportType])
-
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -420,11 +410,13 @@ export default function ResizableTable({
         const newIndex = columns.findIndex(col => col.id === over.id)
         const reorderedColumns = arrayMove(columns, oldIndex, newIndex)
 
-        // Save column order immediately
-        if (reportType) {
-          const newOrder = reorderedColumns.map(col => col.id)
-          saveColumnOrder(newOrder, reorderedColumns)
-        }
+        // Defer save operation to avoid setState during render
+        setTimeout(() => {
+          if (reportType) {
+            const newOrder = reorderedColumns.map(col => col.id)
+            saveColumnOrder(newOrder, reorderedColumns)
+          }
+        }, 0)
 
         // Notify parent component of changes
         if (onColumnsChange) {
@@ -455,8 +447,10 @@ export default function ResizableTable({
 
   // Handle resize complete (when mouse is released)
   const handleResizeComplete = useCallback((columnId: string, finalWidth: number) => {
-    // Save to localStorage immediately when resize is complete
-    saveColumnWidth(columnId, finalWidth)
+    // Defer save operation to avoid potential setState during render
+    setTimeout(() => {
+      saveColumnWidth(columnId, finalWidth)
+    }, 0)
   }, [saveColumnWidth])
 
   // Update container width whenever columns change

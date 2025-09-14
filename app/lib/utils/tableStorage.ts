@@ -54,6 +54,13 @@ export function saveTableConfig(
     const storageKey = STORAGE_KEYS[reportType]
     localStorage.setItem(storageKey, JSON.stringify(config))
 
+    // Dispatch custom event to notify other components
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('tableConfigChanged', {
+        detail: { reportType, config, source: 'tableStorage' }
+      }))
+    }
+
     // Calculate expiration date for user information
     const expirationDate = new Date(Date.now() + CONFIG_EXPIRY)
 
