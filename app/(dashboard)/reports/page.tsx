@@ -509,10 +509,23 @@ function ReportsPageContent() {
       //   2000
       // );
 
-      // Table will update automatically through React state - no event needed
-      console.log(`✅ Column configuration saved - table will update automatically`);
+      // Trigger immediate table refresh for column visibility changes
+      if (typeof window !== 'undefined') {
+        // Dispatch event with clear identification for visibility changes only
+        window.dispatchEvent(new CustomEvent('tableConfigChanged', {
+          detail: {
+            reportType: reportType === 'PRODUCTS_REPORT' ? 'products' : 'main',
+            source: 'ColumnManagement',
+            action: 'visibilityUpdate',
+            visibleCount,
+            timestamp: Date.now()
+          }
+        }));
 
-      // Close modal immediately since no refresh is needed
+        console.log(`📡 Dispatched column visibility update event for ${reportType}`);
+      }
+
+      // Close modal immediately
       setShowColumnsModal(false);
 
     } catch (error) {

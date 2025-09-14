@@ -401,20 +401,59 @@ export default function ResizableTable({
   // Debounced event handler to prevent excessive updates
   const eventHandlerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Enhanced event listener for external changes - DISABLED to prevent double refresh
+  // Enhanced event listener for external changes - SMART filtering to prevent double refresh
   useEffect(() => {
     if (!reportType) return
 
     const handleStorageChange = (event?: any) => {
       const eventDetail = event?.detail
 
-      // Ignore all external events to prevent double refresh
-      // The table will update automatically through React state changes
-      console.log('🔇 Table event ignored to prevent double refresh:', eventDetail?.source)
-      return
+      // Only ignore resize events from ResizableTable to prevent double refresh
+      if (eventDetail?.source === 'ResizableTable' ||
+          eventDetail?.source === 'hybridStorage' ||
+          isInitializing.current) {
+        console.log('🔇 Table event ignored (internal source):', eventDetail?.source)
+        return
+      }
+
+      // Check if event is for our report type
+      const eventReportType = eventDetail?.reportType
+      const isRelevant = !eventReportType ||
+        eventReportType === reportType ||
+        (reportType === 'MAIN_REPORT' && eventReportType === 'main') ||
+        (reportType === 'PRODUCTS_REPORT' && eventReportType === 'products')
+
+      if (!isRelevant) {
+        console.log('🔇 Table event ignored (irrelevant):', eventReportType)
+        return
+      }
+
+      // Handle external column visibility changes from ColumnManagement
+      if (eventDetail?.source === 'ColumnManagement') {
+        console.log('📥 Processing column visibility update from external source')
+
+        // Clear any pending event handling
+        if (eventHandlerRef.current) {
+          clearTimeout(eventHandlerRef.current)
+        }
+
+        // Clear any pending save operations
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current)
+          saveTimeoutRef.current = null
+        }
+
+        // Immediate column reload for visibility changes
+        eventHandlerRef.current = setTimeout(() => {
+          if (!isInitializing.current) {
+            console.log('🔄 Reloading columns due to visibility change')
+            initializeColumns(true) // Preserve current order
+          }
+        }, 100) // Shorter delay for immediate feedback
+      }
     }
 
-    // Listen for table configuration changes (but ignore them)
+    // Listen for table configuration changes
     window.addEventListener('tableConfigChanged', handleStorageChange)
 
     return () => {
@@ -478,6 +517,19 @@ export default function ResizableTable({
             try {
               const newOrder = reorderedColumns.map(col => col.id)
               await saveColumnOrder(newOrder, reorderedColumns)
+
+              // Send order update event with proper source identification
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('tableConfigChanged', {
+                  detail: {
+                    reportType: reportType === 'PRODUCTS_REPORT' ? 'products' : 'main',
+                    source: 'ResizableTable',
+                    action: 'orderUpdate',
+                    newOrder,
+                    timestamp: Date.now()
+                  }
+                }));
+              }
             } catch (error) {
               console.error('❌ Error saving column order:', error)
             }
@@ -556,9 +608,23 @@ export default function ResizableTable({
           }
         })
 
-        // Save immediately
+        // Save immediately with source identification
         await updateColumnWidth(reportType, columnId, finalWidth, columnsForStorage)
         console.log(`✅ Column width saved successfully: ${columnId} = ${finalWidth}px`)
+
+        // Send resize event with proper source identification
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('tableConfigChanged', {
+            detail: {
+              reportType: reportType === 'PRODUCTS_REPORT' ? 'products' : 'main',
+              source: 'ResizableTable',
+              action: 'widthUpdate',
+              columnId,
+              width: finalWidth,
+              timestamp: Date.now()
+            }
+          }));
+        }
 
         // Remove toast notification to avoid UI clutter
         // if (showToast) {
