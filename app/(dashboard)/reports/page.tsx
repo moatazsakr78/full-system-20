@@ -502,33 +502,18 @@ function ReportsPageContent() {
       const visibleCount = Object.values(visibilityMap).filter(Boolean).length;
       console.log(`✅ Column visibility saved successfully: ${visibleCount} visible columns`);
 
-      // Show success toast
-      showToast(
-        `✅ تم حفظ إعدادات الأعمدة - ${visibleCount} عمود ظاهر`,
-        'success',
-        2000
-      );
+      // Remove success toast to avoid UI clutter
+      // showToast(
+      //   `✅ تم حفظ إعدادات الأعمدة - ${visibleCount} عمود ظاهر`,
+      //   'success',
+      //   2000
+      // );
 
-      // Trigger table refresh event (handled by ResizableTable)
-      if (typeof window !== 'undefined') {
-        // Dispatch event with clear identification
-        window.dispatchEvent(new CustomEvent('tableConfigChanged', {
-          detail: {
-            reportType: reportType === 'PRODUCTS_REPORT' ? 'products' : 'main',
-            source: 'ColumnManagement',
-            action: 'visibilityUpdate',
-            visibleCount,
-            timestamp: Date.now()
-          }
-        }));
+      // Table will update automatically through React state - no event needed
+      console.log(`✅ Column configuration saved - table will update automatically`);
 
-        console.log(`📡 Dispatched table refresh event for ${reportType}`);
-      }
-
-      // Close modal after ensuring event is processed
-      setTimeout(() => {
-        setShowColumnsModal(false);
-      }, 150);
+      // Close modal immediately since no refresh is needed
+      setShowColumnsModal(false);
 
     } catch (error) {
       console.error('❌ Failed to save column visibility:', error);
@@ -1467,7 +1452,6 @@ function ReportsPageContent() {
                       {!loading && (
                         <>
                           <ResizableTable
-                            key={`products-table-${Date.now()}`}
                             className="h-full w-full"
                             columns={productsTableColumns}
                             data={productsReportData}

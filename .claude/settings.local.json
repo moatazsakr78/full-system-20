@@ -256,7 +256,8 @@
       "Bash(start test-persistence.html)",
       "Bash(start test-table-functionality.html)",
       "Bash(start test-auth-fix.html)",
-      "Bash(start smooth-ux-summary.html)"
+      "Bash(start smooth-ux-summary.html)",
+      "Bash(start http://localhost:3000/reports)"
     ],
     "deny": [],
     "additionalDirectories": [

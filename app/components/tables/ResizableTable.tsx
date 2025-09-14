@@ -401,54 +401,20 @@ export default function ResizableTable({
   // Debounced event handler to prevent excessive updates
   const eventHandlerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Enhanced event listener for external changes
+  // Enhanced event listener for external changes - DISABLED to prevent double refresh
   useEffect(() => {
     if (!reportType) return
 
     const handleStorageChange = (event?: any) => {
       const eventDetail = event?.detail
 
-      // Ignore our own events and storage saves to prevent loops
-      if (eventDetail?.source === 'ResizableTable' ||
-          eventDetail?.source === 'hybridStorage' ||
-          isInitializing.current) {
-        return
-      }
-
-      // Check if event is for our report type
-      const eventReportType = eventDetail?.reportType
-      const isRelevant = !eventReportType ||
-        eventReportType === reportType ||
-        (reportType === 'MAIN_REPORT' && eventReportType === 'main') ||
-        (reportType === 'PRODUCTS_REPORT' && eventReportType === 'products')
-
-      if (!isRelevant) {
-        return
-      }
-
-      // Handle external column visibility changes with debouncing
-      if (eventDetail?.source === 'ColumnManagement') {
-        // Clear any pending event handling
-        if (eventHandlerRef.current) {
-          clearTimeout(eventHandlerRef.current)
-        }
-
-        // Clear any pending save operations
-        if (saveTimeoutRef.current) {
-          clearTimeout(saveTimeoutRef.current)
-          saveTimeoutRef.current = null
-        }
-
-        // Debounce the column reload to prevent rapid updates
-        eventHandlerRef.current = setTimeout(() => {
-          if (!isInitializing.current) {
-            initializeColumns(true) // Preserve current order
-          }
-        }, 200)
-      }
+      // Ignore all external events to prevent double refresh
+      // The table will update automatically through React state changes
+      console.log('🔇 Table event ignored to prevent double refresh:', eventDetail?.source)
+      return
     }
 
-    // Listen for table configuration changes
+    // Listen for table configuration changes (but ignore them)
     window.addEventListener('tableConfigChanged', handleStorageChange)
 
     return () => {
@@ -594,9 +560,10 @@ export default function ResizableTable({
         await updateColumnWidth(reportType, columnId, finalWidth, columnsForStorage)
         console.log(`✅ Column width saved successfully: ${columnId} = ${finalWidth}px`)
 
-        if (showToast) {
-          showToast(`✅ تم حفظ عرض العمود`, 'success', 1500)
-        }
+        // Remove toast notification to avoid UI clutter
+        // if (showToast) {
+        //   showToast(`✅ تم حفظ عرض العمود`, 'success', 1500)
+        // }
       } catch (error) {
         console.error('❌ Error saving column width:', error)
         if (showToast) {
