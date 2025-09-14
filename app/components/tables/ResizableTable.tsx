@@ -173,28 +173,69 @@ export default function ResizableTable({
   const saveColumnWidth = useCallback((columnId: string, newWidth: number) => {
     if (!reportType) return
 
-    const columnsForStorage = columns.map(col => ({
-      id: col.id,
-      width: col.id === columnId ? newWidth : (col.width || 100),
-      visible: true // assume visible since it's in the table
-    }))
+    console.log(`🎯 Saving column width: ${columnId} = ${newWidth}px`)
+
+    // Get current saved config to preserve all existing settings
+    const savedConfig = loadTableConfig(reportType)
+
+    let columnsForStorage: any[]
+
+    if (savedConfig && savedConfig.columns.length > 0) {
+      // Update existing config with new width
+      columnsForStorage = savedConfig.columns.map(col => ({
+        id: col.id,
+        width: col.id === columnId ? newWidth : col.width,
+        visible: col.visible,
+        order: col.order
+      }))
+    } else {
+      // Create new config from current columns
+      columnsForStorage = columns.map((col, index) => ({
+        id: col.id,
+        width: col.id === columnId ? newWidth : (col.width || 100),
+        visible: true,
+        order: index
+      }))
+    }
 
     updateColumnWidth(reportType, columnId, newWidth, columnsForStorage)
-    console.log(`📐 Column width saved immediately for ${reportType}: ${columnId} = ${newWidth}px (on mouse up)`)
+    console.log(`📐 Column width saved successfully for ${reportType}: ${columnId} = ${newWidth}px`)
   }, [reportType, columns])
 
   // Immediate save function for column reorder
   const saveColumnOrder = useCallback((newOrder: string[], reorderedColumns: Column[]) => {
     if (!reportType) return
 
-    const columnsForStorage = reorderedColumns.map(col => ({
-      id: col.id,
-      width: col.width || 100,
-      visible: true // assume visible since it's in the table
-    }))
+    console.log(`🎯 Saving column order:`, newOrder)
+
+    // Get current saved config to preserve all existing settings
+    const savedConfig = loadTableConfig(reportType)
+
+    let columnsForStorage: any[]
+
+    if (savedConfig && savedConfig.columns.length > 0) {
+      // Update existing config with new order
+      columnsForStorage = reorderedColumns.map((col, index) => {
+        const savedCol = savedConfig.columns.find(saved => saved.id === col.id)
+        return {
+          id: col.id,
+          width: col.width || savedCol?.width || 100,
+          visible: savedCol?.visible !== false,
+          order: index
+        }
+      })
+    } else {
+      // Create new config from reordered columns
+      columnsForStorage = reorderedColumns.map((col, index) => ({
+        id: col.id,
+        width: col.width || 100,
+        visible: true,
+        order: index
+      }))
+    }
 
     updateColumnOrder(reportType, newOrder, columnsForStorage)
-    console.log(`🔄 Column order saved immediately for ${reportType}`)
+    console.log(`🔄 Column order saved successfully for ${reportType}`)
   }, [reportType])
 
   // Cleanup timeout on unmount
@@ -246,6 +287,8 @@ export default function ResizableTable({
               const originalCol = initialColumns.find(col => col.id === savedCol.id)
               if (!originalCol || !savedCol.visible) return null // Skip invisible or missing columns
 
+              console.log(`📏 Restoring column ${savedCol.id} with width: ${savedCol.width}px`)
+
               return {
                 ...originalCol,
                 width: savedCol.width // Apply saved width
@@ -265,7 +308,8 @@ export default function ResizableTable({
             totalColumns: finalColumns.length,
             visibleColumns: finalColumns.length,
             configuredFromStorage: configuredColumns.length,
-            newColumns: newColumns.length
+            newColumns: newColumns.length,
+            columnWidths: finalColumns.map(col => ({ id: col.id, width: col.width }))
           })
 
           setColumns(finalColumns)
@@ -312,6 +356,8 @@ export default function ResizableTable({
             const originalCol = initialColumns.find(col => col.id === savedCol.id)
             if (!originalCol || !savedCol.visible) return null
 
+            console.log(`🔄 Re-applying column ${savedCol.id} with saved width: ${savedCol.width}px`)
+
             return {
               ...originalCol,
               width: savedCol.width
@@ -328,6 +374,7 @@ export default function ResizableTable({
         setColumns(finalColumns)
 
         console.log(`🔄 ResizableTable: Updated columns based on new initialColumns (${finalColumns.length} visible)`)
+        console.log(`📊 Column widths re-applied:`, finalColumns.map(col => ({ id: col.id, width: col.width })))
       }
     }
   }, [initialColumns, isInitialized, reportType])
