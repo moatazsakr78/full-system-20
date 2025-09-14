@@ -9,12 +9,72 @@ import { supabase } from '@/app/lib/supabase/client';
 import ProductsFilterModal from '@/app/components/ProductsFilterModal';
 import CustomersFilterModal from '@/app/components/CustomersFilterModal';
 import ColumnsControlModal from '@/app/components/ColumnsControlModal';
+
+// Wrapper component for async column loading
+interface ColumnsControlModalWrapperProps {
+  reportType: string;
+  onClose: () => void;
+  onColumnsChange: (columns: {id: string, header: string, visible: boolean}[]) => void;
+  getColumnsForModal: (reportType: string) => Promise<{id: string, header: string, visible: boolean}[]>;
+}
+
+function ColumnsControlModalWrapper({
+  reportType,
+  onClose,
+  onColumnsChange,
+  getColumnsForModal
+}: ColumnsControlModalWrapperProps) {
+  const [columns, setColumns] = useState<{id: string, header: string, visible: boolean}[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadColumns = async () => {
+      try {
+        setLoading(true);
+        const cols = await getColumnsForModal(reportType);
+        setColumns(cols);
+      } catch (error) {
+        console.error('Failed to load columns for modal:', error);
+        // Show error state or fallback columns
+        setColumns([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadColumns();
+  }, [reportType, getColumnsForModal]);
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="bg-[#2B3544] rounded-lg p-6 text-white">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400"></div>
+            <span>جاري تحميل إعدادات الأعمدة...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ColumnsControlModal
+      isOpen={true}
+      onClose={onClose}
+      columns={columns}
+      onColumnsChange={onColumnsChange}
+    />
+  );
+}
 import ToastProvider, { useToast } from '@/app/components/ui/ToastProvider';
 import {
   loadTableConfig,
   saveTableConfig,
-  updateColumnVisibility
-} from '@/app/lib/utils/tableStorage';
+  updateColumnVisibility,
+  hybridTableStorage
+} from '@/app/lib/utils/hybridTableStorage';
+import { databaseSettingsService } from '@/app/lib/services/databaseSettingsService';
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -400,63 +460,108 @@ function ReportsPageContent() {
   };
 
 
-  // Enhanced column management with stable persistence
-  const handleColumnsChange = (updatedColumns: {id: string, header: string, visible: boolean}[]) => {
-    console.log(`🎯 Applying column visibility changes for ${updatedColumns.length} columns`);
+  // Enhanced column management with improved event handling
+  const handleColumnsChange = async (updatedColumns: {id: string, header: string, visible: boolean}[]) => {
+    console.log(`🎯 Processing column visibility changes for ${updatedColumns.length} columns`);
 
     const reportType = currentReportType === 'products' ? 'PRODUCTS_REPORT' : 'MAIN_REPORT';
     const currentColumns = reportType === 'PRODUCTS_REPORT' ? productsTableColumns : tableColumns;
 
-    // Get existing config to preserve width and order
-    const savedConfig = loadTableConfig(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT');
+    try {
+      // Create visibility map from updated columns
+      const visibilityMap: {[key: string]: boolean} = {};
+      updatedColumns.forEach(col => {
+        visibilityMap[col.id] = col.visible;
+      });
 
-    // Create visibility map
-    const visibilityMap: {[key: string]: boolean} = {};
-    updatedColumns.forEach(col => {
-      visibilityMap[col.id] = col.visible;
-    });
+      // Get current saved config to preserve existing settings
+      const savedConfig = await loadTableConfig(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT');
 
-    // Build complete column configuration
-    const allColumns = currentColumns.map((col, index) => {
-      const savedCol = savedConfig?.columns.find(saved => saved.id === col.id);
-      const updatedCol = updatedColumns.find(updated => updated.id === col.id);
+      // Build complete column configuration preserving widths and order
+      const allColumns = currentColumns.map((col, index) => {
+        const savedCol = savedConfig?.columns.find(saved => saved.id === col.id);
+        const updatedCol = updatedColumns.find(updated => updated.id === col.id);
 
-      return {
-        id: col.id,
-        width: savedCol?.width || col.width || 100,
-        visible: updatedCol ? updatedCol.visible : (savedCol?.visible !== false),
-        order: savedCol?.order !== undefined ? savedCol.order : index
-      };
-    });
+        return {
+          id: col.id,
+          width: savedCol?.width || col.width || 100,
+          visible: updatedCol ? updatedCol.visible : (savedCol?.visible !== false),
+          order: savedCol?.order !== undefined ? savedCol.order : index
+        };
+      });
 
-    // Save immediately to localStorage
-    updateColumnVisibility(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT', visibilityMap, allColumns);
+      console.log(`💾 Saving visibility config:`, {
+        reportType,
+        totalColumns: allColumns.length,
+        visibleColumns: allColumns.filter(col => col.visible).length
+      });
 
-    const visibleCount = Object.values(visibilityMap).filter(Boolean).length;
-    console.log(`✅ Column visibility saved: ${visibleCount} visible columns in ${reportType}`);
+      // Save to database through hybrid storage
+      await updateColumnVisibility(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT', visibilityMap, allColumns);
 
-    // Show success toast
-    showToast(`✅ تم حفظ إعدادات الأعمدة بنجاح - ${visibleCount} عمود ظاهر`, 'success', 2000);
+      const visibleCount = Object.values(visibilityMap).filter(Boolean).length;
+      console.log(`✅ Column visibility saved successfully: ${visibleCount} visible columns`);
 
-    // Close modal immediately - ResizableTable will handle the update automatically
-    setShowColumnsModal(false);
+      // Show success toast
+      showToast(
+        `✅ تم حفظ إعدادات الأعمدة - ${visibleCount} عمود ظاهر`,
+        'success',
+        2000
+      );
+
+      // Trigger table refresh event (handled by ResizableTable)
+      if (typeof window !== 'undefined') {
+        // Dispatch event with clear identification
+        window.dispatchEvent(new CustomEvent('tableConfigChanged', {
+          detail: {
+            reportType: reportType === 'PRODUCTS_REPORT' ? 'products' : 'main',
+            source: 'ColumnManagement',
+            action: 'visibilityUpdate',
+            visibleCount,
+            timestamp: Date.now()
+          }
+        }));
+
+        console.log(`📡 Dispatched table refresh event for ${reportType}`);
+      }
+
+      // Close modal after ensuring event is processed
+      setTimeout(() => {
+        setShowColumnsModal(false);
+      }, 150);
+
+    } catch (error) {
+      console.error('❌ Failed to save column visibility:', error);
+      showToast('❌ فشل في حفظ إعدادات الأعمدة', 'error', 3000);
+    }
   };
 
 
-  // Prepare columns data for the modal based on saved config
-  const getColumnsForModal = (reportType: string) => {
+  // Prepare columns data for the modal based on saved config with async loading
+  const getColumnsForModal = async (reportType: string) => {
     const columns = reportType === 'products' ? productsTableColumns : tableColumns;
     const configType = reportType === 'products' ? 'PRODUCTS_REPORT' : 'MAIN_REPORT';
-    const savedConfig = loadTableConfig(configType as 'MAIN_REPORT' | 'PRODUCTS_REPORT');
 
-    return columns.map(col => {
-      const savedCol = savedConfig?.columns.find(saved => saved.id === col.id);
-      return {
+    try {
+      const savedConfig = await loadTableConfig(configType as 'MAIN_REPORT' | 'PRODUCTS_REPORT');
+
+      return columns.map(col => {
+        const savedCol = savedConfig?.columns.find(saved => saved.id === col.id);
+        return {
+          id: col.id,
+          header: col.header,
+          visible: savedCol?.visible !== false // Default to true if not found
+        };
+      });
+    } catch (error) {
+      console.error('Failed to load columns for modal:', error);
+      // Return default configuration
+      return columns.map(col => ({
         id: col.id,
         header: col.header,
-        visible: savedCol?.visible !== false // Default to true if not found
-      };
-    });
+        visible: true
+      }));
+    }
   };
 
 
@@ -526,8 +631,45 @@ function ReportsPageContent() {
     }
   };
 
-  // Fetch total sales amount and load column preferences on component mount
+  // Initialize system and load preferences on component mount
   useEffect(() => {
+    // System health check and initialization
+    const initializeSystem = async () => {
+      try {
+        console.log('🚀 Initializing reports system...');
+
+        // Check system status
+        const systemStatus = await hybridTableStorage.getSystemStatus();
+        console.log('📊 System Status:', {
+          database: systemStatus.database,
+          cache: systemStatus.cache,
+          legacy: systemStatus.legacy
+        });
+
+        if (systemStatus.recommendations.length > 0) {
+          console.info('💡 System Recommendations:', systemStatus.recommendations);
+        }
+
+        // Health check with user feedback
+        const healthCheck = await databaseSettingsService.healthCheck();
+        if (!healthCheck.isHealthy) {
+          console.warn('⚠️ System health issues:', healthCheck.errors);
+          if (healthCheck.errors.length > 0) {
+            showToast('⚠️ نظام الإعدادات يعمل في الوضع الاحتياطي', 'info', 2000);
+          }
+        } else {
+          console.log('✅ All systems operational');
+        }
+
+        // Flush any pending saves from previous sessions
+        await hybridTableStorage.flushPendingSaves();
+
+      } catch (error) {
+        console.error('❌ System initialization failed:', error);
+      }
+    };
+
+    // Calculate total sales
     const fetchTotalSales = async () => {
       try {
         const { data, error } = await supabase
@@ -538,25 +680,34 @@ function ReportsPageContent() {
             sales!inner(created_at)
           `)
           .gte('sales.created_at', '2024-01-01');
-        
+
         if (error) {
-          console.error('Error fetching total sales:', error);
+          console.error('❌ Error fetching total sales:', error);
           return;
         }
-        
+
         const total = data?.reduce((sum: number, item: any) => {
           const lineTotal = (item.quantity || 0) * (item.unit_price || 0);
           return sum + lineTotal;
         }, 0) || 0;
-        
+
         setTotalSalesAmount(total.toFixed(2));
+        console.log(`💰 Total sales calculated: EGP ${total.toFixed(2)}`);
       } catch (error) {
-        console.error('Error calculating total sales:', error);
+        console.error('❌ Error calculating total sales:', error);
       }
     };
 
+    // Initialize both systems
+    initializeSystem();
     fetchTotalSales();
-  }, []);
+
+    // Cleanup function
+    return () => {
+      // Flush any pending saves on unmount
+      hybridTableStorage.flushPendingSaves().catch(console.error);
+    };
+  }, []); // Empty dependency array for mount-only effect
   
   // Function to fetch products report data
   const fetchProductsReport = async () => {
@@ -1274,7 +1425,7 @@ function ReportsPageContent() {
                         {/* Column Manager Button - Only for non-main tabs */}
                         {tab.id !== 'main' && (
                           <button
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.stopPropagation();
                               setCurrentReportType(tab.id === 'main' ? 'main' : tab.id);
                               setShowColumnsModal(true);
@@ -1316,7 +1467,7 @@ function ReportsPageContent() {
                       {!loading && (
                         <>
                           <ResizableTable
-                            key="products-table-stable"
+                            key={`products-table-${Date.now()}`}
                             className="h-full w-full"
                             columns={productsTableColumns}
                             data={productsReportData}
@@ -1577,13 +1728,15 @@ function ReportsPageContent() {
           initialSelectedGroups={selectedCustomerGroupIds}
         />
 
-        {/* Columns Control Modal */}
-        <ColumnsControlModal
-          isOpen={showColumnsModal}
-          onClose={() => setShowColumnsModal(false)}
-          columns={getColumnsForModal(currentReportType)}
-          onColumnsChange={handleColumnsChange}
-        />
+        {/* Columns Control Modal with async loading */}
+        {showColumnsModal && (
+          <ColumnsControlModalWrapper
+            reportType={currentReportType}
+            onClose={() => setShowColumnsModal(false)}
+            onColumnsChange={handleColumnsChange}
+            getColumnsForModal={getColumnsForModal}
+          />
+        )}
 
     </div>
   );

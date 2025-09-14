@@ -5,9 +5,9 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { updateColumnWidth, updateColumnOrder, loadTableConfig } from '@/app/lib/utils/tableStorage'
+import { updateColumnWidth, updateColumnOrder, updateColumnVisibility, loadTableConfig } from '@/app/lib/utils/hybridTableStorage'
 
-const EMPTY_SENSORS: any[] = []
+// Removed unused constant
 
 interface Column {
   id: string
@@ -116,7 +116,7 @@ function SortableHeader({ column, width, onResize, onResizeStateChange, onResize
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [isResizing, column.id, onResize, onResizeStateChange])
+  }, [isResizing, column.id, width, onResize, onResizeStateChange, onResizeComplete])
 
   return (
     <th
@@ -172,200 +172,294 @@ export default function ResizableTable({
   const [tableId, setTableId] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(0)
+  const [currentVisibleState, setCurrentVisibleState] = useState<{[key: string]: boolean}>({})
+  const isInitializing = useRef(false)
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastConfigHash = useRef<string>('')
 
-  // Immediate save function for resize complete (on mouse up)
-  const saveColumnWidth = useCallback((columnId: string, newWidth: number) => {
-    if (!reportType) return
+  // Helper function to generate config hash for change detection
+  const generateConfigHash = useCallback((columns: Column[], visibleState: {[key: string]: boolean}) => {
+    const configString = JSON.stringify({
+      columns: columns.map(col => ({ id: col.id, width: col.width })),
+      visible: visibleState
+    })
+    return btoa(configString).substring(0, 16) // Short hash for comparison
+  }, [])
 
-    console.log(`🎯 Saving column width: ${columnId} = ${newWidth}px`)
-
-    // Get current saved config to preserve all existing settings
-    const savedConfig = loadTableConfig(reportType)
-
-    let columnsForStorage: any[]
-
-    if (savedConfig && savedConfig.columns.length > 0) {
-      // Update existing config with new width
-      columnsForStorage = savedConfig.columns.map(col => ({
-        id: col.id,
-        width: col.id === columnId ? newWidth : col.width,
-        visible: col.visible !== false, // ensure boolean
-        order: col.order
-      }))
-
-      // Check if the column exists in saved config, if not add it
-      const columnExists = savedConfig.columns.some(col => col.id === columnId)
-      if (!columnExists) {
-        const originalCol = columns.find(col => col.id === columnId)
-        if (originalCol) {
-          columnsForStorage.push({
-            id: columnId,
-            width: newWidth,
-            visible: true,
-            order: savedConfig.columns.length
-          })
-        }
-      }
-    } else {
-      // Create new config from current columns
-      console.log(`📝 Creating new config from current columns`)
-      columnsForStorage = columns.map((col, index) => ({
-        id: col.id,
-        width: col.id === columnId ? newWidth : (col.width || 100),
-        visible: true,
-        order: index
-      }))
+  // Helper function to check if configuration actually changed
+  const hasConfigChanged = useCallback((newColumns: Column[], newVisibleState: {[key: string]: boolean}) => {
+    const newHash = generateConfigHash(newColumns, newVisibleState)
+    if (newHash !== lastConfigHash.current) {
+      lastConfigHash.current = newHash
+      return true
     }
+    return false
+  }, [generateConfigHash])
 
-    console.log(`💾 Columns for storage:`, columnsForStorage.map(col => ({ id: col.id, width: col.width })))
+  // Column width saving is now handled directly in handleResizeComplete
 
-    updateColumnWidth(reportType, columnId, newWidth, columnsForStorage)
-    console.log(`📐 Column width saved successfully for ${reportType}: ${columnId} = ${newWidth}px`)
-
-    // Show toast notification if available
-    if (showToast) {
-      showToast(`📐 تم حفظ عرض العمود بنجاح`, 'success', 1500)
-    }
-  }, [reportType, columns])
-
-  // Immediate save function for column reorder
-  const saveColumnOrder = useCallback((newOrder: string[], reorderedColumns: Column[]) => {
-    if (!reportType) return
+  // Enhanced save function for column reorder - preserves ALL current state
+  const saveColumnOrder = useCallback(async (newOrder: string[], reorderedColumns: Column[]) => {
+    if (!reportType || isInitializing.current) return
 
     console.log(`🎯 Saving column order:`, newOrder)
 
-    // Get current saved config to preserve all existing settings
-    const savedConfig = loadTableConfig(reportType)
+    // Prepare storage data preserving current visible state and widths
+    const visibleColumnsForStorage = reorderedColumns.map((col, index) => ({
+      id: col.id,
+      width: col.width || 100,
+      visible: true,
+      order: index
+    }))
 
-    let columnsForStorage: any[]
-
-    if (savedConfig && savedConfig.columns.length > 0) {
-      // Update existing config with new order
-      columnsForStorage = reorderedColumns.map((col, index) => {
-        const savedCol = savedConfig.columns.find(saved => saved.id === col.id)
-        return {
-          id: col.id,
-          width: col.width || savedCol?.width || 100,
-          visible: savedCol?.visible !== false,
-          order: index
-        }
-      })
-    } else {
-      // Create new config from reordered columns
-      columnsForStorage = reorderedColumns.map((col, index) => ({
+    // Add hidden columns from current state
+    const hiddenColumnsForStorage = initialColumns
+      .filter(initCol => !reorderedColumns.find(rc => rc.id === initCol.id))
+      .filter(initCol => currentVisibleState[initCol.id] === false)
+      .map((col, index) => ({
         id: col.id,
-        width: col.width || 100,
-        visible: true,
-        order: index
+        width: 100,
+        visible: false,
+        order: visibleColumnsForStorage.length + index
       }))
-    }
 
-    updateColumnOrder(reportType, newOrder, columnsForStorage)
-    console.log(`🔄 Column order saved successfully for ${reportType}`)
+    const allColumnsForStorage = [...visibleColumnsForStorage, ...hiddenColumnsForStorage]
 
-    // Show toast notification if available (with delay to avoid interference)
-    if (showToast) {
-      setTimeout(() => {
-        showToast(`🔄 تم حفظ ترتيب الأعمدة بنجاح`, 'success', 1500)
-      }, 100)
+    // Save with immediate persistence
+    try {
+      await updateColumnOrder(reportType, newOrder, allColumnsForStorage)
+      console.log(`✅ Column order saved successfully for ${reportType}`)
+    } catch (error) {
+      console.error('❌ Error saving column order:', error)
+      if (showToast) {
+        showToast('خطأ في حفظ ترتيب الأعمدة', 'error', 3000)
+      }
     }
-  }, [reportType])
+  }, [reportType, currentVisibleState, initialColumns, showToast])
 
-  // Stable column initialization function
-  const initializeColumns = useCallback(() => {
-    if (!reportType) {
-      // No reportType - use basic columns
-      setColumns(initialColumns.map(col => ({
-        ...col,
-        width: col.width || col.minWidth || 100
-      })))
-      return
-    }
+  // Enhanced visibility update that preserves current state
+  const updateColumnVisibilityPreservingOrder = useCallback(async (visibilityMap: { [columnId: string]: boolean }) => {
+    if (!reportType || isInitializing.current) return
+
+    console.log(`👁️ Updating column visibility:`, visibilityMap)
 
     try {
-      // Load saved configuration from localStorage
-      const savedConfig = loadTableConfig(reportType)
+      // Update internal visible state
+      setCurrentVisibleState(prev => ({ ...prev, ...visibilityMap }))
+
+      // Prepare storage data preserving current order and widths
+      const columnsForStorage: any[] = []
+      let orderIndex = 0
+
+      // Add currently visible columns that should remain visible (preserve order)
+      columns.forEach(col => {
+        if (visibilityMap[col.id] !== false) {
+          columnsForStorage.push({
+            id: col.id,
+            width: col.width || 100,
+            visible: true,
+            order: orderIndex++
+          })
+        }
+      })
+
+      // Add newly visible columns that weren't displayed before
+      Object.entries(visibilityMap).forEach(([columnId, visible]) => {
+        if (visible && !columns.find(col => col.id === columnId)) {
+          const originalCol = initialColumns.find(col => col.id === columnId)
+          if (originalCol) {
+            columnsForStorage.push({
+              id: columnId,
+              width: originalCol.width || 100,
+              visible: true,
+              order: orderIndex++
+            })
+          }
+        }
+      })
+
+      // Add hidden columns with preserved widths
+      Object.entries(visibilityMap).forEach(([columnId, visible]) => {
+        if (!visible) {
+          const currentCol = columns.find(col => col.id === columnId) ||
+                           initialColumns.find(col => col.id === columnId)
+          columnsForStorage.push({
+            id: columnId,
+            width: currentCol?.width || 100,
+            visible: false,
+            order: orderIndex++
+          })
+        }
+      })
+
+      // Save configuration immediately
+      await updateColumnVisibility(reportType, visibilityMap, columnsForStorage)
+      console.log(`✅ Column visibility saved successfully`)
+
+    } catch (error) {
+      console.error('❌ Error updating column visibility:', error)
+      if (showToast) {
+        showToast('خطأ في حفظ إعدادات الأعمدة', 'error', 3000)
+      }
+    }
+  }, [reportType, columns, initialColumns, showToast])
+
+  // Enhanced column initialization with deduplication
+  const initializeColumns = useCallback(async (preserveCurrentOrder = false) => {
+    if (isInitializing.current) return
+    isInitializing.current = true
+
+    try {
+      if (!reportType) {
+        // No reportType - use basic columns
+        const basicColumns = initialColumns.map(col => ({
+          ...col,
+          width: col.width || col.minWidth || 100
+        }))
+        setColumns(basicColumns)
+        // Update visible state
+        const visibleState: {[key: string]: boolean} = {}
+        basicColumns.forEach(col => { visibleState[col.id] = true })
+        setCurrentVisibleState(visibleState)
+        return
+      }
+
+      // Load saved configuration
+      const savedConfig = await loadTableConfig(reportType)
 
       if (savedConfig && savedConfig.columns.length > 0) {
-        console.log(`🔄 Loading saved config for ${reportType}`)
+        // Build visibility state from saved config
+        const savedVisibilityState: {[key: string]: boolean} = {}
+        savedConfig.columns.forEach(col => {
+          savedVisibilityState[col.id] = col.visible !== false
+        })
 
-        // Apply saved configuration: order, width, and visibility
-        const configuredColumns = savedConfig.columns
-          .filter(savedCol => savedCol.visible) // Only include visible columns
-          .sort((a, b) => a.order - b.order) // Sort by saved order
+        // Use saved order (simplified logic)
+        const finalColumns = savedConfig.columns
+          .filter(savedCol => savedCol.visible)
+          .sort((a, b) => a.order - b.order)
           .map(savedCol => {
             const originalCol = initialColumns.find(col => col.id === savedCol.id)
-            if (!originalCol) return null // Skip missing columns
-
-            return {
+            return originalCol ? {
               ...originalCol,
-              width: savedCol.width // Apply saved width
-            }
+              width: savedCol.width || 100
+            } : null
           })
-          .filter(Boolean) as Column[] // Remove null values
+          .filter(Boolean) as Column[]
 
-        // Add any new columns that weren't in saved config (for backwards compatibility)
-        const configuredIds = new Set(savedConfig.columns.map(col => col.id))
+        // Add any new columns not in saved config
+        const savedIds = new Set(savedConfig.columns.map(col => col.id))
         const newColumns = initialColumns
-          .filter(col => !configuredIds.has(col.id))
+          .filter(col => !savedIds.has(col.id))
           .map(col => ({ ...col, width: col.width || col.minWidth || 100 }))
 
-        const finalColumns = [...configuredColumns, ...newColumns]
-        console.log(`✅ Loaded ${finalColumns.length} visible columns for ${reportType}`)
-        setColumns(finalColumns)
+        const allColumns = [...finalColumns, ...newColumns]
+        newColumns.forEach(col => { savedVisibilityState[col.id] = true })
+
+        setColumns(allColumns)
+        setCurrentVisibleState(savedVisibilityState)
       } else {
-        // No saved config, use all initial columns with default widths
+        // No saved config, use defaults
         const defaultColumns = initialColumns.map(col => ({
           ...col,
           width: col.width || col.minWidth || 100
         }))
-        console.log(`📝 Using default columns for ${reportType}`)
         setColumns(defaultColumns)
+
+        const defaultVisibleState: {[key: string]: boolean} = {}
+        defaultColumns.forEach(col => { defaultVisibleState[col.id] = true })
+        setCurrentVisibleState(defaultVisibleState)
       }
     } catch (error) {
-      console.error('Error loading table config:', error)
+      console.error('❌ Error loading table config:', error)
       // Fallback to initial columns
-      setColumns(initialColumns.map(col => ({
+      const fallbackColumns = initialColumns.map(col => ({
         ...col,
         width: col.width || col.minWidth || 100
-      })))
+      }))
+      setColumns(fallbackColumns)
+
+      const fallbackVisibleState: {[key: string]: boolean} = {}
+      fallbackColumns.forEach(col => { fallbackVisibleState[col.id] = true })
+      setCurrentVisibleState(fallbackVisibleState)
+    } finally {
+      isInitializing.current = false
     }
   }, [initialColumns, reportType])
 
-  // Initialize table when component mounts or reportType changes
+  // Initialize table when component mounts or reportType changes (with debounce)
   useEffect(() => {
-    initializeColumns()
-  }, [initializeColumns])
+    if (isInitializing.current) return
 
-  // Listen for storage changes from other components (like column visibility changes)
+    const timeoutId = setTimeout(() => {
+      initializeColumns(false)
+    }, 50) // Small delay to prevent rapid re-initialization
+
+    return () => clearTimeout(timeoutId)
+  }, [reportType, initialColumns.length, initializeColumns])
+
+  // Debounced event handler to prevent excessive updates
+  const eventHandlerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Enhanced event listener for external changes
   useEffect(() => {
     if (!reportType) return
 
     const handleStorageChange = (event?: any) => {
-      // Ignore events from the same component to avoid loops
-      if (event?.detail?.reportType === reportType && event?.detail?.source === 'ResizableTable') {
+      const eventDetail = event?.detail
+
+      // Ignore our own events and storage saves to prevent loops
+      if (eventDetail?.source === 'ResizableTable' ||
+          eventDetail?.source === 'hybridStorage' ||
+          isInitializing.current) {
         return
       }
 
-      console.log(`🔄 Detected storage change for ${reportType}, refreshing columns...`)
-      // Small delay to ensure localStorage has been updated and avoid render conflicts
-      setTimeout(() => {
-        try {
-          initializeColumns()
-        } catch (error) {
-          console.error('Error refreshing columns after storage change:', error)
+      // Check if event is for our report type
+      const eventReportType = eventDetail?.reportType
+      const isRelevant = !eventReportType ||
+        eventReportType === reportType ||
+        (reportType === 'MAIN_REPORT' && eventReportType === 'main') ||
+        (reportType === 'PRODUCTS_REPORT' && eventReportType === 'products')
+
+      if (!isRelevant) {
+        return
+      }
+
+      // Handle external column visibility changes with debouncing
+      if (eventDetail?.source === 'ColumnManagement') {
+        // Clear any pending event handling
+        if (eventHandlerRef.current) {
+          clearTimeout(eventHandlerRef.current)
         }
-      }, 200)
+
+        // Clear any pending save operations
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current)
+          saveTimeoutRef.current = null
+        }
+
+        // Debounce the column reload to prevent rapid updates
+        eventHandlerRef.current = setTimeout(() => {
+          if (!isInitializing.current) {
+            initializeColumns(true) // Preserve current order
+          }
+        }, 200)
+      }
     }
 
-    // Listen for custom storage events
+    // Listen for table configuration changes
     window.addEventListener('tableConfigChanged', handleStorageChange)
-    // Also listen for direct storage events
-    window.addEventListener('storage', handleStorageChange)
 
     return () => {
       window.removeEventListener('tableConfigChanged', handleStorageChange)
-      window.removeEventListener('storage', handleStorageChange)
+      // Clear any pending operations on unmount
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+      if (eventHandlerRef.current) {
+        clearTimeout(eventHandlerRef.current)
+      }
     }
   }, [reportType, initializeColumns])
 
@@ -404,21 +498,27 @@ export default function ResizableTable({
   const handleDragEnd = useCallback((event: any) => {
     const { active, over } = event
 
-    if (active.id !== over.id) {
-      setColumns((columns) => {
-        const oldIndex = columns.findIndex(col => col.id === active.id)
-        const newIndex = columns.findIndex(col => col.id === over.id)
-        const reorderedColumns = arrayMove(columns, oldIndex, newIndex)
+    if (active.id !== over.id && !isInitializing.current) {
+      setColumns((currentColumns) => {
+        const oldIndex = currentColumns.findIndex(col => col.id === active.id)
+        const newIndex = currentColumns.findIndex(col => col.id === over.id)
+        const reorderedColumns = arrayMove(currentColumns, oldIndex, newIndex)
 
-        // Defer save operation to avoid setState during render
-        setTimeout(() => {
+        console.log(`🔄 Dragging column ${active.id} from ${oldIndex} to ${newIndex}`)
+
+        // Save order asynchronously without blocking UI
+        setTimeout(async () => {
           if (reportType) {
-            const newOrder = reorderedColumns.map(col => col.id)
-            saveColumnOrder(newOrder, reorderedColumns)
+            try {
+              const newOrder = reorderedColumns.map(col => col.id)
+              await saveColumnOrder(newOrder, reorderedColumns)
+            } catch (error) {
+              console.error('❌ Error saving column order:', error)
+            }
           }
         }, 0)
 
-        // Notify parent component of changes
+        // Notify parent component
         if (onColumnsChange) {
           onColumnsChange(reorderedColumns)
         }
@@ -432,6 +532,12 @@ export default function ResizableTable({
 
   const handleColumnResize = useCallback((columnId: string, newWidth: number) => {
     setColumns(prev => {
+      // Only update if width actually changed to prevent unnecessary re-renders
+      const currentCol = prev.find(col => col.id === columnId)
+      if (currentCol && currentCol.width === newWidth) {
+        return prev // No change needed
+      }
+
       const updatedColumns = prev.map(col =>
         col.id === columnId ? { ...col, width: newWidth } : col
       )
@@ -445,13 +551,63 @@ export default function ResizableTable({
     })
   }, [onColumnsChange])
 
-  // Handle resize complete (when mouse is released)
+  // Enhanced resize complete handler with immediate save
   const handleResizeComplete = useCallback((columnId: string, finalWidth: number) => {
-    // Defer save operation to avoid potential setState during render
-    setTimeout(() => {
-      saveColumnWidth(columnId, finalWidth)
-    }, 0)
-  }, [saveColumnWidth])
+    if (!reportType || isInitializing.current) return
+
+    console.log(`📐 Saving column width: ${columnId} = ${finalWidth}px`)
+
+    // Clear any pending save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+
+    // Immediate save with current state
+    const saveWidth = async () => {
+      try {
+        // Prepare storage data from current state
+        const columnsForStorage: any[] = []
+
+        // Add all currently visible columns with updated width
+        columns.forEach((col, index) => {
+          columnsForStorage.push({
+            id: col.id,
+            width: col.id === columnId ? finalWidth : (col.width || 100),
+            visible: true,
+            order: index
+          })
+        })
+
+        // Add hidden columns from current visible state
+        initialColumns.forEach(initCol => {
+          if (currentVisibleState[initCol.id] === false) {
+            columnsForStorage.push({
+              id: initCol.id,
+              width: 100,
+              visible: false,
+              order: columnsForStorage.length
+            })
+          }
+        })
+
+        // Save immediately
+        await updateColumnWidth(reportType, columnId, finalWidth, columnsForStorage)
+        console.log(`✅ Column width saved successfully: ${columnId} = ${finalWidth}px`)
+
+        if (showToast) {
+          showToast(`✅ تم حفظ عرض العمود`, 'success', 1500)
+        }
+      } catch (error) {
+        console.error('❌ Error saving column width:', error)
+        if (showToast) {
+          showToast('خطأ في حفظ عرض العمود', 'error', 3000)
+        }
+      }
+    }
+
+    // Execute save immediately
+    saveWidth()
+  }, [reportType, columns, currentVisibleState, initialColumns, showToast])
 
   // Update container width whenever columns change
   useEffect(() => {
@@ -463,17 +619,41 @@ export default function ResizableTable({
     updateWidth()
   }, [columns])
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Clear any pending saves
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+        saveTimeoutRef.current = null
+      }
+      // Reset initializing flag
+      isInitializing.current = false
+      console.log('🧹 ResizableTable cleanup completed')
+    }
+  }, [])
+
   const totalWidth = columns.reduce((sum, col) => sum + (col.width || 100), 0)
   // Add some buffer for borders and padding
   const needsHorizontalScroll = totalWidth > (containerWidth - 20) && containerWidth > 0
 
   return (
     <div className={`h-full ${className}`} ref={containerRef}>
-      <div 
+      {/* Simplified loading indicator */}
+      {isInitializing.current && (
+        <div className="absolute top-0 left-0 right-0 z-50 bg-blue-500/5 border-b border-blue-400/50">
+          <div className="flex items-center justify-center gap-2 py-1 text-blue-400 text-xs">
+            <div className="animate-spin rounded-full h-2 w-2 border border-blue-400 border-t-transparent"></div>
+            <span>تحديث...</span>
+          </div>
+        </div>
+      )}
+
+      <div
         className={`h-full ${
           needsHorizontalScroll ? 'custom-scrollbar' : 'scrollbar-hide overflow-y-auto'
         }`}
-        style={{ 
+        style={{
           overflowX: needsHorizontalScroll ? 'auto' : 'hidden'
         }}
       >
@@ -481,7 +661,7 @@ export default function ResizableTable({
           id={tableId}
           sensors={sensors}
           collisionDetection={closestCenter}
-          onDragEnd={isAnyColumnResizing ? emptyDragEnd : handleDragEnd}
+          onDragEnd={isAnyColumnResizing || isInitializing.current ? emptyDragEnd : handleDragEnd}
         >
           <table className="text-sm w-full" style={{ minWidth: `${totalWidth}px`, tableLayout: 'fixed' }}>
           <thead className="bg-[#374151] border-b border-gray-600 sticky top-0">

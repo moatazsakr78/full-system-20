@@ -253,7 +253,10 @@
       "Bash(start http://localhost:3005/reports)",
       "Bash(start test-table-persistence.html)",
       "Bash(start instant-visibility-test.html)",
-      "Bash(start test-persistence.html)"
+      "Bash(start test-persistence.html)",
+      "Bash(start test-table-functionality.html)",
+      "Bash(start test-auth-fix.html)",
+      "Bash(start smooth-ux-summary.html)"
     ],
     "deny": [],
     "additionalDirectories": [
