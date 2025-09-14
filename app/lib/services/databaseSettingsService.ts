@@ -62,12 +62,10 @@ class DatabaseSettingsService {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
-        console.warn('Session error:', sessionError.message);
         return null;
       }
 
       if (!session) {
-        console.log('No active session found - user not authenticated');
         return null;
       }
 
@@ -94,7 +92,6 @@ class DatabaseSettingsService {
       // Get user ID if not provided
       const currentUserId = userId || await this.getCurrentUserId();
       if (!currentUserId) {
-        console.log('ℹ️ No authenticated user found - skipping database load for settings');
         return null;
       }
 
@@ -103,7 +100,7 @@ class DatabaseSettingsService {
       // Check cache first
       if (this.isCacheValid(cacheKey)) {
         const cached = this.cache.get(cacheKey)!;
-        console.log(`📦 Settings loaded from cache for ${reportType}:`, {
+        // console.log(`📦 Settings loaded from cache for ${reportType}:`, {
           userId: currentUserId,
           columns: cached.data.columns.length,
           cachedAt: new Date(cached.timestamp).toLocaleString('ar-SA')
@@ -125,7 +122,7 @@ class DatabaseSettingsService {
       }
 
       if (!data) {
-        console.log(`📭 No saved preferences found for user ${currentUserId}, report ${reportType}`);
+        // console.log(`📭 No saved preferences found for user ${currentUserId}, report ${reportType}`);
         return null;
       }
 
@@ -145,7 +142,7 @@ class DatabaseSettingsService {
         ttl: this.CACHE_TTL
       });
 
-      console.log(`✅ Settings loaded from database for ${reportType}:`, {
+      // console.log(`✅ Settings loaded from database for ${reportType}:`, {
         userId: currentUserId,
         columns: preferences.columns.length,
         visibleColumns: preferences.columns.filter(col => col.visible).length,
@@ -173,7 +170,7 @@ class DatabaseSettingsService {
       // Get user ID if not provided
       const currentUserId = userId || await this.getCurrentUserId();
       if (!currentUserId) {
-        console.log('ℹ️ No authenticated user found - skipping database save for settings');
+        // console.log('ℹ️ No authenticated user found - skipping database save for settings');
         return false;
       }
 
@@ -222,7 +219,7 @@ class DatabaseSettingsService {
               return;
             }
 
-            console.log(`💾 Settings saved to database for ${reportType}:`, {
+            // console.log(`💾 Settings saved to database for ${reportType}:`, {
               userId: currentUserId,
               columns: columns.length,
               visibleColumns: columns.filter(col => col.visible).length,
@@ -272,7 +269,7 @@ class DatabaseSettingsService {
    */
   clearAllCache(): void {
     this.cache.clear();
-    console.log('🧹 All settings cache cleared');
+    // console.log('🧹 All settings cache cleared');
   }
 
   /**
@@ -311,10 +308,10 @@ class DatabaseSettingsService {
           backupTimestamp: Date.now()
         }));
 
-        console.log(`🔄 Settings synced to localStorage backup for ${reportType}`);
+        // console.log(`🔄 Settings synced to localStorage backup for ${reportType}`);
       }
     } catch (error) {
-      console.warn('Failed to sync with localStorage:', error);
+      // console.warn('Failed to sync with localStorage:', error);
     }
   }
 
@@ -339,11 +336,11 @@ class DatabaseSettingsService {
         return null;
       }
 
-      console.log(`🔄 Loaded backup settings from localStorage for ${reportType}`);
+      // console.log(`🔄 Loaded backup settings from localStorage for ${reportType}`);
       return parsed;
 
     } catch (error) {
-      console.warn('Failed to load backup settings:', error);
+      // console.warn('Failed to load backup settings:', error);
       return null;
     }
   }
@@ -380,7 +377,7 @@ class DatabaseSettingsService {
 
       // Cache is always healthy if no errors
       const cacheStats = this.getCacheStats();
-      console.log('📊 Health Check Cache Stats:', cacheStats);
+      // console.log('📊 Health Check Cache Stats:', cacheStats);
 
     } catch (error) {
       errors.push(`System: ${error}`);

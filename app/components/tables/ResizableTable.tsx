@@ -91,8 +91,6 @@ function SortableHeader({ column, width, onResize, onResizeStateChange, onResize
     }
 
     const handleMouseUp = () => {
-      console.log(`🖱️ Mouse up detected for column: ${column.id}, current width: ${width}px`)
-
       setIsResizing(false)
       onResizeStateChange(false)
       document.body.style.userSelect = ''
@@ -100,10 +98,7 @@ function SortableHeader({ column, width, onResize, onResizeStateChange, onResize
 
       // Save the final width on mouse up (when user releases the mouse)
       if (onResizeComplete) {
-        console.log(`💾 Calling onResizeComplete for ${column.id} with width ${width}px`)
         onResizeComplete(column.id, width) // Use current width state
-      } else {
-        console.warn(`⚠️ onResizeComplete not provided for column: ${column.id}`)
       }
     }
 
@@ -202,8 +197,6 @@ export default function ResizableTable({
   const saveColumnOrder = useCallback(async (newOrder: string[], reorderedColumns: Column[]) => {
     if (!reportType || isInitializing.current) return
 
-    console.log(`🎯 Saving column order:`, newOrder)
-
     // Prepare storage data preserving current visible state and widths
     const visibleColumnsForStorage = reorderedColumns.map((col, index) => ({
       id: col.id,
@@ -228,7 +221,6 @@ export default function ResizableTable({
     // Save with immediate persistence
     try {
       await updateColumnOrder(reportType, newOrder, allColumnsForStorage)
-      console.log(`✅ Column order saved successfully for ${reportType}`)
     } catch (error) {
       console.error('❌ Error saving column order:', error)
       if (showToast) {
@@ -240,8 +232,6 @@ export default function ResizableTable({
   // Enhanced visibility update that preserves current state
   const updateColumnVisibilityPreservingOrder = useCallback(async (visibilityMap: { [columnId: string]: boolean }) => {
     if (!reportType || isInitializing.current) return
-
-    console.log(`👁️ Updating column visibility:`, visibilityMap)
 
     try {
       // Update internal visible state
@@ -294,7 +284,6 @@ export default function ResizableTable({
 
       // Save configuration immediately
       await updateColumnVisibility(reportType, visibilityMap, columnsForStorage)
-      console.log(`✅ Column visibility saved successfully`)
 
     } catch (error) {
       console.error('❌ Error updating column visibility:', error)
@@ -412,7 +401,6 @@ export default function ResizableTable({
       if (eventDetail?.source === 'ResizableTable' ||
           eventDetail?.source === 'hybridStorage' ||
           isInitializing.current) {
-        console.log('🔇 Table event ignored (internal source):', eventDetail?.source)
         return
       }
 
@@ -424,14 +412,11 @@ export default function ResizableTable({
         (reportType === 'PRODUCTS_REPORT' && eventReportType === 'products')
 
       if (!isRelevant) {
-        console.log('🔇 Table event ignored (irrelevant):', eventReportType)
         return
       }
 
       // Handle external column visibility changes from ColumnManagement
       if (eventDetail?.source === 'ColumnManagement') {
-        console.log('📥 Processing column visibility update from external source')
-
         // Clear any pending event handling
         if (eventHandlerRef.current) {
           clearTimeout(eventHandlerRef.current)
@@ -446,7 +431,6 @@ export default function ResizableTable({
         // Immediate column reload for visibility changes
         eventHandlerRef.current = setTimeout(() => {
           if (!isInitializing.current) {
-            console.log('🔄 Reloading columns due to visibility change')
             initializeColumns(true) // Preserve current order
           }
         }, 100) // Shorter delay for immediate feedback
@@ -508,8 +492,6 @@ export default function ResizableTable({
         const oldIndex = currentColumns.findIndex(col => col.id === active.id)
         const newIndex = currentColumns.findIndex(col => col.id === over.id)
         const reorderedColumns = arrayMove(currentColumns, oldIndex, newIndex)
-
-        console.log(`🔄 Dragging column ${active.id} from ${oldIndex} to ${newIndex}`)
 
         // Save order asynchronously without blocking UI
         setTimeout(async () => {
@@ -573,8 +555,6 @@ export default function ResizableTable({
   const handleResizeComplete = useCallback((columnId: string, finalWidth: number) => {
     if (!reportType || isInitializing.current) return
 
-    console.log(`📐 Saving column width: ${columnId} = ${finalWidth}px`)
-
     // Clear any pending save
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current)
@@ -610,7 +590,6 @@ export default function ResizableTable({
 
         // Save immediately with source identification
         await updateColumnWidth(reportType, columnId, finalWidth, columnsForStorage)
-        console.log(`✅ Column width saved successfully: ${columnId} = ${finalWidth}px`)
 
         // Send resize event with proper source identification
         if (typeof window !== 'undefined') {
@@ -662,7 +641,6 @@ export default function ResizableTable({
       }
       // Reset initializing flag
       isInitializing.current = false
-      console.log('🧹 ResizableTable cleanup completed')
     }
   }, [])
 

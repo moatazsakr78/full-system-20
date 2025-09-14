@@ -462,8 +462,6 @@ function ReportsPageContent() {
 
   // Enhanced column management with improved event handling
   const handleColumnsChange = async (updatedColumns: {id: string, header: string, visible: boolean}[]) => {
-    console.log(`🎯 Processing column visibility changes for ${updatedColumns.length} columns`);
-
     const reportType = currentReportType === 'products' ? 'PRODUCTS_REPORT' : 'MAIN_REPORT';
     const currentColumns = reportType === 'PRODUCTS_REPORT' ? productsTableColumns : tableColumns;
 
@@ -490,17 +488,10 @@ function ReportsPageContent() {
         };
       });
 
-      console.log(`💾 Saving visibility config:`, {
-        reportType,
-        totalColumns: allColumns.length,
-        visibleColumns: allColumns.filter(col => col.visible).length
-      });
-
       // Save to database through hybrid storage
       await updateColumnVisibility(reportType as 'MAIN_REPORT' | 'PRODUCTS_REPORT', visibilityMap, allColumns);
 
       const visibleCount = Object.values(visibilityMap).filter(Boolean).length;
-      console.log(`✅ Column visibility saved successfully: ${visibleCount} visible columns`);
 
       // Remove success toast to avoid UI clutter
       // showToast(
@@ -522,7 +513,6 @@ function ReportsPageContent() {
           }
         }));
 
-        console.log(`📡 Dispatched column visibility update event for ${reportType}`);
       }
 
       // Close modal immediately
@@ -634,29 +624,15 @@ function ReportsPageContent() {
     // System health check and initialization
     const initializeSystem = async () => {
       try {
-        console.log('🚀 Initializing reports system...');
-
         // Check system status
         const systemStatus = await hybridTableStorage.getSystemStatus();
-        console.log('📊 System Status:', {
-          database: systemStatus.database,
-          cache: systemStatus.cache,
-          legacy: systemStatus.legacy
-        });
-
-        if (systemStatus.recommendations.length > 0) {
-          console.info('💡 System Recommendations:', systemStatus.recommendations);
-        }
 
         // Health check with user feedback
         const healthCheck = await databaseSettingsService.healthCheck();
         if (!healthCheck.isHealthy) {
-          console.warn('⚠️ System health issues:', healthCheck.errors);
           if (healthCheck.errors.length > 0) {
             showToast('⚠️ نظام الإعدادات يعمل في الوضع الاحتياطي', 'info', 2000);
           }
-        } else {
-          console.log('✅ All systems operational');
         }
 
         // Flush any pending saves from previous sessions
@@ -690,7 +666,6 @@ function ReportsPageContent() {
         }, 0) || 0;
 
         setTotalSalesAmount(total.toFixed(2));
-        console.log(`💰 Total sales calculated: EGP ${total.toFixed(2)}`);
       } catch (error) {
         console.error('❌ Error calculating total sales:', error);
       }
@@ -762,8 +737,6 @@ function ReportsPageContent() {
         alert(`خطأ في جلب البيانات: ${salesError.message}`);
         return;
       }
-
-      console.log('Fetched sales data:', salesData);
 
       // Process the data to aggregate by product
       const productMap = new Map();
@@ -1287,7 +1260,6 @@ function ReportsPageContent() {
                                   // Add tab for other reports but don't implement functionality yet
                                   const reportId = report.replace(/\s+/g, '_');
                                   addTab(reportId, report);
-                                  console.log('Selected report:', report);
                                 }
                               }}
                               className="w-full bg-[#2B3544] hover:bg-[#3B4754] border border-gray-600 rounded-lg p-4 text-right text-white transition-colors duration-200 hover:border-blue-500 group"
@@ -1472,7 +1444,7 @@ function ReportsPageContent() {
                             reportType="PRODUCTS_REPORT"
                             showToast={showToast}
                             onRowClick={(product, index) => {
-                              console.log('Selected product:', product);
+                              // Handle product row click
                             }}
                             onRowDoubleClick={(product, index) => {
                               // Handle double click if needed
@@ -1520,8 +1492,6 @@ function ReportsPageContent() {
                                 onClick={() => {
                                   if (report === 'الأصناف') {
                                     openProductsReport();
-                                  } else {
-                                    console.log('Selected report:', report);
                                   }
                                 }}
                                 className="group w-full bg-[#374151] hover:bg-[#3B4754] text-right text-white transition-all duration-200 flex items-center justify-between text-sm p-2"

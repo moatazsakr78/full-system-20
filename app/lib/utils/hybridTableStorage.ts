@@ -177,7 +177,6 @@ class HybridTableStorage {
 
       // Minimal logging to reduce console spam
       if (source === 'ColumnManagement') {
-        console.log(`👁️ Visibility change for ${reportType}`);
       }
 
       // Queue the save data
@@ -242,7 +241,7 @@ class HybridTableStorage {
           this.cleanupLegacyConfig(reportType);
         }
       } catch (dbError) {
-        console.warn(`⚠️ Database save failed for ${reportType}:`, dbError);
+        // Database save failed, fallback will be used
       }
 
       // Method 2: Fallback to localStorage if database failed
@@ -260,7 +259,7 @@ class HybridTableStorage {
       try {
         await databaseSettingsService.syncWithLocalStorage(mappedType);
       } catch (syncError) {
-        console.warn('Backup sync failed:', syncError);
+        // Backup sync failed silently
       }
 
       // Dispatch event for UI updates (with delay to prevent loops)
@@ -375,7 +374,6 @@ class HybridTableStorage {
       const { data: { user } } = await supabase.auth.getUser();
       return user?.id || null;
     } catch (error) {
-      console.log('ℹ️ No authenticated user available');
       return null;
     }
   }
@@ -415,7 +413,6 @@ class HybridTableStorage {
       const storageKey = this.LEGACY_STORAGE_KEYS[reportType];
       localStorage.setItem(storageKey, JSON.stringify(config));
 
-      console.log(`💾 Fallback: Config saved to localStorage for ${reportType}`);
     } catch (error) {
       console.error('Failed to save legacy config:', error);
     }
@@ -431,9 +428,8 @@ class HybridTableStorage {
       const storageKey = this.LEGACY_STORAGE_KEYS[reportType];
       localStorage.removeItem(storageKey);
 
-      console.log(`🧹 Legacy config cleaned up for ${reportType}`);
     } catch (error) {
-      console.warn('Failed to cleanup legacy config:', error);
+      // Failed to cleanup legacy config silently
     }
   }
 
@@ -448,13 +444,12 @@ class HybridTableStorage {
       // Save to database
       await databaseSettingsService.saveUserSettings(mappedType, columnConfigs);
 
-      console.log(`🔄 Migrated legacy config to database for ${reportType}`);
 
       // Clean up legacy after successful migration
       setTimeout(() => this.cleanupLegacyConfig(reportType), 1000);
 
     } catch (error) {
-      console.warn('Failed to migrate legacy config:', error);
+      // Failed to migrate legacy config silently
     }
   }
 
@@ -465,7 +460,7 @@ class HybridTableStorage {
     try {
       await databaseSettingsService.syncWithLocalStorage(preferences.reportType, preferences.userId);
     } catch (error) {
-      console.warn('Failed to sync to localStorage backup:', error);
+      // Failed to sync to localStorage backup silently
     }
   }
 
@@ -479,9 +474,8 @@ class HybridTableStorage {
         preferences.columns,
         preferences.userId
       );
-      console.log(`🔄 Restored backup to database for ${reportType}`);
     } catch (error) {
-      console.warn('Failed to restore backup to database:', error);
+      // Failed to restore backup to database silently
     }
   }
 
@@ -501,7 +495,6 @@ class HybridTableStorage {
         }
       }
 
-      console.log(`🚀 Flushed ${pendingKeys.length} pending saves`);
     } catch (error) {
       console.error('❌ Failed to flush pending saves:', error);
     }
@@ -527,7 +520,6 @@ class HybridTableStorage {
         });
       }
 
-      console.log('🧹 All table configurations cleared');
     } catch (error) {
       console.error('❌ Failed to clear all configs:', error);
     }
