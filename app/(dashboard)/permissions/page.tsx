@@ -322,7 +322,7 @@ export default function PermissionsPage() {
     }
   };
 
-  // قائمة الأدوار المتاحة
+  // قائمة الأدوار المتاحة - تم إزالة دور الكاشير نهائياً
   const availableRoles = ['عميل', 'جملة', 'موظف', 'أدمن رئيسي'];
 
   // Load derived roles from database
