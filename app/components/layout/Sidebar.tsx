@@ -14,7 +14,8 @@ import {
   ChartBarIcon,
   ShieldCheckIcon,
   XMarkIcon,
-  ClipboardDocumentListIcon
+  ClipboardDocumentListIcon,
+  CogIcon
 } from '@heroicons/react/24/outline'
 import { useUserProfile } from '@/lib/hooks/useUserProfile'
 
@@ -29,6 +30,7 @@ const sidebarItems = [
   { href: '/records', label: 'السجلات', icon: DocumentTextIcon },
   { href: '/reports', label: 'التقارير', icon: ChartBarIcon },
   { href: '/permissions', label: 'الصلاحيات', icon: ShieldCheckIcon },
+  { href: '/settings', label: 'الإعدادات', icon: CogIcon },
 ]
 
 interface SidebarProps {
