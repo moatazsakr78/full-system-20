@@ -605,6 +605,70 @@ function ReportsPageContent() {
   const [categoriesReportData, setCategoriesReportData] = useState<any[]>([]);
   const [showCustomersReport, setShowCustomersReport] = useState(false);
   const [customersReportData, setCustomersReportData] = useState<any[]>([]);
+  const [showUsersReport, setShowUsersReport] = useState(false);
+  const [usersReportData, setUsersReportData] = useState<any[]>([]);
+
+  // Define columns for users report
+  const usersTableColumns = useMemo(() => [
+    {
+      id: 'user_name',
+      header: 'اسم المستخدم',
+      accessor: 'user_name',
+      cell: (info: any) => info.getValue() || '-'
+    },
+    {
+      id: 'phone',
+      header: 'رقم الهاتف',
+      accessor: 'phone',
+      cell: (info: any) => info.getValue() || '-'
+    },
+    {
+      id: 'role',
+      header: 'الوظيفة',
+      accessor: 'role',
+      cell: (info: any) => info.getValue() || '-'
+    },
+    {
+      id: 'total_invoices',
+      header: 'إجمالي الفواتير',
+      accessor: 'total_invoices',
+      cell: (info: any) => (info.getValue() || 0).toLocaleString()
+    },
+    {
+      id: 'total_amount',
+      header: 'إجمالي المبلغ',
+      accessor: 'total_amount',
+      cell: (info: any) => `EGP ${(info.getValue() || 0).toFixed(2)}`
+    },
+    {
+      id: 'total_profit',
+      header: 'الربح',
+      accessor: 'total_profit',
+      cell: (info: any) => {
+        const profit = info.getValue() || 0;
+        const colorClass = profit >= 0 ? 'text-green-400' : 'text-red-400';
+        return `<span class="${colorClass}">EGP ${profit.toFixed(2)}</span>`;
+      }
+    },
+    {
+      id: 'first_sale',
+      header: 'أول بيعة',
+      accessor: 'first_sale',
+      cell: (info: any) => {
+        const date = info.getValue();
+        return date ? new Date(date).toLocaleDateString('ar-SA') : '-';
+      }
+    },
+    {
+      id: 'last_sale',
+      header: 'آخر بيعة',
+      accessor: 'last_sale',
+      cell: (info: any) => {
+        const date = info.getValue();
+        return date ? new Date(date).toLocaleDateString('ar-SA') : '-';
+      }
+    }
+  ], []);
   const [totalSalesAmount, setTotalSalesAmount] = useState<string>('0.00');
   const [loading, setLoading] = useState(false);
   const [openTabs, setOpenTabs] = useState<{ id: string; title: string; active: boolean }[]>([
@@ -833,6 +897,25 @@ function ReportsPageContent() {
     } else {
       // Switch to existing customers tab
       switchTab('customers');
+    }
+  };
+
+  const openUsersReport = () => {
+    // Check if users tab already exists
+    const usersTabExists = openTabs.some(tab => tab.id === 'users');
+
+    if (!usersTabExists) {
+      // Add users tab
+      setOpenTabs(prev => [
+        ...prev.map(tab => ({ ...tab, active: false })),
+        { id: 'users', title: 'المستخدمين', active: true }
+      ]);
+      setActiveTab('users');
+      setShowUsersReport(true);
+      fetchUsersReport();
+    } else {
+      // Switch to existing users tab
+      switchTab('users');
     }
   };
 
@@ -1256,6 +1339,142 @@ function ReportsPageContent() {
       setTotalSalesAmount(filteredTotal.toFixed(2));
     } catch (error) {
       console.error('Error fetching products report:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to fetch users report data
+  const fetchUsersReport = async () => {
+    setLoading(true);
+    try {
+      // Get users (cashiers) data
+      const { data: usersData, error: usersError } = await supabase
+        .from('user_profiles')
+        .select(`
+          id,
+          full_name,
+          phone,
+          role,
+          created_at,
+          email,
+          is_active
+        `)
+        .eq('is_active', true);
+
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+        alert(`خطأ في جلب بيانات المستخدمين: ${usersError.message}`);
+        return;
+      }
+
+      // Get sales data with detailed items for accurate profit calculation
+      let salesQuery = supabase
+        .from('sales')
+        .select(`
+          id,
+          cashier_id,
+          total_amount,
+          created_at,
+          sale_items(
+            id,
+            quantity,
+            unit_price,
+            cost_price
+          )
+        `);
+
+      // Apply date filters
+      if (dateFilter.type === 'today') {
+        const today = new Date().toISOString().split('T')[0];
+        salesQuery = salesQuery.gte('created_at', today + 'T00:00:00');
+      } else if (dateFilter.type === 'current_week') {
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        salesQuery = salesQuery.gte('created_at', weekStart.toISOString());
+      } else if (dateFilter.type === 'current_month') {
+        const monthStart = new Date();
+        monthStart.setDate(1);
+        salesQuery = salesQuery.gte('created_at', monthStart.toISOString());
+      } else if (dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate) {
+        salesQuery = salesQuery
+          .gte('created_at', dateFilter.startDate.toISOString())
+          .lte('created_at', dateFilter.endDate.toISOString());
+      } else {
+        // Default to all time
+        salesQuery = salesQuery.gte('created_at', '2024-01-01T00:00:00');
+      }
+
+      const { data: salesData, error: salesError } = await salesQuery;
+
+      if (salesError) {
+        console.error('Error fetching sales data:', salesError);
+        alert(`خطأ في جلب بيانات المبيعات: ${salesError.message}`);
+        return;
+      }
+
+      // Process data to calculate user statistics with accurate profit
+      const userMap = new Map();
+
+      // Initialize all users with zero values
+      usersData?.forEach((user: any) => {
+        userMap.set(user.id, {
+          user_id: user.id,
+          user_name: user.full_name,
+          phone: user.phone,
+          email: user.email,
+          role: user.role,
+          created_at: user.created_at,
+          total_invoices: 0,
+          total_amount: 0,
+          total_profit: 0,
+          first_sale: null,
+          last_sale: null,
+        });
+      });
+
+      // Process sales data and calculate profits for each user
+      salesData?.forEach((sale: any) => {
+        if (!sale.cashier_id) return; // Skip sales without cashier
+
+        const user = userMap.get(sale.cashier_id);
+        if (user) {
+          user.total_invoices += 1;
+          user.total_amount += parseFloat(sale.total_amount) || 0;
+
+          // Calculate profit from sale items
+          let saleProfit = 0;
+          sale.sale_items?.forEach((item: any) => {
+            const itemProfit = (parseFloat(item.unit_price) - parseFloat(item.cost_price)) * parseInt(item.quantity);
+            saleProfit += itemProfit;
+          });
+          user.total_profit += saleProfit;
+
+          // Track first and last sale dates
+          const saleDate = new Date(sale.created_at);
+          if (!user.first_sale || saleDate < new Date(user.first_sale)) {
+            user.first_sale = sale.created_at;
+          }
+          if (!user.last_sale || saleDate > new Date(user.last_sale)) {
+            user.last_sale = sale.created_at;
+          }
+        }
+      });
+
+      // Convert map to array and sort by total amount
+      const processedData = Array.from(userMap.values()).sort((a, b) => b.total_amount - a.total_amount);
+
+      setUsersReportData(processedData);
+
+      // Update the total sales amount to match the filtered users
+      const filteredTotal = processedData.reduce((sum, user) =>
+        sum + (user.total_amount || 0), 0
+      );
+      setTotalSalesAmount(filteredTotal.toFixed(2));
+
+    } catch (error) {
+      console.error('Error fetching users report:', error);
+      alert('حدث خطأ أثناء جلب تقرير المستخدمين');
     } finally {
       setLoading(false);
     }
@@ -1918,6 +2137,32 @@ function ReportsPageContent() {
                         </>
                       )}
                     </>
+                  ) : activeTab === 'users' ? (
+                    <>
+                      {loading && (
+                        <div className="flex items-center justify-center h-32">
+                          <div className="text-white">جاري تحميل البيانات...</div>
+                        </div>
+                      )}
+                      {!loading && (
+                        <>
+                          <ResizableTable
+                            className="h-full w-full"
+                            columns={usersTableColumns}
+                            data={usersReportData}
+                            selectedRowId={null}
+                            reportType="CUSTOMERS_REPORT"
+                            showToast={showToast}
+                            onRowClick={(user, index) => {
+                              // Handle user row click
+                            }}
+                            onRowDoubleClick={(user, index) => {
+                              // Handle double click if needed
+                            }}
+                          />
+                        </>
+                      )}
+                    </>
                   ) : activeTab === 'main' ? (
                     /* Reports List Container */
                     <div className="h-full overflow-y-auto scrollbar-hide p-4">
@@ -1934,11 +2179,9 @@ function ReportsPageContent() {
                               'الأصناف',
                               'التصنيفات الرئيسية',
                               'العملاء',
-                              'الضرائب',
                               'المستخدمين',
                               'أنواع الدفع من قبل المستخدمين',
                               'أنواع الدفع من قبل العملاء',
-                              'المستخدمين',
                               'فواتير العملاء',
                               'المبيعات اليومية',
                               'Hourly sales',
@@ -1961,6 +2204,8 @@ function ReportsPageContent() {
                                     openCategoriesReport();
                                   } else if (report === 'العملاء') {
                                     openCustomersReport();
+                                  } else if (report === 'المستخدمين') {
+                                    openUsersReport();
                                   }
                                 }}
                                 className="group w-full bg-[#374151] hover:bg-[#3B4754] text-right text-white transition-all duration-200 flex items-center justify-between text-sm p-2"
