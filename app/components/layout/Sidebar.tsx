@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect } from 'react'
-import { 
+import {
   HomeIcon,
   ShoppingCartIcon,
   CubeIcon,
@@ -13,10 +13,10 @@ import {
   DocumentTextIcon,
   ChartBarIcon,
   ShieldCheckIcon,
-  ArrowRightOnRectangleIcon,
   XMarkIcon,
   ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline'
+import { useUserProfile } from '@/lib/hooks/useUserProfile'
 
 const sidebarItems = [
   { href: '/dashboard', label: 'لوحة التحكم', icon: HomeIcon },
@@ -38,6 +38,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const pathname = usePathname()
+  const { profile, loading } = useUserProfile()
 
   // Close sidebar when pressing ESC
   useEffect(() => {
@@ -108,23 +109,52 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
           })}
         </nav>
 
-        {/* Footer */}
+        {/* Footer - User Profile */}
         <div className="border-t border-gray-600">
-          <div className="flex items-center gap-4 px-6 py-4 text-gray-200 hover:text-white hover:bg-gray-600 cursor-pointer transition-colors">
-            <ArrowRightOnRectangleIcon className="h-6 w-6" />
-            <span className="text-base font-medium">تسجيل الخروج</span>
-          </div>
-          
           <div className="px-6 py-4 bg-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-base font-bold">A</span>
+            {loading ? (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gray-400 rounded-full animate-pulse"></div>
+                <div>
+                  <div className="h-4 bg-gray-400 rounded w-16 animate-pulse mb-1"></div>
+                  <div className="h-3 bg-gray-400 rounded w-20 animate-pulse"></div>
+                </div>
               </div>
-              <div>
-                <p className="text-base font-medium text-white">admin</p>
-                <p className="text-sm text-gray-400">مشرف النظام</p>
+            ) : profile ? (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center overflow-hidden">
+                  {profile.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={profile.full_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white text-base font-bold">
+                      {profile.full_name?.charAt(0)?.toUpperCase() || 'M'}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <p className="text-base font-medium text-white">
+                    {profile.full_name || 'مستخدم'}
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    {profile.is_admin ? 'أدمن رئيسي' : profile.role || 'مستخدم عادي'}
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center">
+                  <span className="text-white text-base font-bold">?</span>
+                </div>
+                <div>
+                  <p className="text-base font-medium text-white">غير محدد</p>
+                  <p className="text-sm text-gray-400">لا توجد بيانات</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
