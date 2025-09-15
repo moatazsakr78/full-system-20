@@ -611,15 +611,15 @@ function ReportsPageContent() {
   // Define columns for users report
   const usersTableColumns = useMemo(() => [
     {
+      id: 'index',
+      header: '#',
+      accessor: 'index',
+      cell: (info: any) => info.row.index + 1
+    },
+    {
       id: 'user_name',
       header: 'اسم المستخدم',
       accessor: 'user_name',
-      cell: (info: any) => info.getValue() || '-'
-    },
-    {
-      id: 'phone',
-      header: 'رقم الهاتف',
-      accessor: 'phone',
       cell: (info: any) => info.getValue() || '-'
     },
     {
@@ -648,24 +648,6 @@ function ReportsPageContent() {
         const profit = info.getValue() || 0;
         const colorClass = profit >= 0 ? 'text-green-400' : 'text-red-400';
         return `<span class="${colorClass}">EGP ${profit.toFixed(2)}</span>`;
-      }
-    },
-    {
-      id: 'first_sale',
-      header: 'أول بيعة',
-      accessor: 'first_sale',
-      cell: (info: any) => {
-        const date = info.getValue();
-        return date ? new Date(date).toLocaleDateString('ar-SA') : '-';
-      }
-    },
-    {
-      id: 'last_sale',
-      header: 'آخر بيعة',
-      accessor: 'last_sale',
-      cell: (info: any) => {
-        const date = info.getValue();
-        return date ? new Date(date).toLocaleDateString('ar-SA') : '-';
       }
     }
   ], []);
