@@ -599,7 +599,6 @@ function ReportsPageContent() {
   const [showCustomersFilter, setShowCustomersFilter] = useState(false);
   const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
   const [selectedCustomerGroupIds, setSelectedCustomerGroupIds] = useState<string[]>([]);
-  const [showSalesReportsModal, setShowSalesReportsModal] = useState(false);
   const [showProductsReport, setShowProductsReport] = useState(false);
   const [productsReportData, setProductsReportData] = useState<any[]>([]);
   const [showCategoriesReport, setShowCategoriesReport] = useState(false);
@@ -1265,21 +1264,18 @@ function ReportsPageContent() {
   const handleProductsReportClick = () => {
     addTab('products', 'الأصناف');
     setShowProductsReport(true);
-    setShowSalesReportsModal(false);
     fetchProductsReport();
   };
 
   const handleCategoriesReportClick = () => {
     addTab('categories', 'التصنيفات الرئيسية');
     setShowCategoriesReport(true);
-    setShowSalesReportsModal(false);
     fetchCategoriesReport();
   };
 
   const handleCustomersReportClick = () => {
     addTab('customers', 'العملاء');
     setShowCustomersReport(true);
-    setShowSalesReportsModal(false);
     fetchCustomersReport();
   };
   
@@ -1288,7 +1284,6 @@ function ReportsPageContent() {
     setShowProductsReport(false);
     setShowCategoriesReport(false);
     setShowCustomersReport(false);
-    setShowSalesReportsModal(false);
     setProductsReportData([]);
     setCategoriesReportData([]);
     setCustomersReportData([]);
@@ -1415,13 +1410,6 @@ function ReportsPageContent() {
               <span className="text-sm">تقرير مفصل</span>
             </button>
 
-            <button 
-              onClick={() => setShowSalesReportsModal(true)}
-              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
-            >
-              <ChartBarIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">تقارير البيع</span>
-            </button>
 
             <button 
               onClick={handlePeriodicReportsClick}
@@ -1700,68 +1688,8 @@ function ReportsPageContent() {
               {/* Right Sidebar */}
               {showReportsSidebar && (
                 <div className="w-80 bg-[#3B4754] border-r border-gray-600 flex flex-col overflow-hidden">
-                  {/* Show Sales Reports or Normal Sidebar */}
-                  {showSalesReportsModal ? (
-                    /* Sales Reports Content */
-                    <>
-                      {/* Header */}
-                      <div className="p-3 border-b border-gray-600 flex-shrink-0 flex items-center justify-between">
-                        <button
-                          onClick={() => setShowSalesReportsModal(false)}
-                          className="text-gray-400 hover:text-white p-1 rounded transition-colors"
-                        >
-                          <ChevronLeftIcon className="h-5 w-5" />
-                        </button>
-                        <h2 className="text-lg font-semibold text-white text-right">تقارير البيع</h2>
-                      </div>
-
-                      {/* Sales Reports List - Scrollable */}
-                      <div className="flex-1 overflow-y-auto scrollbar-hide p-3">
-                        <div className="space-y-3">
-                          {[
-                            'الاصناف',
-                            'التصنيفات الرئيسية',
-                            'العملاء',
-                            'المستخدمين',
-                            'أنواع الدفع',
-                            'انواع الدفع من قبل المستخدمين',
-                            'انواع الدفع من قبل العملاء',
-                            'المرتجعات',
-                            'فواتير العملاء',
-                            'المبيعات اليوميه',
-                            'المبيعات بالساعه',
-                            'هامش الربح',
-                            'الفواتير الغير مدفوعه'
-                          ].map((report, index) => (
-                            <button
-                              key={index}
-                              onClick={() => {
-                                if (report === 'الاصناف') {
-                                  handleProductsReportClick();
-                                } else if (report === 'التصنيفات الرئيسية') {
-                                  handleCategoriesReportClick();
-                                } else if (report === 'العملاء') {
-                                  handleCustomersReportClick();
-                                } else {
-                                  // Add tab for other reports but don't implement functionality yet
-                                  const reportId = report.replace(/\s+/g, '_');
-                                  addTab(reportId, report);
-                                }
-                              }}
-                              className="w-full bg-[#2B3544] hover:bg-[#3B4754] border border-gray-600 rounded-lg p-4 text-right text-white transition-colors duration-200 hover:border-blue-500 group"
-                            >
-                              <div className="flex items-center justify-between">
-                                <ChartBarIcon className="h-5 w-5 text-blue-400 group-hover:text-blue-300" />
-                                <span className="font-medium">{report}</span>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    /* Normal Sidebar Content */
-                    <>
+                  {/* Normal Sidebar Content */}
+                  <>
                       {/* Balance Section */}
                       <div className="p-3 border-b border-gray-600 flex-shrink-0">
                         <div className="bg-blue-600 rounded-lg p-3 text-center text-white">
@@ -1850,8 +1778,7 @@ function ReportsPageContent() {
                           </div>
                         )}
                       </div>
-                    </>
-                  )}
+                  </>
                 </div>
               )}
 
