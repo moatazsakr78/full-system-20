@@ -3,17 +3,10 @@
 import { useState, useEffect } from 'react';
 import {
   CogIcon,
-  CurrencyDollarIcon,
   GlobeAltIcon,
   PaintBrushIcon,
   BellIcon,
-  ShieldCheckIcon,
-  XMarkIcon,
-  CheckIcon,
-  ArrowRightIcon,
-  MagnifyingGlassIcon,
-  ListBulletIcon,
-  Squares2X2Icon
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 import TopHeader from '@/app/components/layout/TopHeader';
 import Sidebar from '@/app/components/layout/Sidebar';
@@ -27,10 +20,10 @@ interface SettingsCategory {
 
 const settingsCategories: SettingsCategory[] = [
   {
-    id: 'currency',
-    name: 'العملة',
-    icon: CurrencyDollarIcon,
-    description: 'إعدادات العملة الافتراضية والتحويل'
+    id: 'system',
+    name: 'تصميم النظام',
+    icon: CogIcon,
+    description: 'إعدادات عامة للنظام والواجهة'
   },
   {
     id: 'language',
@@ -58,220 +51,245 @@ const settingsCategories: SettingsCategory[] = [
   }
 ];
 
-interface CurrencyOption {
-  code: string;
-  name: string;
-  symbol: string;
-  flag: string;
-}
-
-const predefinedCurrencies: CurrencyOption[] = [
-  { code: 'SAR', name: 'الريال السعودي', symbol: 'ر.س', flag: '🇸🇦' },
-  { code: 'EGP', name: 'الجنيه المصري', symbol: 'ج.م', flag: '🇪🇬' },
-  { code: 'USD', name: 'الدولار الأمريكي', symbol: '$', flag: '🇺🇸' },
-  { code: 'EUR', name: 'اليورو', symbol: '€', flag: '🇪🇺' },
-  { code: 'AED', name: 'الدرهم الإماراتي', symbol: 'د.إ', flag: '🇦🇪' },
-  { code: 'KWD', name: 'الدينار الكويتي', symbol: 'د.ك', flag: '🇰🇼' }
-];
 
 export default function SettingsPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('currency');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [selectedCategory, setSelectedCategory] = useState<string>('system');
 
-  // Currency Settings State
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('SAR');
-  const [customCurrencyName, setCustomCurrencyName] = useState('');
-  const [customCurrencySymbol, setCustomCurrencySymbol] = useState('');
-  const [isCustomCurrency, setIsCustomCurrency] = useState(false);
-  const [isSavingCurrency, setIsSavingCurrency] = useState(false);
+  // System Settings State
+  const [language, setLanguage] = useState('Arabic');
+  const [direction, setDirection] = useState('rtl');
+  const [theme, setTheme] = useState('dark');
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [enableAnimations, setEnableAnimations] = useState(true);
+  const [enableSounds, setEnableSounds] = useState(false);
+  const [enableNotifications, setEnableNotifications] = useState(true);
+  const [fontSize, setFontSize] = useState(100);
+  const [showLineNumbers, setShowLineNumbers] = useState(false);
+  const [showToday, setShowToday] = useState(true);
+  const [position, setPosition] = useState('top');
+  const [selectedColumns, setSelectedColumns] = useState({
+    product: true,
+    category: true,
+    price: false,
+    quantity: true,
+    actions: false
+  });
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const handleSaveCurrencySettings = async () => {
-    setIsSavingCurrency(true);
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      console.log('Currency settings saved:', {
-        isCustom: isCustomCurrency,
-        currency: isCustomCurrency ? {
-          name: customCurrencyName,
-          symbol: customCurrencySymbol
-        } : predefinedCurrencies.find(c => c.code === selectedCurrency)
-      });
-
-      // Show success message (you can implement toast notifications)
-      alert('تم حفظ إعدادات العملة بنجاح!');
-    } catch (error) {
-      console.error('Error saving currency settings:', error);
-      alert('حدث خطأ أثناء حفظ الإعدادات');
-    } finally {
-      setIsSavingCurrency(false);
-    }
+  const handleCheckboxChange = (column: string, checked: boolean) => {
+    setSelectedColumns(prev => ({
+      ...prev,
+      [column]: checked
+    }));
   };
 
-  const renderCurrencySettings = () => {
+  const renderSystemSettings = () => {
     return (
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3 pb-4 border-b border-gray-600">
-          <CurrencyDollarIcon className="h-6 w-6 text-blue-400" />
-          <div>
-            <h2 className="text-xl font-medium text-white">إعدادات العملة</h2>
-            <p className="text-gray-400 text-sm">قم بتحديد العملة التي ستظهر في المتجر والنظام</p>
-          </div>
-        </div>
+      <div className="space-y-6 max-w-4xl">
 
-        {/* Currency Type Selection */}
-        <div className="space-y-4">
-          <h3 className="text-white font-medium">نوع العملة</h3>
+        {/* Settings Grid */}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Left Column */}
+          <div className="space-y-6">
+            {/* Language Settings */}
+            <div>
+              <label className="block text-white text-sm font-medium mb-2">اللغة</label>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="Arabic">Arabic</option>
+                <option value="English">English</option>
+              </select>
+            </div>
 
-          {/* Predefined Currencies Option */}
-          <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="currencyType"
-                value="predefined"
-                checked={!isCustomCurrency}
-                onChange={() => setIsCustomCurrency(false)}
-                className="w-4 h-4 text-blue-600 bg-[#2B3544] border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
-              />
-              <div>
-                <span className="text-white font-medium">اختيار من العملات المحددة مسبقاً</span>
-                <p className="text-gray-400 text-sm">اختر من قائمة العملات الشائعة</p>
+            {/* Direction */}
+            <div>
+              <label className="block text-white text-sm font-medium mb-2">اتجاه المحتوى</label>
+              <select
+                value={direction}
+                onChange={(e) => setDirection(e.target.value)}
+                className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="rtl">من اليمين إلى اليسار</option>
+                <option value="ltr">من اليسار إلى اليمين</option>
+              </select>
+            </div>
+
+            {/* Theme */}
+            <div>
+              <label className="block text-white text-sm font-medium mb-2">نظام الألوان</label>
+              <select
+                value={theme}
+                onChange={(e) => setTheme(e.target.value)}
+                className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="dark">داكن عالي</option>
+                <option value="light">فاتح ليالي</option>
+              </select>
+            </div>
+
+            {/* Text Size */}
+            <div>
+              <label className="block text-white text-sm font-medium mb-2">حجم النص / صف صغير</label>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setFontSize(Math.max(50, fontSize - 10))}
+                  className="px-2 py-1 bg-[#374151] hover:bg-gray-600 rounded text-white"
+                >
+                  -
+                </button>
+                <input
+                  type="range"
+                  min="50"
+                  max="150"
+                  value={fontSize}
+                  onChange={(e) => setFontSize(Number(e.target.value))}
+                  className="flex-1"
+                />
+                <button
+                  onClick={() => setFontSize(Math.min(150, fontSize + 10))}
+                  className="px-2 py-1 bg-[#374151] hover:bg-gray-600 rounded text-white"
+                >
+                  +
+                </button>
               </div>
-            </label>
+              <div className="text-center text-white text-sm mt-1">{fontSize}%</div>
+            </div>
 
-            {!isCustomCurrency && (
-              <div className="mr-7 mt-3">
-                <div className="grid grid-cols-2 gap-3">
-                  {predefinedCurrencies.map((currency) => (
-                    <label key={currency.code} className="flex items-center gap-3 p-3 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-700/30 transition-colors">
-                      <input
-                        type="radio"
-                        name="selectedCurrency"
-                        value={currency.code}
-                        checked={selectedCurrency === currency.code}
-                        onChange={() => setSelectedCurrency(currency.code)}
-                        className="w-4 h-4 text-blue-600 bg-[#2B3544] border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
-                      />
-                      <span className="text-2xl">{currency.flag}</span>
-                      <div className="flex-1">
-                        <div className="text-white font-medium text-sm">{currency.name}</div>
-                        <div className="text-gray-400 text-xs">{currency.code} - {currency.symbol}</div>
-                      </div>
+            {/* Rows per page */}
+            <div>
+              <label className="block text-white text-sm font-medium mb-2">عدد الصفوف / لصفحة</label>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setRowsPerPage(Math.max(1, rowsPerPage - 1))}
+                  className="px-2 py-1 bg-[#374151] hover:bg-gray-600 rounded text-white"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  value={rowsPerPage}
+                  onChange={(e) => setRowsPerPage(Number(e.target.value))}
+                  className="w-20 px-2 py-1 bg-[#2B3544] border border-gray-600 rounded text-white text-center"
+                />
+                <button
+                  onClick={() => setRowsPerPage(rowsPerPage + 1)}
+                  className="px-2 py-1 bg-[#374151] hover:bg-gray-600 rounded text-white"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Position */}
+            <div>
+              <label className="block text-white text-sm font-medium mb-2">موقع الإشعار</label>
+              <select
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+                className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="top">أعلى</option>
+                <option value="bottom">أسفل</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Animations Toggle */}
+            <div className="flex justify-between items-center">
+              <label className="text-white text-sm font-medium">إظهار الرسوم</label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={enableAnimations}
+                  onChange={(e) => setEnableAnimations(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+              </label>
+            </div>
+
+            {/* Sounds Toggle */}
+            <div className="flex justify-between items-center">
+              <label className="text-white text-sm font-medium">تبريج</label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={enableSounds}
+                  onChange={(e) => setEnableSounds(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+              </label>
+            </div>
+
+            {/* Show Line Numbers Toggle */}
+            <div className="flex justify-between items-center">
+              <label className="text-white text-sm font-medium">عرض الرقم عند بلن نظام</label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showLineNumbers}
+                  onChange={(e) => setShowLineNumbers(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+              </label>
+            </div>
+
+            {/* Show Today Toggle */}
+            <div className="flex justify-between items-center">
+              <label className="text-white text-sm font-medium">تحديد رقم يوم على بين نظام</label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showToday}
+                  onChange={(e) => setShowToday(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+              </label>
+            </div>
+
+            {/* Columns Selection */}
+            <div>
+              <h4 className="text-white text-sm font-medium mb-3">الأعمدة في نهاية البيع</h4>
+              <div className="text-xs text-gray-400 mb-3">اختر المرور عرضها في جهة اليسر "ولاية اليسار" جدي</div>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries({
+                  product: 'بين *',
+                  category: 'تحويل *',
+                  price: 'حجم *',
+                  quantity: 'ملطبة *',
+                  actions: 'قائمة جديدة *'
+                }).map(([key, label]) => (
+                  <div key={key} className="flex items-center space-x-2 space-x-reverse">
+                    <input
+                      type="checkbox"
+                      id={key}
+                      checked={selectedColumns[key as keyof typeof selectedColumns]}
+                      onChange={(e) => handleCheckboxChange(key, e.target.checked)}
+                      className="w-4 h-4 text-blue-600 bg-[#2B3544] border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                    <label htmlFor={key} className="text-white text-sm cursor-pointer">
+                      {label}
                     </label>
-                  ))}
+                  </div>
+                ))}
+                <div className="col-span-2 text-xs text-red-400 mt-2">
+                  * يعتمد على مخططة "جهة اليسار" جدي
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Custom Currency Option */}
-          <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="radio"
-                name="currencyType"
-                value="custom"
-                checked={isCustomCurrency}
-                onChange={() => setIsCustomCurrency(true)}
-                className="w-4 h-4 text-blue-600 bg-[#2B3544] border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
-              />
-              <div>
-                <span className="text-white font-medium">إدخال عملة مخصصة</span>
-                <p className="text-gray-400 text-sm">أدخل اسم ورمز العملة يدوياً</p>
-              </div>
-            </label>
-
-            {isCustomCurrency && (
-              <div className="mr-7 mt-3 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-white text-sm font-medium mb-2 text-right">
-                      اسم العملة *
-                    </label>
-                    <input
-                      type="text"
-                      value={customCurrencyName}
-                      onChange={(e) => setCustomCurrencyName(e.target.value)}
-                      placeholder="مثال: الجنيه المصري"
-                      className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-white text-sm font-medium mb-2 text-right">
-                      رمز العملة *
-                    </label>
-                    <input
-                      type="text"
-                      value={customCurrencySymbol}
-                      onChange={(e) => setCustomCurrencySymbol(e.target.value)}
-                      placeholder="مثال: ج.م"
-                      className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Preview */}
-        <div className="bg-[#374151] rounded-lg p-4 border border-gray-600">
-          <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-            <span>معاينة</span>
-            <div className="h-4 w-4 bg-blue-500 rounded-full flex items-center justify-center">
-              <div className="h-2 w-2 bg-white rounded-full"></div>
-            </div>
-          </h4>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-white font-medium">
-                {isCustomCurrency && customCurrencySymbol ? customCurrencySymbol :
-                 predefinedCurrencies.find(c => c.code === selectedCurrency)?.symbol || 'ر.س'} 150.00
-              </span>
-              <span className="text-gray-300">سعر المنتج:</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-white">
-                {isCustomCurrency && customCurrencyName ? customCurrencyName :
-                 predefinedCurrencies.find(c => c.code === selectedCurrency)?.name || 'الريال السعودي'}
-              </span>
-              <span className="text-gray-300">العملة المستخدمة:</span>
             </div>
           </div>
-        </div>
-
-        {/* Save Button */}
-        <div className="flex justify-end pt-4">
-          <button
-            onClick={handleSaveCurrencySettings}
-            disabled={isSavingCurrency || (isCustomCurrency && (!customCurrencyName.trim() || !customCurrencySymbol.trim()))}
-            className={`px-6 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 ${
-              isSavingCurrency || (isCustomCurrency && (!customCurrencyName.trim() || !customCurrencySymbol.trim()))
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
-          >
-            {isSavingCurrency ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>جاري الحفظ...</span>
-              </>
-            ) : (
-              <>
-                <CheckIcon className="h-4 w-4" />
-                <span>حفظ الإعدادات</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
     );
@@ -299,8 +317,8 @@ export default function SettingsPage() {
 
   const renderSettingsContent = () => {
     switch (selectedCategory) {
-      case 'currency':
-        return renderCurrencySettings();
+      case 'system':
+        return renderSystemSettings();
       default:
         return renderPlaceholderContent(selectedCategory);
     }
@@ -312,23 +330,6 @@ export default function SettingsPage() {
       <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
 
       <div className="h-full pt-12 overflow-hidden flex flex-col">
-        {/* Top Action Buttons Toolbar */}
-        <div className="bg-[#374151] border-b border-gray-600 px-4 py-2 w-full">
-          <div className="flex items-center justify-start gap-1">
-            <button className="flex flex-col items-center p-2 min-w-[80px] text-gray-600 cursor-not-allowed">
-              <CogIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">إعدادات جديدة</span>
-            </button>
-            <button className="flex flex-col items-center p-2 min-w-[80px] text-gray-600 cursor-not-allowed">
-              <ArrowRightIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">تصدير</span>
-            </button>
-            <button className="flex flex-col items-center p-2 min-w-[80px] text-gray-600 cursor-not-allowed">
-              <ArrowRightIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">استيراد</span>
-            </button>
-          </div>
-        </div>
 
         <div className="flex-1 flex overflow-hidden">
           {/* Left Sidebar - Settings Categories */}
@@ -378,54 +379,6 @@ export default function SettingsPage() {
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Secondary Toolbar - Search and Controls */}
-            <div className="bg-[#374151] border-b border-gray-600 px-6 py-3 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  {/* Search Input */}
-                  <div className="relative">
-                    <MagnifyingGlassIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-80 pl-4 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      placeholder="البحث في الإعدادات..."
-                    />
-                  </div>
-
-                  {/* View Toggle */}
-                  <div className="flex bg-[#2B3544] rounded-md overflow-hidden">
-                    <button
-                      onClick={() => setViewMode('list')}
-                      className={`p-2 transition-colors ${
-                        viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-600'
-                      }`}
-                    >
-                      <ListBulletIcon className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode('grid')}
-                      className={`p-2 transition-colors ${
-                        viewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-600'
-                      }`}
-                    >
-                      <Squares2X2Icon className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Current Settings Title */}
-                <div className="flex items-center gap-2">
-                  <h2 className="text-white font-medium">
-                    {settingsCategories.find(c => c.id === selectedCategory)?.name || 'الإعدادات'}
-                  </h2>
-                  <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs">
-                    إعدادات
-                  </span>
-                </div>
-              </div>
-            </div>
 
             {/* Settings Content Container */}
             <div className="flex-1 overflow-y-auto scrollbar-hide bg-[#2B3544] p-6">

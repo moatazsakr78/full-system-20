@@ -134,15 +134,13 @@ const reportsData = [
 
 // Table columns for reports
 const tableColumns = [
-  { 
-    id: 'index', 
-    header: '#', 
-    accessor: '#', 
+  {
+    id: 'index',
+    header: '#',
+    accessor: 'index',
     width: 60,
     visible: true,
-    render: (value: any, item: any, index: number) => (
-      <span className="text-gray-400 font-medium">{index + 1}</span>
-    )
+    cell: (info: any) => info.row.index + 1
   },
   { 
     id: 'type', 
@@ -209,12 +207,10 @@ const customersTableColumns = [
   {
     id: 'index',
     header: '#',
-    accessor: '#',
+    accessor: 'index',
     width: 60,
     visible: true,
-    render: (value: any, item: any, index: number) => (
-      <span className="text-gray-400 font-medium">{index + 1}</span>
-    )
+    cell: (info: any) => info.row.index + 1
   },
   {
     id: 'customer_name',
@@ -311,12 +307,10 @@ const categoriesTableColumns = [
   {
     id: 'index',
     header: '#',
-    accessor: '#',
+    accessor: 'index',
     width: 60,
     visible: true,
-    render: (value: any, item: any, index: number) => (
-      <span className="text-gray-400 font-medium">{index + 1}</span>
-    )
+    cell: (info: any) => info.row.index + 1
   },
   {
     id: 'category_name',
@@ -370,15 +364,13 @@ const categoriesTableColumns = [
 
 // Table columns for products report
 const productsTableColumns = [
-  { 
-    id: 'index', 
-    header: '#', 
-    accessor: '#', 
+  {
+    id: 'index',
+    header: '#',
+    accessor: 'index',
     width: 60,
     visible: true,
-    render: (value: any, item: any, index: number) => (
-      <span className="text-gray-400 font-medium">{index + 1}</span>
-    )
+    cell: (info: any) => info.row.index + 1
   },
   { 
     id: 'category_name', 
@@ -611,12 +603,6 @@ function ReportsPageContent() {
   // Define columns for users report
   const usersTableColumns = useMemo(() => [
     {
-      id: 'index',
-      header: '#',
-      accessor: 'index',
-      cell: (info: any) => info.row.index + 1
-    },
-    {
       id: 'user_name',
       header: 'اسم المستخدم',
       accessor: 'user_name',
@@ -624,7 +610,7 @@ function ReportsPageContent() {
     },
     {
       id: 'role',
-      header: 'الوظيفة',
+      header: 'الدور',
       accessor: 'role',
       cell: (info: any) => info.getValue() || '-'
     },
@@ -1330,7 +1316,20 @@ function ReportsPageContent() {
   const fetchUsersReport = async () => {
     setLoading(true);
     try {
-      // Get users (cashiers) data
+      // Get derived roles from wholesale to exclude them too
+      const { data: derivedRoles } = await supabase
+        .from('user_roles')
+        .select('name')
+        .eq('parent_role', 'جملة')
+        .eq('is_active', true);
+
+      // Create list of roles to exclude: customers, wholesale, and any derived wholesale roles
+      const rolesToExclude = ['عميل', 'جملة'];
+      if (derivedRoles && derivedRoles.length > 0) {
+        rolesToExclude.push(...derivedRoles.map(role => role.name));
+      }
+
+      // Get users data (exclude customers, wholesale customers and their derived roles)
       const { data: usersData, error: usersError } = await supabase
         .from('user_profiles')
         .select(`
@@ -1342,7 +1341,8 @@ function ReportsPageContent() {
           email,
           is_active
         `)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .not('role', 'in', `(${rolesToExclude.map(role => `"${role}"`).join(',')})`);
 
       if (usersError) {
         console.error('Error fetching users:', usersError);
