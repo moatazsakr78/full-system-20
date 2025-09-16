@@ -6,6 +6,7 @@ import ResizableTable from './tables/ResizableTable'
 import { supabase } from '../lib/supabase/client'
 import ConfirmDeleteModal from './ConfirmDeleteModal'
 import SimpleDateFilterModal, { DateFilter } from './SimpleDateFilterModal'
+import { useSystemCurrency, useFormatPrice } from '@/lib/hooks/useCurrency'
 
 interface CustomerDetailsModalProps {
   isOpen: boolean
@@ -16,6 +17,8 @@ interface CustomerDetailsModalProps {
 type ViewMode = 'split' | 'invoices-only' | 'details-only'
 
 export default function CustomerDetailsModal({ isOpen, onClose, customer }: CustomerDetailsModalProps) {
+  const systemCurrency = useSystemCurrency();
+  const formatPrice = useFormatPrice();
   const [selectedTransaction, setSelectedTransaction] = useState(0) // First row selected (index 0)
   const [showCustomerDetails, setShowCustomerDetails] = useState(true)
   const [activeTab, setActiveTab] = useState('invoices') // 'invoices', 'payments', 'statement'
@@ -595,7 +598,7 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
       header: 'المبلغ الإجمالي', 
       accessor: 'total_amount', 
       width: 150,
-      render: (value: number) => <span className="text-green-400 font-medium">EGP {value.toFixed(2)}</span>
+      render: (value: number) => <span className="text-green-400 font-medium">{formatPrice(value, 'system')}</span>
     },
     { 
       id: 'payment_method', 
@@ -702,7 +705,7 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
       header: 'السعر', 
       accessor: 'unit_price', 
       width: 100,
-      render: (value: number) => <span className="text-green-400 font-medium">EGP {value.toFixed(2)}</span>
+      render: (value: number) => <span className="text-green-400 font-medium">{formatPrice(value, 'system')}</span>
     },
     { 
       id: 'discount', 
@@ -718,7 +721,7 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
       width: 120,
       render: (value: any, item: any) => {
         const total = (item.quantity * item.unit_price) - (item.discount || 0)
-        return <span className="text-green-400 font-bold">EGP {total.toFixed(2)}</span>
+        return <span className="text-green-400 font-bold">{formatPrice(total, 'system')}</span>
       }
     },
     { 
@@ -881,7 +884,7 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
                 {/* Customer Balance */}
                 <div className="p-4 border-b border-gray-600">
                   <div className="bg-blue-600 rounded p-4 text-center">
-                    <div className="text-2xl font-bold text-white">EGP 190,322.00</div>
+                    <div className="text-2xl font-bold text-white">{formatPrice(190322, 'system')}</div>
                     <div className="text-blue-200 text-sm">رصيد العميل</div>
                   </div>
                 </div>
@@ -933,11 +936,11 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
                     <span className="text-gray-400 text-sm">عدد الفواتير</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-green-400">EGP {sales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0).toFixed(2)}</span>
+                    <span className="text-green-400">{formatPrice(sales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0), 'system')}</span>
                     <span className="text-gray-400 text-sm">إجمالي المشتريات</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-blue-400">EGP {sales.length > 0 ? (sales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0) / sales.length).toFixed(2) : '0.00'}</span>
+                    <span className="text-blue-400">{formatPrice(sales.length > 0 ? (sales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0) / sales.length) : 0, 'system')}</span>
                     <span className="text-gray-400 text-sm">متوسط قيمة الطلبية</span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -998,7 +1001,7 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
                     <div className="bg-[#2B3544] border-b border-gray-600 p-4">
                       <div className="flex items-center justify-between">
                         <div className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
-                          مدين EGP 190,322.00
+                          مدين {formatPrice(190322, 'system')}
                         </div>
                         <div className="text-white text-lg font-medium">كشف حساب العميل</div>
                       </div>
@@ -1103,7 +1106,7 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
                         </div>
                         <div className="text-right">
                           <div className="text-white text-lg font-medium">دفعات العميل</div>
-                          <div className="text-gray-400 text-sm mt-1">إجمالي الدفعات: EGP 13,000.00</div>
+                          <div className="text-gray-400 text-sm mt-1">إجمالي الدفعات: {formatPrice(13000, 'system')}</div>
                         </div>
                       </div>
                     </div>

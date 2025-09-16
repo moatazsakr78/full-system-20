@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Product, ProductColor } from './shared/types';
 import { useCart } from '../../lib/contexts/CartContext';
 import { useUserProfile } from '../../lib/hooks/useUserProfile';
+import { useWebsiteCurrency } from '@/lib/hooks/useCurrency';
 
 interface InteractiveProductCardProps {
   product: Product;
@@ -32,6 +33,7 @@ export default function InteractiveProductCard({
   
   // Get cart functions for direct access
   const { addToCart: directAddToCart } = useCart();
+  const websiteCurrency = useWebsiteCurrency();
   
   // Get user profile to check role
   const { profile } = useUserProfile();
@@ -304,11 +306,11 @@ export default function InteractiveProductCard({
             <div className="flex items-center gap-2">
               {product.originalPrice && (
                 <span className="text-sm line-through text-gray-500">
-                  {product.originalPrice} ريال
+                  {product.originalPrice} {websiteCurrency}
                 </span>
               )}
               <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>
-                {getDisplayPrice()} ريال
+                {getDisplayPrice()} {websiteCurrency}
               </span>
             </div>
             {profile?.role === 'جملة' && product.wholesale_price && (

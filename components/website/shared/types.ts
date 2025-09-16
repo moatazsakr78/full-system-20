@@ -1,3 +1,5 @@
+import { Currency } from '@/lib/constants/currencies';
+
 export interface UserInfo {
   id?: string;
   name?: string;
@@ -20,7 +22,7 @@ export interface CartItem {
 
 export interface UserPreferences {
   language?: 'ar' | 'en';
-  currency?: 'SAR' | 'USD';
+  currency?: Currency;
   notifications?: boolean;
   theme?: 'dark' | 'light';
 }

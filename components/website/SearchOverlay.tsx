@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Product } from './shared/types';
+import { useWebsiteCurrency } from '@/lib/hooks/useCurrency';
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export default function SearchOverlay({
   onProductSelect
 }: SearchOverlayProps) {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const websiteCurrency = useWebsiteCurrency();
   const [headerHeight, setHeaderHeight] = useState(75);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -177,11 +179,11 @@ export default function SearchOverlay({
                           </p>
                           <div className="flex items-center justify-end gap-2">
                             <span className="text-red-600 font-bold text-sm">
-                              {product.price} ريال
+                              {product.price} {websiteCurrency}
                             </span>
                             {product.originalPrice && (
                               <span className="text-gray-400 line-through text-xs">
-                                {product.originalPrice} ريال
+                                {product.originalPrice} {websiteCurrency}
                               </span>
                             )}
                           </div>

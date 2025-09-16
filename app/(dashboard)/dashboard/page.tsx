@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import TopHeader from '@/app/components/layout/TopHeader';
 import Sidebar from '@/app/components/layout/Sidebar';
+import { useSystemCurrency } from '@/lib/hooks/useCurrency';
 import { 
   ChartBarIcon, 
   CurrencyDollarIcon, 

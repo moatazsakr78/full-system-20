@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Product } from './shared/types';
 import { useUserProfile } from '../../lib/hooks/useUserProfile';
+import { useWebsiteCurrency } from '@/lib/hooks/useCurrency';
 
 interface FeaturedProductsCarouselProps {
   products: Product[];
@@ -22,6 +23,7 @@ export default function FeaturedProductsCarousel({
 }: FeaturedProductsCarouselProps) {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const websiteCurrency = useWebsiteCurrency();
   
   // Get user profile to check role
   const { profile } = useUserProfile();
@@ -137,9 +139,9 @@ export default function FeaturedProductsCarousel({
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
                       {product.originalPrice && (
-                        <span className="text-sm text-gray-500 line-through">{product.originalPrice} ريال</span>
+                        <span className="text-sm text-gray-500 line-through">{product.originalPrice} {websiteCurrency}</span>
                       )}
-                      <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>{getDisplayPrice(product)} ريال</span>
+                      <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>{getDisplayPrice(product)} {websiteCurrency}</span>
                     </div>
                     {profile?.role === 'جملة' && product.wholesale_price && (
                       <span className="text-xs text-blue-600 font-medium">سعر الجملة</span>

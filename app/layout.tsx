@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import TopHeader from './components/layout/TopHeader'
+import { CurrencyProvider } from '@/lib/hooks/useCurrency'
+import { SettingsProvider } from '@/lib/hooks/useSettings'
 
 export const metadata: Metadata = {
   title: 'نظام نقاط البيع',
@@ -15,8 +17,12 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <body className="font-arabic bg-custom-gray text-gray-800">
-        <TopHeader />
-        {children}
+        <SettingsProvider>
+          <CurrencyProvider>
+            <TopHeader />
+            {children}
+          </CurrencyProvider>
+        </SettingsProvider>
       </body>
     </html>
   )

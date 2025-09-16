@@ -6,6 +6,7 @@ import { useCartBadge } from '@/lib/hooks/useCartBadge'
 import CartModal from '@/app/components/CartModal'
 import { ProductGridImage, ProductModalImage, ProductThumbnail } from '../../components/ui/OptimizedImage'
 import { usePerformanceMonitor } from '../../lib/utils/performanceMonitor'
+import { useSystemCurrency, useFormatPrice } from '@/lib/hooks/useCurrency'
 
 // Editable Field Component for inline editing
 interface EditableFieldProps {
@@ -115,6 +116,8 @@ import {
 function POSPageContent() {
   // OPTIMIZED: Performance monitoring for POS page
   const { startRender, endRender } = usePerformanceMonitor('POSPage')
+  const systemCurrency = useSystemCurrency()
+  const formatPrice = useFormatPrice()
   
   const [searchQuery, setSearchQuery] = useState('')
   // Keep CartContext for website functionality
@@ -1830,7 +1833,7 @@ function POSPageContent() {
                               }}
                               className="text-blue-400 font-medium text-right bg-transparent border-none outline-none w-16 hover:bg-gray-600/20 rounded px-1"
                             />
-                            <span className="text-blue-400 text-xs">ر.س</span>
+                            <span className="text-blue-400 text-xs">{systemCurrency}</span>
                           </>
                         )}
                       </div>
@@ -1853,7 +1856,7 @@ function POSPageContent() {
                     {!isTransferMode && (
                       <div className="mt-2 text-left">
                         <span className="text-green-400 font-bold text-sm">
-                          {item.total.toFixed(2)} ر.س
+                          {item.total.toFixed(2)} {systemCurrency}
                         </span>
                       </div>
                     )}
@@ -1871,7 +1874,7 @@ function POSPageContent() {
             {!isTransferMode && (
               <div className="flex justify-between font-semibold text-lg">
                 <span className="text-white">الإجمالي:</span>
-                <span className="text-green-400 font-bold">{cartTotal.toFixed(2)} ريال</span>
+                <span className="text-green-400 font-bold">{formatPrice(cartTotal, 'system')}</span>
               </div>
             )}
 
@@ -2399,7 +2402,7 @@ function POSPageContent() {
                   </p>
                   <div className="text-white text-sm space-y-1">
                     <p>رقم الفاتورة: <span className="font-bold">{lastInvoiceData?.invoiceNumber}</span></p>
-                    <p>الإجمالي: <span className="font-bold text-green-400">{lastInvoiceData?.totalAmount?.toFixed(2)} ريال</span></p>
+                    <p>الإجمالي: <span className="font-bold text-green-400">{formatPrice(lastInvoiceData?.totalAmount || 0, 'system')}</span></p>
                     <p>عدد الأصناف: <span className="font-bold">{lastInvoiceData?.cartItems?.length}</span></p>
                   </div>
                 </div>

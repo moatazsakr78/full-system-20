@@ -257,7 +257,11 @@
       "Bash(start test-table-functionality.html)",
       "Bash(start test-auth-fix.html)",
       "Bash(start smooth-ux-summary.html)",
-      "Bash(start http://localhost:3000/reports)"
+      "Bash(start http://localhost:3000/reports)",
+      "Bash(start http://localhost:3001/settings)",
+      "Bash(start http://localhost:3002/settings)",
+      "Bash(start http://localhost:3002/my-orders)",
+      "Bash(start http://localhost:3000/settings)"
     ],
     "deny": [],
     "additionalDirectories": [
