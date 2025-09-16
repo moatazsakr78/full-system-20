@@ -76,6 +76,24 @@ export default function SettingsPage() {
     actions: false
   });
 
+  // Currency Settings State
+  const [currencyMode, setCurrencyMode] = useState('separate'); // 'separate', 'unified'
+  const [systemCurrency, setSystemCurrency] = useState('ر.س');
+  const [websiteCurrency, setWebsiteCurrency] = useState('جنيه');
+  const [unifiedCurrency, setUnifiedCurrency] = useState('ر.س');
+  const [isCustomSystemCurrency, setIsCustomSystemCurrency] = useState(false);
+  const [isCustomWebsiteCurrency, setIsCustomWebsiteCurrency] = useState(false);
+  const [isCustomUnifiedCurrency, setIsCustomUnifiedCurrency] = useState(false);
+  const [customSystemCurrency, setCustomSystemCurrency] = useState('');
+  const [customWebsiteCurrency, setCustomWebsiteCurrency] = useState('');
+  const [customUnifiedCurrency, setCustomUnifiedCurrency] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Predefined Arabic currencies
+  const arabicCurrencies = [
+    'ر.س', 'جنيه', 'د.إ', 'د.ك', 'د.ب', 'ر.ق', 'د.ع', 'ل.س', 'ر.ع', 'د.م', 'د.ت', 'د.ج', 'ج.س'
+  ];
+
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
@@ -213,7 +231,7 @@ export default function SettingsPage() {
                   onChange={(e) => setEnableAnimations(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
               </label>
             </div>
 
@@ -227,7 +245,7 @@ export default function SettingsPage() {
                   onChange={(e) => setEnableSounds(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
               </label>
             </div>
 
@@ -241,7 +259,7 @@ export default function SettingsPage() {
                   onChange={(e) => setShowLineNumbers(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
               </label>
             </div>
 
@@ -255,7 +273,7 @@ export default function SettingsPage() {
                   onChange={(e) => setShowToday(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
               </label>
             </div>
 
@@ -315,21 +333,235 @@ export default function SettingsPage() {
     );
   };
 
+  const handleSaveSettings = async () => {
+    setIsSaving(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      console.log('Settings saved:', {
+        currencyMode,
+        systemCurrency: isCustomSystemCurrency ? customSystemCurrency : systemCurrency,
+        websiteCurrency: isCustomWebsiteCurrency ? customWebsiteCurrency : websiteCurrency,
+        unifiedCurrency: isCustomUnifiedCurrency ? customUnifiedCurrency : unifiedCurrency
+      });
+
+      alert('تم حفظ الإعدادات بنجاح!');
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert('حدث خطأ أثناء حفظ الإعدادات');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelSettings = () => {
+    // Reset to initial values
+    setCurrencyMode('separate');
+    setSystemCurrency('ر.س');
+    setWebsiteCurrency('جنيه');
+    setUnifiedCurrency('ر.س');
+    setIsCustomSystemCurrency(false);
+    setIsCustomWebsiteCurrency(false);
+    setIsCustomUnifiedCurrency(false);
+    setCustomSystemCurrency('');
+    setCustomWebsiteCurrency('');
+    setCustomUnifiedCurrency('');
+  };
+
+  const renderThemeSettings = () => {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        {/* Currency Settings */}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Left Column - Settings */}
+          <div className="space-y-6">
+            <h3 className="text-white font-medium text-lg">إعدادات العملة</h3>
+
+            {/* Currency Mode Selection */}
+            <div className="space-y-3">
+              <label className="block text-white text-sm font-medium">نطاق العملة</label>
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="currencyMode"
+                    value="separate"
+                    checked={currencyMode === 'separate'}
+                    onChange={(e) => setCurrencyMode(e.target.value)}
+                    className="w-4 h-4 text-blue-600 bg-[#2B3544] border-gray-600 focus:ring-blue-500 focus:ring-2"
+                  />
+                  <span className="text-white text-sm">منفصل</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="currencyMode"
+                    value="unified"
+                    checked={currencyMode === 'unified'}
+                    onChange={(e) => setCurrencyMode(e.target.value)}
+                    className="w-4 h-4 text-blue-600 bg-[#2B3544] border-gray-600 focus:ring-blue-500 focus:ring-2"
+                  />
+                  <span className="text-white text-sm">كلاهما</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Currency Fields */}
+            {currencyMode === 'unified' && (
+              <div className="space-y-3">
+                <label className="block text-white text-sm font-medium">عملة النظام و الموقع</label>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <select
+                      value={isCustomUnifiedCurrency ? 'custom' : unifiedCurrency}
+                      onChange={(e) => {
+                        if (e.target.value === 'custom') {
+                          setIsCustomUnifiedCurrency(true);
+                        } else {
+                          setIsCustomUnifiedCurrency(false);
+                          setUnifiedCurrency(e.target.value);
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    >
+                      {arabicCurrencies.map((currency) => (
+                        <option key={currency} value={currency}>{currency}</option>
+                      ))}
+                      <option value="custom">كتابة مخصصة...</option>
+                    </select>
+                  </div>
+                  {isCustomUnifiedCurrency && (
+                    <input
+                      type="text"
+                      value={customUnifiedCurrency}
+                      onChange={(e) => setCustomUnifiedCurrency(e.target.value)}
+                      placeholder="اكتب العملة..."
+                      className="flex-1 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {currencyMode === 'separate' && (
+              <>
+                <div className="space-y-3">
+                  <label className="block text-white text-sm font-medium">عملة النظام</label>
+                  <div className="space-y-3">
+                    <select
+                      value={isCustomSystemCurrency ? 'custom' : systemCurrency}
+                      onChange={(e) => {
+                        if (e.target.value === 'custom') {
+                          setIsCustomSystemCurrency(true);
+                        } else {
+                          setIsCustomSystemCurrency(false);
+                          setSystemCurrency(e.target.value);
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    >
+                      {arabicCurrencies.map((currency) => (
+                        <option key={currency} value={currency}>{currency}</option>
+                      ))}
+                      <option value="custom">كتابة مخصصة...</option>
+                    </select>
+                    {isCustomSystemCurrency && (
+                      <input
+                        type="text"
+                        value={customSystemCurrency}
+                        onChange={(e) => setCustomSystemCurrency(e.target.value)}
+                        placeholder="اكتب العملة..."
+                        className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="block text-white text-sm font-medium">عملة الموقع</label>
+                  <div className="space-y-3">
+                    <select
+                      value={isCustomWebsiteCurrency ? 'custom' : websiteCurrency}
+                      onChange={(e) => {
+                        if (e.target.value === 'custom') {
+                          setIsCustomWebsiteCurrency(true);
+                        } else {
+                          setIsCustomWebsiteCurrency(false);
+                          setWebsiteCurrency(e.target.value);
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    >
+                      {arabicCurrencies.map((currency) => (
+                        <option key={currency} value={currency}>{currency}</option>
+                      ))}
+                      <option value="custom">كتابة مخصصة...</option>
+                    </select>
+                    {isCustomWebsiteCurrency && (
+                      <input
+                        type="text"
+                        value={customWebsiteCurrency}
+                        onChange={(e) => setCustomWebsiteCurrency(e.target.value)}
+                        placeholder="اكتب العملة..."
+                        className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
+                      />
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Right Column - Preview */}
+          <div className="space-y-6">
+            <div className="bg-[#374151] rounded-lg p-4 border border-gray-600">
+              <h4 className="text-white font-medium mb-4">معاينة</h4>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-white font-medium">
+                    {currencyMode === 'unified'
+                      ? (isCustomUnifiedCurrency ? customUnifiedCurrency || 'عملة مخصصة' : unifiedCurrency)
+                      : (isCustomSystemCurrency ? customSystemCurrency || 'عملة مخصصة' : systemCurrency)
+                    } 150.00
+                  </span>
+                  <span className="text-gray-300">النظام:</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-white font-medium">
+                    {currencyMode === 'unified'
+                      ? (isCustomUnifiedCurrency ? customUnifiedCurrency || 'عملة مخصصة' : unifiedCurrency)
+                      : (isCustomWebsiteCurrency ? customWebsiteCurrency || 'عملة مخصصة' : websiteCurrency)
+                    } 150.00
+                  </span>
+                  <span className="text-gray-300">الموقع:</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    );
+  };
+
   const renderSettingsContent = () => {
     switch (selectedCategory) {
       case 'system':
         return renderSystemSettings();
+      case 'theme':
+        return renderThemeSettings();
       default:
         return renderPlaceholderContent(selectedCategory);
     }
   };
 
   return (
-    <div className="h-screen bg-[#2B3544] overflow-hidden">
+    <div className="h-screen bg-[#2B3544] overflow-hidden relative">
       <TopHeader onMenuClick={toggleSidebar} isMenuOpen={isSidebarOpen} />
       <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} />
 
-      <div className="h-full pt-12 overflow-hidden flex flex-col">
+      <div className="h-full pt-12 overflow-hidden flex flex-col relative">
 
         <div className="flex-1 flex overflow-hidden">
           {/* Left Sidebar - Settings Categories */}
@@ -378,11 +610,50 @@ export default function SettingsPage() {
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden relative">
 
             {/* Settings Content Container */}
-            <div className="flex-1 overflow-y-auto scrollbar-hide bg-[#2B3544] p-6">
+            <div className="flex-1 overflow-y-auto scrollbar-hide bg-[#2B3544] p-6 pb-20">
               {renderSettingsContent()}
+            </div>
+
+            {/* Settings Action Bar - Limited to main content area width */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-[#2B3544] border-t border-gray-600/30">
+              <div className="flex gap-2 justify-end">
+                {/* Cancel and Save buttons - exact styling from ProductSidebar */}
+                <button
+                  onClick={handleCancelSettings}
+                  className="bg-transparent hover:bg-gray-600/10 text-gray-300 border border-gray-600 hover:border-gray-500 px-4 py-2 text-sm font-medium transition-all duration-200 min-w-[80px] flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  إلغاء
+                </button>
+                <button
+                  onClick={handleSaveSettings}
+                  disabled={isSaving}
+                  className={`px-4 py-2 text-sm font-medium transition-all duration-200 min-w-[80px] flex items-center gap-2 ${
+                    isSaving
+                      ? 'bg-gray-600/50 text-gray-400 border border-gray-600 cursor-not-allowed'
+                      : 'bg-transparent hover:bg-gray-600/10 text-gray-300 border border-gray-600 hover:border-gray-500'
+                  }`}
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                      جاري الحفظ...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      حفظ الإعدادات
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
