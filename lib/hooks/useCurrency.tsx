@@ -10,7 +10,7 @@ import {
   CURRENCY_MODES,
   DEFAULT_CURRENCY_SETTINGS
 } from '../constants/currencies';
-import { useCurrencySettings as useDbCurrencySettings } from './useSettings';
+import { useCurrencySettings as useDbCurrencySettings } from './useSystemSettings';
 
 // Currency context interface
 interface CurrencyContextType {
@@ -43,9 +43,9 @@ export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) 
 
   const getCurrentCurrency = (context: 'system' | 'website' = 'system'): Currency => {
     if (currencyMode === CURRENCY_MODES.UNIFIED) {
-      return unifiedCurrency;
+      return unifiedCurrency as Currency;
     }
-    return context === 'system' ? systemCurrency : websiteCurrency;
+    return context === 'system' ? (systemCurrency as Currency) : (websiteCurrency as Currency);
   };
 
   const formatPriceWithContext = (amount: number, context: 'system' | 'website' = 'system'): string => {

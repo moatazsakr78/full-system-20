@@ -12,7 +12,7 @@ import TopHeader from '@/app/components/layout/TopHeader';
 import Sidebar from '@/app/components/layout/Sidebar';
 import { Currency, DEFAULT_SYSTEM_CURRENCY, DEFAULT_WEBSITE_CURRENCY, DEFAULT_UNIFIED_CURRENCY, CURRENCY_MODES } from '@/lib/constants/currencies';
 import { useCurrencySettings } from '@/lib/hooks/useCurrency';
-import { useCurrencySettings as useDbCurrencySettings } from '@/lib/hooks/useSettings';
+import { useCurrencySettings as useDbCurrencySettings } from '@/lib/hooks/useSystemSettings';
 
 // Custom dropdown component with delete buttons
 const CurrencyDropdownWithDelete = ({
@@ -54,7 +54,7 @@ const CurrencyDropdownWithDelete = ({
 
       {/* Custom dropdown menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-[#2B3544] border border-gray-600 rounded shadow-lg z-50 max-h-60 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-[#2B3544] border border-gray-600 rounded shadow-lg z-50 max-h-60 overflow-y-auto scrollbar-hide">
           {/* Currency options */}
           {arabicCurrencies.map((currency, index) => (
             <div
@@ -206,7 +206,7 @@ export default function SettingsPage() {
   } = useDbCurrencySettings();
 
   // Local state for pending changes (not saved until user clicks save)
-  const [pendingCurrencyMode, setPendingCurrencyMode] = useState(dbCurrencyMode);
+  const [pendingCurrencyMode, setPendingCurrencyMode] = useState<'separate' | 'unified'>(dbCurrencyMode);
   const [pendingSystemCurrency, setPendingSystemCurrency] = useState(dbSystemCurrency);
   const [pendingWebsiteCurrency, setPendingWebsiteCurrency] = useState(dbWebsiteCurrency);
   const [pendingUnifiedCurrency, setPendingUnifiedCurrency] = useState(dbUnifiedCurrency);
@@ -560,7 +560,7 @@ export default function SettingsPage() {
                   name="currencyMode"
                   value={CURRENCY_MODES.SEPARATE}
                   checked={pendingCurrencyMode === CURRENCY_MODES.SEPARATE}
-                  onChange={(e) => setPendingCurrencyMode(e.target.value)}
+                  onChange={(e) => setPendingCurrencyMode(e.target.value as 'separate' | 'unified')}
                   className="w-4 h-4 text-blue-600 bg-[#2B3544] border-gray-600 focus:ring-blue-500 focus:ring-2"
                 />
                 <span className="text-white text-sm">منفصل</span>
@@ -571,7 +571,7 @@ export default function SettingsPage() {
                   name="currencyMode"
                   value={CURRENCY_MODES.UNIFIED}
                   checked={pendingCurrencyMode === CURRENCY_MODES.UNIFIED}
-                  onChange={(e) => setPendingCurrencyMode(e.target.value)}
+                  onChange={(e) => setPendingCurrencyMode(e.target.value as 'separate' | 'unified')}
                   className="w-4 h-4 text-blue-600 bg-[#2B3544] border-gray-600 focus:ring-blue-500 focus:ring-2"
                 />
                 <span className="text-white text-sm">كلاهما</span>
