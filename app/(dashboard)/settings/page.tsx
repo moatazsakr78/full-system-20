@@ -78,9 +78,9 @@ export default function SettingsPage() {
 
   // Currency Settings State
   const [currencyMode, setCurrencyMode] = useState('separate'); // 'separate', 'unified'
-  const [systemCurrency, setSystemCurrency] = useState('ر.س');
+  const [systemCurrency, setSystemCurrency] = useState('ريال');
   const [websiteCurrency, setWebsiteCurrency] = useState('جنيه');
-  const [unifiedCurrency, setUnifiedCurrency] = useState('ر.س');
+  const [unifiedCurrency, setUnifiedCurrency] = useState('ريال');
   const [isCustomSystemCurrency, setIsCustomSystemCurrency] = useState(false);
   const [isCustomWebsiteCurrency, setIsCustomWebsiteCurrency] = useState(false);
   const [isCustomUnifiedCurrency, setIsCustomUnifiedCurrency] = useState(false);
@@ -91,7 +91,7 @@ export default function SettingsPage() {
 
   // Predefined Arabic currencies
   const arabicCurrencies = [
-    'ر.س', 'جنيه', 'د.إ', 'د.ك', 'د.ب', 'ر.ق', 'د.ع', 'ل.س', 'ر.ع', 'د.م', 'د.ت', 'د.ج', 'ج.س'
+    'جنيه', 'ريال'
   ];
 
   const toggleSidebar = () => {
@@ -358,9 +358,9 @@ export default function SettingsPage() {
   const handleCancelSettings = () => {
     // Reset to initial values
     setCurrencyMode('separate');
-    setSystemCurrency('ر.س');
+    setSystemCurrency('ريال');
     setWebsiteCurrency('جنيه');
-    setUnifiedCurrency('ر.س');
+    setUnifiedCurrency('ريال');
     setIsCustomSystemCurrency(false);
     setIsCustomWebsiteCurrency(false);
     setIsCustomUnifiedCurrency(false);
@@ -371,174 +371,146 @@ export default function SettingsPage() {
 
   const renderThemeSettings = () => {
     return (
-      <div className="space-y-6 max-w-4xl">
+      <div className="space-y-6 max-w-6xl">
         {/* Currency Settings */}
-        <div className="grid grid-cols-2 gap-6">
-          {/* Left Column - Settings */}
-          <div className="space-y-6">
-            <h3 className="text-white font-medium text-lg">إعدادات العملة</h3>
+        <div className="space-y-6">
+          <h3 className="text-white font-medium text-lg">إعدادات العملة</h3>
 
-            {/* Currency Mode Selection */}
+          {/* Currency Mode Selection */}
+          <div className="space-y-3">
+            <label className="block text-white text-sm font-medium">نطاق العملة</label>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="currencyMode"
+                  value="separate"
+                  checked={currencyMode === 'separate'}
+                  onChange={(e) => setCurrencyMode(e.target.value)}
+                  className="w-4 h-4 text-blue-600 bg-[#2B3544] border-gray-600 focus:ring-blue-500 focus:ring-2"
+                />
+                <span className="text-white text-sm">منفصل</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="currencyMode"
+                  value="unified"
+                  checked={currencyMode === 'unified'}
+                  onChange={(e) => setCurrencyMode(e.target.value)}
+                  className="w-4 h-4 text-blue-600 bg-[#2B3544] border-gray-600 focus:ring-blue-500 focus:ring-2"
+                />
+                <span className="text-white text-sm">كلاهما</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Currency Fields - Horizontal Layout */}
+          {currencyMode === 'unified' && (
             <div className="space-y-3">
-              <label className="block text-white text-sm font-medium">نطاق العملة</label>
-              <div className="flex gap-6">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <label className="block text-white text-sm font-medium">عملة النظام و الموقع</label>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <select
+                    value={isCustomUnifiedCurrency ? 'custom' : unifiedCurrency}
+                    onChange={(e) => {
+                      if (e.target.value === 'custom') {
+                        setIsCustomUnifiedCurrency(true);
+                      } else {
+                        setIsCustomUnifiedCurrency(false);
+                        setUnifiedCurrency(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  >
+                    {arabicCurrencies.map((currency) => (
+                      <option key={currency} value={currency}>{currency}</option>
+                    ))}
+                    <option value="custom">كتابة مخصصة...</option>
+                  </select>
+                </div>
+                {isCustomUnifiedCurrency && (
                   <input
-                    type="radio"
-                    name="currencyMode"
-                    value="separate"
-                    checked={currencyMode === 'separate'}
-                    onChange={(e) => setCurrencyMode(e.target.value)}
-                    className="w-4 h-4 text-blue-600 bg-[#2B3544] border-gray-600 focus:ring-blue-500 focus:ring-2"
+                    type="text"
+                    value={customUnifiedCurrency}
+                    onChange={(e) => setCustomUnifiedCurrency(e.target.value)}
+                    placeholder="اكتب العملة..."
+                    className="flex-1 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
                   />
-                  <span className="text-white text-sm">منفصل</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="currencyMode"
-                    value="unified"
-                    checked={currencyMode === 'unified'}
-                    onChange={(e) => setCurrencyMode(e.target.value)}
-                    className="w-4 h-4 text-blue-600 bg-[#2B3544] border-gray-600 focus:ring-blue-500 focus:ring-2"
-                  />
-                  <span className="text-white text-sm">كلاهما</span>
-                </label>
+                )}
               </div>
             </div>
+          )}
 
-            {/* Currency Fields */}
-            {currencyMode === 'unified' && (
+          {currencyMode === 'separate' && (
+            <div className="grid grid-cols-2 gap-6">
+              {/* System Currency */}
               <div className="space-y-3">
-                <label className="block text-white text-sm font-medium">عملة النظام و الموقع</label>
-                <div className="flex gap-3">
-                  <div className="flex-1">
-                    <select
-                      value={isCustomUnifiedCurrency ? 'custom' : unifiedCurrency}
-                      onChange={(e) => {
-                        if (e.target.value === 'custom') {
-                          setIsCustomUnifiedCurrency(true);
-                        } else {
-                          setIsCustomUnifiedCurrency(false);
-                          setUnifiedCurrency(e.target.value);
-                        }
-                      }}
-                      className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    >
-                      {arabicCurrencies.map((currency) => (
-                        <option key={currency} value={currency}>{currency}</option>
-                      ))}
-                      <option value="custom">كتابة مخصصة...</option>
-                    </select>
-                  </div>
-                  {isCustomUnifiedCurrency && (
+                <label className="block text-white text-sm font-medium">عملة النظام</label>
+                <div className="space-y-3">
+                  <select
+                    value={isCustomSystemCurrency ? 'custom' : systemCurrency}
+                    onChange={(e) => {
+                      if (e.target.value === 'custom') {
+                        setIsCustomSystemCurrency(true);
+                      } else {
+                        setIsCustomSystemCurrency(false);
+                        setSystemCurrency(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  >
+                    {arabicCurrencies.map((currency) => (
+                      <option key={currency} value={currency}>{currency}</option>
+                    ))}
+                    <option value="custom">كتابة مخصصة...</option>
+                  </select>
+                  {isCustomSystemCurrency && (
                     <input
                       type="text"
-                      value={customUnifiedCurrency}
-                      onChange={(e) => setCustomUnifiedCurrency(e.target.value)}
+                      value={customSystemCurrency}
+                      onChange={(e) => setCustomSystemCurrency(e.target.value)}
                       placeholder="اكتب العملة..."
-                      className="flex-1 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
+                      className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
                     />
                   )}
                 </div>
               </div>
-            )}
 
-            {currencyMode === 'separate' && (
-              <>
-                <div className="space-y-3">
-                  <label className="block text-white text-sm font-medium">عملة النظام</label>
-                  <div className="space-y-3">
-                    <select
-                      value={isCustomSystemCurrency ? 'custom' : systemCurrency}
-                      onChange={(e) => {
-                        if (e.target.value === 'custom') {
-                          setIsCustomSystemCurrency(true);
-                        } else {
-                          setIsCustomSystemCurrency(false);
-                          setSystemCurrency(e.target.value);
-                        }
-                      }}
-                      className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    >
-                      {arabicCurrencies.map((currency) => (
-                        <option key={currency} value={currency}>{currency}</option>
-                      ))}
-                      <option value="custom">كتابة مخصصة...</option>
-                    </select>
-                    {isCustomSystemCurrency && (
-                      <input
-                        type="text"
-                        value={customSystemCurrency}
-                        onChange={(e) => setCustomSystemCurrency(e.target.value)}
-                        placeholder="اكتب العملة..."
-                        className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-white text-sm font-medium">عملة الموقع</label>
-                  <div className="space-y-3">
-                    <select
-                      value={isCustomWebsiteCurrency ? 'custom' : websiteCurrency}
-                      onChange={(e) => {
-                        if (e.target.value === 'custom') {
-                          setIsCustomWebsiteCurrency(true);
-                        } else {
-                          setIsCustomWebsiteCurrency(false);
-                          setWebsiteCurrency(e.target.value);
-                        }
-                      }}
-                      className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    >
-                      {arabicCurrencies.map((currency) => (
-                        <option key={currency} value={currency}>{currency}</option>
-                      ))}
-                      <option value="custom">كتابة مخصصة...</option>
-                    </select>
-                    {isCustomWebsiteCurrency && (
-                      <input
-                        type="text"
-                        value={customWebsiteCurrency}
-                        onChange={(e) => setCustomWebsiteCurrency(e.target.value)}
-                        placeholder="اكتب العملة..."
-                        className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
-                      />
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Right Column - Preview */}
-          <div className="space-y-6">
-            <div className="bg-[#374151] rounded-lg p-4 border border-gray-600">
-              <h4 className="text-white font-medium mb-4">معاينة</h4>
+              {/* Website Currency */}
               <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-white font-medium">
-                    {currencyMode === 'unified'
-                      ? (isCustomUnifiedCurrency ? customUnifiedCurrency || 'عملة مخصصة' : unifiedCurrency)
-                      : (isCustomSystemCurrency ? customSystemCurrency || 'عملة مخصصة' : systemCurrency)
-                    } 150.00
-                  </span>
-                  <span className="text-gray-300">النظام:</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-white font-medium">
-                    {currencyMode === 'unified'
-                      ? (isCustomUnifiedCurrency ? customUnifiedCurrency || 'عملة مخصصة' : unifiedCurrency)
-                      : (isCustomWebsiteCurrency ? customWebsiteCurrency || 'عملة مخصصة' : websiteCurrency)
-                    } 150.00
-                  </span>
-                  <span className="text-gray-300">الموقع:</span>
+                <label className="block text-white text-sm font-medium">عملة الموقع</label>
+                <div className="space-y-3">
+                  <select
+                    value={isCustomWebsiteCurrency ? 'custom' : websiteCurrency}
+                    onChange={(e) => {
+                      if (e.target.value === 'custom') {
+                        setIsCustomWebsiteCurrency(true);
+                      } else {
+                        setIsCustomWebsiteCurrency(false);
+                        setWebsiteCurrency(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  >
+                    {arabicCurrencies.map((currency) => (
+                      <option key={currency} value={currency}>{currency}</option>
+                    ))}
+                    <option value="custom">كتابة مخصصة...</option>
+                  </select>
+                  {isCustomWebsiteCurrency && (
+                    <input
+                      type="text"
+                      value={customWebsiteCurrency}
+                      onChange={(e) => setCustomWebsiteCurrency(e.target.value)}
+                      placeholder="اكتب العملة..."
+                      className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
+                    />
+                  )}
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
       </div>
