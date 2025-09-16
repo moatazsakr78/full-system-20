@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import PrepareOrderModal from '../../components/PrepareOrderModal';
+import { useFormatPrice } from '@/lib/hooks/useCurrency';
 
 // Order status type
 type OrderStatus = 'pending' | 'processing' | 'ready_for_pickup' | 'ready_for_shipping' | 'shipped' | 'delivered' | 'cancelled' | 'issue';
@@ -71,6 +72,7 @@ const statusIcons: Record<OrderStatus, string> = {
 };
 
 export default function CustomerOrdersPage() {
+  const formatPrice = useFormatPrice();
   const [activeTab, setActiveTab] = useState<'all' | 'preparation' | 'followup' | 'completed' | 'issues'>('all');
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
@@ -713,8 +715,8 @@ export default function CustomerOrdersPage() {
             <div style="margin-bottom: 8px; font-size: 10px;">
               <div style="font-weight: bold;">${item.name}</div>
               <div style="display: flex; justify-content: space-between;">
-                <span>${(item.price * item.quantity).toFixed(2)} ريال</span>
-                <span>${item.quantity} × ${item.price.toFixed(2)}</span>
+                <span>${formatPrice(item.price * item.quantity)}</span>
+                <span>${item.quantity} × ${formatPrice(item.price)}</span>
               </div>
             </div>
           `).join('')}
@@ -723,39 +725,39 @@ export default function CustomerOrdersPage() {
         <div style="font-size: 12px; margin-bottom: 15px;">
           ${selectedOrderForInvoice.subtotal !== null && selectedOrderForInvoice.subtotal !== undefined && selectedOrderForInvoice.shipping !== null && selectedOrderForInvoice.shipping !== undefined ? `
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-              <span style="font-weight: bold;">${selectedOrderForInvoice.subtotal!.toFixed(2)} ريال</span>
+              <span style="font-weight: bold;">${formatPrice(selectedOrderForInvoice.subtotal!)}</span>
               <span>مبلغ الفاتورة:</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-              <span style="font-weight: bold;">${selectedOrderForInvoice.shipping!.toFixed(2)} ريال</span>
+              <span style="font-weight: bold;">${formatPrice(selectedOrderForInvoice.shipping!)}</span>
               <span>الشحن:</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-top: 1px solid #ccc; padding-top: 5px;">
-              <span style="font-weight: bold;">${selectedOrderForInvoice.total.toFixed(2)} ريال</span>
+              <span style="font-weight: bold;">${formatPrice(selectedOrderForInvoice.total)}</span>
               <span>الإجمالي:</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-              <span style="font-weight: bold; color: green;">${invoiceData.paidAmount.toFixed(2)} ريال</span>
+              <span style="font-weight: bold; color: green;">${formatPrice(invoiceData.paidAmount)}</span>
               <span>المدفوع (فاتورة فقط):</span>
             </div>
             <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 5px;">
               <span style="font-weight: bold; color: ${selectedOrderForInvoice.subtotal! - invoiceData.paidAmount > 0 ? 'red' : 'green'};">
-                ${(selectedOrderForInvoice.subtotal! - invoiceData.paidAmount).toFixed(2)} ريال
+                ${formatPrice(selectedOrderForInvoice.subtotal! - invoiceData.paidAmount)}
               </span>
               <span>المتبقي من الفاتورة:</span>
             </div>
           ` : `
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-              <span style="font-weight: bold;">${selectedOrderForInvoice.total.toFixed(2)} ريال</span>
+              <span style="font-weight: bold;">${formatPrice(selectedOrderForInvoice.total)}</span>
               <span>الإجمالي:</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-              <span style="font-weight: bold; color: green;">${invoiceData.paidAmount.toFixed(2)} ريال</span>
+              <span style="font-weight: bold; color: green;">${formatPrice(invoiceData.paidAmount)}</span>
               <span>المدفوع:</span>
             </div>
             <div style="display: flex; justify-content: space-between; border-top: 1px solid #000; padding-top: 5px;">
               <span style="font-weight: bold; color: ${selectedOrderForInvoice.total - invoiceData.paidAmount > 0 ? 'red' : 'green'};">
-                ${(selectedOrderForInvoice.total - invoiceData.paidAmount).toFixed(2)} ريال
+                ${formatPrice(selectedOrderForInvoice.total - invoiceData.paidAmount)}
               </span>
               <span>المتبقي:</span>
             </div>
@@ -1395,21 +1397,21 @@ export default function CustomerOrdersPage() {
                             <>
                               <div className="flex justify-between">
                                 <span className="text-gray-600">مبلغ الفاتورة:</span>
-                                <span className="text-gray-800 font-medium">{order.subtotal!.toFixed(2)} ريال</span>
+                                <span className="text-gray-800 font-medium">{formatPrice(order.subtotal!)}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-gray-600">الشحن:</span>
-                                <span className="text-gray-800 font-medium">{order.shipping!.toFixed(2)} ريال</span>
+                                <span className="text-gray-800 font-medium">{formatPrice(order.shipping!)}</span>
                               </div>
                               <div className="flex justify-between border-t border-gray-200 pt-1 mt-2">
                                 <span className="text-gray-800 font-semibold">الإجمالي:</span>
-                                <span className="text-gray-800 font-bold text-lg">{order.total.toFixed(2)} ريال</span>
+                                <span className="text-gray-800 font-bold text-lg">{formatPrice(order.total)}</span>
                               </div>
                             </>
                           ) : (
                             <div className="flex justify-between">
                               <span className="text-gray-800 font-semibold">المبلغ الإجمالي:</span>
-                              <span className="text-gray-800 font-bold text-lg">{order.total.toFixed(2)} ريال</span>
+                              <span className="text-gray-800 font-bold text-lg">{formatPrice(order.total)}</span>
                             </div>
                           )}
                         </div>
@@ -1456,21 +1458,21 @@ export default function CustomerOrdersPage() {
                               <>
                                 <div className="flex justify-between items-center gap-4">
                                   <span className="text-gray-600 text-base">مبلغ الفاتورة:</span>
-                                  <span className="text-gray-800 font-medium whitespace-nowrap text-base">{order.subtotal!.toFixed(2)} ريال</span>
+                                  <span className="text-gray-800 font-medium whitespace-nowrap text-base">{formatPrice(order.subtotal!)}</span>
                                 </div>
                                 <div className="flex justify-between items-center gap-4">
                                   <span className="text-gray-600 text-base">الشحن:</span>
-                                  <span className="text-gray-800 font-medium whitespace-nowrap text-base">{order.shipping!.toFixed(2)} ريال</span>
+                                  <span className="text-gray-800 font-medium whitespace-nowrap text-base">{formatPrice(order.shipping!)}</span>
                                 </div>
                                 <div className="flex justify-between items-center gap-4 font-semibold text-lg pt-2 border-t border-gray-200">
                                   <span className="text-gray-800">المبلغ الإجمالي:</span>
-                                  <span className="text-gray-800 whitespace-nowrap">{order.total.toFixed(2)} ريال</span>
+                                  <span className="text-gray-800 whitespace-nowrap">{formatPrice(order.total)}</span>
                                 </div>
                               </>
                             ) : (
                               <div className="flex justify-between items-center gap-4 font-semibold text-lg">
                                 <span className="text-gray-800">المبلغ الإجمالي:</span>
-                                <span className="text-gray-800 whitespace-nowrap">{order.total.toFixed(2)} ريال</span>
+                                <span className="text-gray-800 whitespace-nowrap">{formatPrice(order.total)}</span>
                               </div>
                             )}
                           </div>
@@ -1881,7 +1883,7 @@ export default function CustomerOrdersPage() {
                             {/* Product Info */}
                             <div className="flex-1">
                               <h5 className="font-semibold text-gray-800">{item.name}</h5>
-                              <p className="text-gray-600 text-sm">{item.price.toFixed(2)} ريال لكل قطعة</p>
+                              <p className="text-gray-600 text-sm">{formatPrice(item.price)} لكل قطعة</p>
                             </div>
 
                             {/* Quantity Controls */}
@@ -1903,7 +1905,7 @@ export default function CustomerOrdersPage() {
 
                             {/* Item Total */}
                             <div className="text-right min-w-[80px]">
-                              <p className="font-semibold text-gray-800">{(item.price * item.quantity).toFixed(2)} ريال</p>
+                              <p className="font-semibold text-gray-800">{formatPrice(item.price * item.quantity)}</p>
                             </div>
 
                             {/* Remove Button */}
@@ -1941,7 +1943,7 @@ export default function CustomerOrdersPage() {
                 <div className="bg-gray-100 p-4 rounded-lg">
                   <div className="flex justify-between items-center">
                     <span className="font-semibold text-gray-700">إجمالي الطلب:</span>
-                    <span className="font-bold text-xl text-gray-800">{selectedOrderForEdit.total.toFixed(2)} ريال</span>
+                    <span className="font-bold text-xl text-gray-800">{formatPrice(selectedOrderForEdit.total)}</span>
                   </div>
                 </div>
               </div>
@@ -2071,12 +2073,12 @@ export default function CustomerOrdersPage() {
                     {/* Display detailed breakdown if subtotal and shipping are available */}
                     {selectedOrderForInvoice.subtotal !== null && selectedOrderForInvoice.subtotal !== undefined && selectedOrderForInvoice.shipping !== null && selectedOrderForInvoice.shipping !== undefined ? (
                       <div className="border-t pt-3">
-                        <div><span className="font-semibold">مبلغ الفاتورة:</span> {selectedOrderForInvoice.subtotal!.toFixed(2)} ريال</div>
-                        <div><span className="font-semibold">الشحن:</span> {selectedOrderForInvoice.shipping!.toFixed(2)} ريال</div>
-                        <div><span className="font-semibold">الإجمالي:</span> {selectedOrderForInvoice.total.toFixed(2)} ريال</div>
+                        <div><span className="font-semibold">مبلغ الفاتورة:</span> {formatPrice(selectedOrderForInvoice.subtotal!)}</div>
+                        <div><span className="font-semibold">الشحن:</span> {formatPrice(selectedOrderForInvoice.shipping!)}</div>
+                        <div><span className="font-semibold">الإجمالي:</span> {formatPrice(selectedOrderForInvoice.total)}</div>
                       </div>
                     ) : (
-                      <div><span className="font-semibold">الإجمالي:</span> {selectedOrderForInvoice.total.toFixed(2)} ريال</div>
+                      <div><span className="font-semibold">الإجمالي:</span> {formatPrice(selectedOrderForInvoice.total)}</div>
                     )}
                   </div>
 
@@ -2098,10 +2100,10 @@ export default function CustomerOrdersPage() {
                         </div>
                         <div className="flex-1">
                           <h6 className="font-semibold text-gray-800 text-sm">{item.name}</h6>
-                          <p className="text-gray-600 text-sm">الكمية: {item.quantity} × {item.price.toFixed(2)} ريال</p>
+                          <p className="text-gray-600 text-sm">الكمية: {item.quantity} × {formatPrice(item.price)}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-gray-800">{(item.price * item.quantity).toFixed(2)} ريال</p>
+                          <p className="font-bold text-gray-800">{formatPrice(item.price * item.quantity)}</p>
                         </div>
                       </div>
                     ))}
@@ -2195,24 +2197,24 @@ export default function CustomerOrdersPage() {
                         <>
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-gray-700">مبلغ الفاتورة:</span>
-                            <span className="font-bold text-gray-800">{selectedOrderForInvoice.subtotal!.toFixed(2)} ريال</span>
+                            <span className="font-bold text-gray-800">{formatPrice(selectedOrderForInvoice.subtotal!)}</span>
                           </div>
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-gray-700">الشحن:</span>
-                            <span className="font-bold text-gray-800">{selectedOrderForInvoice.shipping!.toFixed(2)} ريال</span>
+                            <span className="font-bold text-gray-800">{formatPrice(selectedOrderForInvoice.shipping!)}</span>
                           </div>
                           <div className="flex justify-between items-center mb-2 border-t pt-2">
                             <span className="text-gray-700">إجمالي المبلغ:</span>
-                            <span className="font-bold text-gray-800">{selectedOrderForInvoice.total.toFixed(2)} ريال</span>
+                            <span className="font-bold text-gray-800">{formatPrice(selectedOrderForInvoice.total)}</span>
                           </div>
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-gray-700">المبلغ المدفوع (فاتورة فقط):</span>
-                            <span className="font-bold text-green-600">{invoiceData.paidAmount.toFixed(2)} ريال</span>
+                            <span className="font-bold text-green-600">{formatPrice(invoiceData.paidAmount)}</span>
                           </div>
                           <div className="flex justify-between items-center border-t pt-2">
                             <span className="text-gray-700">المتبقي من الفاتورة:</span>
                             <span className={`font-bold ${(selectedOrderForInvoice.subtotal! - invoiceData.paidAmount) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                              {(selectedOrderForInvoice.subtotal! - invoiceData.paidAmount).toFixed(2)} ريال
+                              {formatPrice(selectedOrderForInvoice.subtotal! - invoiceData.paidAmount)}
                             </span>
                           </div>
                         </>
@@ -2220,16 +2222,16 @@ export default function CustomerOrdersPage() {
                         <>
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-gray-700">إجمالي المبلغ:</span>
-                            <span className="font-bold text-gray-800">{selectedOrderForInvoice.total.toFixed(2)} ريال</span>
+                            <span className="font-bold text-gray-800">{formatPrice(selectedOrderForInvoice.total)}</span>
                           </div>
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-gray-700">المبلغ المدفوع:</span>
-                            <span className="font-bold text-green-600">{invoiceData.paidAmount.toFixed(2)} ريال</span>
+                            <span className="font-bold text-green-600">{formatPrice(invoiceData.paidAmount)}</span>
                           </div>
                           <div className="flex justify-between items-center border-t pt-2">
                             <span className="text-gray-700">المتبقي:</span>
                             <span className={`font-bold ${(selectedOrderForInvoice.total - invoiceData.paidAmount) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                              {(selectedOrderForInvoice.total - invoiceData.paidAmount).toFixed(2)} ريال
+                              {formatPrice(selectedOrderForInvoice.total - invoiceData.paidAmount)}
                             </span>
                           </div>
                         </>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { CartService } from '@/lib/cart-service';
 import { CartSession, CartItemData } from '@/lib/cart-utils';
 import { useCart } from '@/lib/contexts/CartContext';
+import { useFormatPrice } from '@/lib/hooks/useCurrency';
 
 interface CustomerData {
   name: string;
@@ -43,6 +44,7 @@ interface CartModalProps {
 
 const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
   const router = useRouter();
+  const formatPrice = useFormatPrice();
   const [isLoading, setIsLoading] = useState(false);
   const [customerData, setCustomerData] = useState<CustomerData>({
     name: '',
@@ -654,7 +656,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                                 
                                 {/* Price */}
                                 <td className="p-4">
-                                  <span className="text-gray-700">{group.items[0].price.toFixed(2)} جنيه</span>
+                                  <span className="text-gray-700">{formatPrice(group.items[0].price)}</span>
                                 </td>
                                 
                                 {/* Quantity */}
@@ -664,7 +666,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                                 
                                 {/* Total */}
                                 <td className="p-4">
-                                  <span className="font-bold text-gray-900">{productTotal.toFixed(2)} جنيه</span>
+                                  <span className="font-bold text-gray-900">{formatPrice(productTotal)}</span>
                                 </td>
                                 
                                 {/* Notes */}
@@ -827,7 +829,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                                 <option value="" className="text-gray-900">اختر المنطقة</option>
                                 {governorates.find(g => g.id === selectedGovernorate)?.areas?.map((area) => (
                                   <option key={area.id} value={area.id} className="text-gray-900">
-                                    {area.name} - {area.price} جنيه
+                                    {area.name} - {formatPrice(area.price)}
                                   </option>
                                 ))}
                               </select>
@@ -839,7 +841,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                             <div className="bg-blue-50 border border-blue-200 rounded p-2">
                               <div className="flex items-center justify-between">
                                 <div className="text-xs text-blue-700">تكلفة الشحن:</div>
-                                <div className="text-sm font-bold text-blue-700">{shippingCost.toFixed(2)} جنيه</div>
+                                <div className="text-sm font-bold text-blue-700">{formatPrice(shippingCost)}</div>
                               </div>
                             </div>
                           )}
@@ -908,7 +910,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm text-gray-600">
                           <span>المجموع الفرعي:</span>
-                          <span>{subtotal.toFixed(2)} جنيه</span>
+                          <span>{formatPrice(subtotal)}</span>
                         </div>
                         
                         {/* Only show shipping row if delivery method is selected */}
@@ -916,7 +918,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                           <div className="flex justify-between text-sm text-gray-600">
                             <span>الشحن:</span>
                             <span>
-                              {shipping > 0 ? `${shipping.toFixed(2)} جنيه` : (
+                              {shipping > 0 ? formatPrice(shipping) : (
                                 <span className="text-orange-500 text-xs">يرجى اختيار المنطقة</span>
                               )}
                             </span>
@@ -926,7 +928,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                         <div className="border-t border-gray-200 pt-2">
                           <div className="flex justify-between text-lg font-bold text-gray-900">
                             <span>الإجمالي:</span>
-                            <span>{total.toFixed(2)} جنيه</span>
+                            <span>{formatPrice(total)}</span>
                           </div>
                         </div>
                       </div>
@@ -1043,7 +1045,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                                   
                                   {/* Price */}
                                   <td className="p-4">
-                                    <span className="text-gray-700">{group.items[0].price.toFixed(2)} جنيه</span>
+                                    <span className="text-gray-700">{formatPrice(group.items[0].price)}</span>
                                   </td>
                                   
                                   {/* Quantity */}
@@ -1053,7 +1055,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                                   
                                   {/* Total */}
                                   <td className="p-4">
-                                    <span className="font-bold text-gray-900">{productTotal.toFixed(2)} جنيه</span>
+                                    <span className="font-bold text-gray-900">{formatPrice(productTotal)}</span>
                                   </td>
                                   
                                   {/* Notes */}
@@ -1147,7 +1149,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                             {/* Unit Price */}
                             <div className="bg-white rounded-lg p-2 text-center">
                               <div className="text-xs text-gray-500 mb-1">سعر القطعة</div>
-                              <div className="text-sm font-medium text-gray-900">{firstPrice.toFixed(2)} جنيه</div>
+                              <div className="text-sm font-medium text-gray-900">{formatPrice(firstPrice)}</div>
                             </div>
                             
                             {/* Quantity */}
@@ -1159,7 +1161,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                             {/* Total */}
                             <div className="bg-white rounded-lg p-2 text-center">
                               <div className="text-xs text-gray-500 mb-1">الإجمالي</div>
-                              <div className="text-sm font-bold text-gray-900">{productTotal.toFixed(2)} جنيه</div>
+                              <div className="text-sm font-bold text-gray-900">{formatPrice(productTotal)}</div>
                             </div>
                             
                             {/* Notes */}
@@ -1299,7 +1301,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                             <option value="" className="text-gray-900">اختر المنطقة</option>
                             {governorates.find(g => g.id === selectedGovernorate)?.areas?.map((area) => (
                               <option key={area.id} value={area.id} className="text-gray-900">
-                                {area.name} - {area.price} جنيه
+                                {area.name} - {formatPrice(area.price)}
                               </option>
                             ))}
                           </select>
@@ -1311,7 +1313,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                         <div className="bg-blue-50 border border-blue-200 rounded p-2">
                           <div className="flex items-center justify-between">
                             <div className="text-xs text-blue-700">تكلفة الشحن:</div>
-                            <div className="text-sm font-bold text-blue-700">{shippingCost.toFixed(2)} جنيه</div>
+                            <div className="text-sm font-bold text-blue-700">{formatPrice(shippingCost)}</div>
                           </div>
                         </div>
                       )}
@@ -1380,7 +1382,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm text-gray-600">
                       <span>المجموع الفرعي:</span>
-                      <span>{subtotal.toFixed(2)} جنيه</span>
+                      <span>{formatPrice(subtotal)}</span>
                     </div>
                     
                     {/* Only show shipping row if delivery method is selected */}
@@ -1388,7 +1390,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                       <div className="flex justify-between text-sm text-gray-600">
                         <span>الشحن:</span>
                         <span>
-                          {shipping > 0 ? `${shipping.toFixed(2)} جنيه` : (
+                          {shipping > 0 ? formatPrice(shipping) : (
                             <span className="text-orange-500 text-xs">يرجى اختيار المنطقة</span>
                           )}
                         </span>
@@ -1398,7 +1400,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                     <div className="border-t border-gray-200 pt-2">
                       <div className="flex justify-between text-base font-bold text-gray-900">
                         <span>الإجمالي:</span>
-                        <span>{total.toFixed(2)} جنيه</span>
+                        <span>{formatPrice(total)}</span>
                       </div>
                     </div>
                   </div>

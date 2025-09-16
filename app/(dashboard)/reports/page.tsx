@@ -9,6 +9,7 @@ import { supabase } from '@/app/lib/supabase/client';
 import ProductsFilterModal from '@/app/components/ProductsFilterModal';
 import CustomersFilterModal from '@/app/components/CustomersFilterModal';
 import ColumnsControlModal from '@/app/components/ColumnsControlModal';
+import { useFormatPrice } from '@/lib/hooks/useCurrency';
 
 // Wrapper component for async column loading
 interface ColumnsControlModalWrapperProps {
@@ -107,7 +108,7 @@ const reportsData = [
     id: 1,
     type: 'مبيعات يومية',
     date: '2024-01-15',
-    amount: 'EGP 15,420.50',
+    amount: 15420.50,
     status: 'مكتمل',
     invoice_count: 45,
     customer_count: 32
@@ -116,7 +117,7 @@ const reportsData = [
     id: 2,
     type: 'مردودات',
     date: '2024-01-15',
-    amount: 'EGP -1,200.00',
+    amount: -1200,
     status: 'مراجعة',
     invoice_count: 3,
     customer_count: 2
@@ -125,15 +126,15 @@ const reportsData = [
     id: 3,
     type: 'مبيعات أسبوعية',
     date: '2024-01-14',
-    amount: 'EGP 89,350.75',
+    amount: 89350.75,
     status: 'مكتمل',
     invoice_count: 287,
     customer_count: 156
   }
 ];
 
-// Table columns for reports
-const tableColumns = [
+// Table columns for reports - function to allow formatPrice access
+const getTableColumns = (formatPrice: (value: number) => string) => [
   {
     id: 'index',
     header: '#',
@@ -158,13 +159,13 @@ const tableColumns = [
     visible: true,
     render: (value: string) => <span className="text-gray-300">{value}</span>
   },
-  { 
-    id: 'amount', 
-    header: 'المبلغ الإجمالي', 
-    accessor: 'amount', 
+  {
+    id: 'amount',
+    header: 'المبلغ الإجمالي',
+    accessor: 'amount',
     width: 150,
     visible: true,
-    render: (value: string) => <span className="text-white font-medium">{value}</span>
+    render: (value: number) => <span className="text-white font-medium">{formatPrice(value)}</span>
   },
   { 
     id: 'status', 
@@ -203,7 +204,7 @@ const tableColumns = [
 ];
 
 // Table columns for customers report
-const customersTableColumns = [
+const getCustomersTableColumns = (formatPrice: (value: number) => string) => [
   {
     id: 'index',
     header: '#',
@@ -286,7 +287,7 @@ const customersTableColumns = [
     accessor: 'total_amount',
     width: 120,
     visible: true,
-    render: (value: number) => <span className="text-green-400 font-medium">EGP {(value || 0).toFixed(2)}</span>
+    render: (value: number) => <span className="text-green-400 font-medium">{formatPrice(value || 0)}</span>
   },
   {
     id: 'total_profit',
@@ -297,13 +298,13 @@ const customersTableColumns = [
     render: (value: number) => {
       const profit = value || 0;
       const colorClass = profit >= 0 ? 'text-green-400' : 'text-red-400';
-      return <span className={`${colorClass} font-medium`}>EGP {profit.toFixed(2)}</span>;
+      return <span className={`${colorClass} font-medium`}>{formatPrice(profit)}</span>;
     }
   }
 ];
 
 // Table columns for categories report
-const categoriesTableColumns = [
+const getCategoriesTableColumns = (formatPrice: (value: number) => string) => [
   {
     id: 'index',
     header: '#',
@@ -342,7 +343,7 @@ const categoriesTableColumns = [
     accessor: 'total_sales_amount',
     width: 120,
     visible: true,
-    render: (value: number) => <span className="text-white font-medium">EGP {(value || 0).toFixed(2)}</span>
+    render: (value: number) => <span className="text-white font-medium">{formatPrice(value || 0)}</span>
   },
   {
     id: 'products_count',
@@ -358,12 +359,12 @@ const categoriesTableColumns = [
     accessor: 'avg_price',
     width: 100,
     visible: true,
-    render: (value: number) => <span className="text-gray-300">EGP {(value || 0).toFixed(2)}</span>
+    render: (value: number) => <span className="text-gray-300">{formatPrice(value || 0)}</span>
   }
 ];
 
 // Table columns for products report
-const productsTableColumns = [
+const getProductsTableColumns = (formatPrice: (value: number) => string) => [
   {
     id: 'index',
     header: '#',
@@ -410,7 +411,7 @@ const productsTableColumns = [
     accessor: 'total_sales_amount', 
     width: 120,
     visible: true,
-    render: (value: number) => <span className="text-white font-medium">EGP {(value || 0).toFixed(2)}</span>
+    render: (value: number) => <span className="text-white font-medium">{formatPrice(value || 0)}</span>
   },
   { 
     id: 'current_sale_price', 
@@ -418,7 +419,7 @@ const productsTableColumns = [
     accessor: 'current_sale_price', 
     width: 100,
     visible: true,
-    render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
+    render: (value: string) => <span className="text-gray-300">{formatPrice(parseFloat(value || '0'))}</span>
   },
   {
     id: 'total_sale_price',
@@ -445,7 +446,7 @@ const productsTableColumns = [
     header: 'سعر الجملة', 
     accessor: 'wholesale_price', 
     width: 100,
-    render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
+    render: (value: string) => <span className="text-gray-300">{formatPrice(parseFloat(value || '0'))}</span>
   },
   {
     id: 'total_wholesale_price',
@@ -472,7 +473,7 @@ const productsTableColumns = [
     header: 'سعر 1', 
     accessor: 'price1', 
     width: 80,
-    render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
+    render: (value: string) => <span className="text-gray-300">{formatPrice(parseFloat(value || '0'))}</span>
   },
   {
     id: 'total_price1',
@@ -499,7 +500,7 @@ const productsTableColumns = [
     header: 'سعر 2', 
     accessor: 'price2', 
     width: 80,
-    render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
+    render: (value: string) => <span className="text-gray-300">{formatPrice(parseFloat(value || '0'))}</span>
   },
   {
     id: 'total_price2',
@@ -526,7 +527,7 @@ const productsTableColumns = [
     header: 'سعر 3', 
     accessor: 'price3', 
     width: 80,
-    render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
+    render: (value: string) => <span className="text-gray-300">{formatPrice(parseFloat(value || '0'))}</span>
   },
   {
     id: 'total_price3',
@@ -553,7 +554,7 @@ const productsTableColumns = [
     header: 'سعر 4', 
     accessor: 'price4', 
     width: 80,
-    render: (value: string) => <span className="text-gray-300">EGP {parseFloat(value || '0').toFixed(2)}</span>
+    render: (value: string) => <span className="text-gray-300">{formatPrice(parseFloat(value || '0'))}</span>
   },
   {
     id: 'total_price4',
@@ -578,6 +579,7 @@ const productsTableColumns = [
 ];
 
 function ReportsPageContent() {
+  const formatPrice = useFormatPrice();
   const { showToast } = useToast();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentView, setCurrentView] = useState('main'); // 'main' or 'periodic'
@@ -664,9 +666,9 @@ function ReportsPageContent() {
     const reportType = currentReportType === 'products' ? 'PRODUCTS_REPORT' :
                       currentReportType === 'categories' ? 'CATEGORIES_REPORT' :
                       currentReportType === 'customers' ? 'CUSTOMERS_REPORT' : 'MAIN_REPORT';
-    const currentColumns = reportType === 'PRODUCTS_REPORT' ? productsTableColumns :
-                          reportType === 'CATEGORIES_REPORT' ? categoriesTableColumns :
-                          reportType === 'CUSTOMERS_REPORT' ? customersTableColumns : tableColumns;
+    const currentColumns = reportType === 'PRODUCTS_REPORT' ? getProductsTableColumns(formatPrice) :
+                          reportType === 'CATEGORIES_REPORT' ? getCategoriesTableColumns(formatPrice) :
+                          reportType === 'CUSTOMERS_REPORT' ? getCustomersTableColumns(formatPrice) : getTableColumns(formatPrice);
 
     try {
       // Create visibility map from updated columns
@@ -732,9 +734,9 @@ function ReportsPageContent() {
 
   // Prepare columns data for the modal based on saved config with async loading
   const getColumnsForModal = async (reportType: string) => {
-    const columns = reportType === 'products' ? productsTableColumns :
-                   reportType === 'categories' ? categoriesTableColumns :
-                   reportType === 'customers' ? customersTableColumns : tableColumns;
+    const columns = reportType === 'products' ? getProductsTableColumns(formatPrice) :
+                   reportType === 'categories' ? getCategoriesTableColumns(formatPrice) :
+                   reportType === 'customers' ? getCustomersTableColumns(formatPrice) : getTableColumns(formatPrice);
     const configType = reportType === 'products' ? 'PRODUCTS_REPORT' :
                       reportType === 'categories' ? 'CATEGORIES_REPORT' :
                       reportType === 'customers' ? 'CUSTOMERS_REPORT' : 'MAIN_REPORT';
@@ -2052,7 +2054,7 @@ function ReportsPageContent() {
                         <>
                           <ResizableTable
                             className="h-full w-full"
-                            columns={productsTableColumns}
+                            columns={getProductsTableColumns(formatPrice)}
                             data={productsReportData}
                             selectedRowId={null}
                             reportType="PRODUCTS_REPORT"
@@ -2078,7 +2080,7 @@ function ReportsPageContent() {
                         <>
                           <ResizableTable
                             className="h-full w-full"
-                            columns={categoriesTableColumns}
+                            columns={getCategoriesTableColumns(formatPrice)}
                             data={categoriesReportData}
                             selectedRowId={null}
                             reportType="CATEGORIES_REPORT"
@@ -2104,7 +2106,7 @@ function ReportsPageContent() {
                         <>
                           <ResizableTable
                             className="h-full w-full"
-                            columns={customersTableColumns}
+                            columns={getCustomersTableColumns(formatPrice)}
                             data={customersReportData}
                             selectedRowId={null}
                             reportType="CUSTOMERS_REPORT"

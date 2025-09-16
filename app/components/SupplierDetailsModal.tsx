@@ -6,6 +6,7 @@ import ResizableTable from './tables/ResizableTable'
 import { supabase } from '../lib/supabase/client'
 import ConfirmDeleteModal from './ConfirmDeleteModal'
 import SimpleDateFilterModal, { DateFilter } from './SimpleDateFilterModal'
+import { useFormatPrice } from '@/lib/hooks/useCurrency'
 
 interface SupplierDetailsModalProps {
   isOpen: boolean
@@ -16,6 +17,7 @@ interface SupplierDetailsModalProps {
 type ViewMode = 'split' | 'invoices-only' | 'details-only'
 
 export default function SupplierDetailsModal({ isOpen, onClose, supplier }: SupplierDetailsModalProps) {
+  const formatPrice = useFormatPrice();
   const [selectedTransaction, setSelectedTransaction] = useState(0) // First row selected (index 0)
   const [showSupplierDetails, setShowSupplierDetails] = useState(true)
   const [activeTab, setActiveTab] = useState('invoices') // 'invoices', 'payments', 'statement'
@@ -349,8 +351,8 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       time: '07:46 AM',
       description: 'INV-175254784358 فاتورة شراء',
       type: 'فاتورة شراء',
-      amount: 'EGP 1,677.00-',
-      balance: 'EGP 190,322.00'
+      amount: `${formatPrice(1677)}-`,
+      balance: formatPrice(190322)
     },
     {
       id: 2,
@@ -358,8 +360,8 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       time: '01:22 AM',
       description: 'دفعة للمورد',
       type: 'دفعة',
-      amount: 'EGP 6,000.00+',
-      balance: 'EGP 188,645.00'
+      amount: `${formatPrice(6000)}+`,
+      balance: formatPrice(188645)
     },
     {
       id: 3,
@@ -367,8 +369,8 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       time: '04:44 AM',
       description: 'INV-175142668178 فاتورة شراء',
       type: 'فاتورة شراء',
-      amount: 'EGP 210.00-',
-      balance: 'EGP 194,645.00'
+      amount: `${formatPrice(210)}-`,
+      balance: formatPrice(194645)
     },
     {
       id: 4,
@@ -376,8 +378,8 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       time: '12:33 AM',
       description: 'دفعة - سداد',
       type: 'دفعة',
-      amount: 'EGP 7,000.00+',
-      balance: 'EGP 194,435.00'
+      amount: `${formatPrice(7000)}+`,
+      balance: formatPrice(194435)
     },
     {
       id: 5,
@@ -385,8 +387,8 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       time: '06:05 PM',
       description: 'INV-175120953803 فاتورة شراء',
       type: 'فاتورة شراء',
-      amount: 'EGP 850.00-',
-      balance: 'EGP 201,435.00'
+      amount: `${formatPrice(850)}-`,
+      balance: formatPrice(201435)
     },
     {
       id: 6,
@@ -394,8 +396,8 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       time: '05:42 PM',
       description: 'INV-175120816250 فاتورة شراء',
       type: 'فاتورة شراء',
-      amount: 'EGP 100.00-',
-      balance: 'EGP 200,585.00'
+      amount: `${formatPrice(100)}-`,
+      balance: formatPrice(200585)
     },
     {
       id: 7,
@@ -403,8 +405,8 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       time: '11:23 PM',
       description: 'INV-175114219445 فاتورة شراء',
       type: 'فاتورة شراء',
-      amount: 'EGP 485.00-',
-      balance: 'EGP 200,485.00'
+      amount: `${formatPrice(485)}-`,
+      balance: formatPrice(200485)
     },
     {
       id: 8,
@@ -412,8 +414,8 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       time: '04:35 PM',
       description: 'الرصيد الأولي',
       type: 'رصيد أولي',
-      amount: 'EGP 200,000.00+',
-      balance: 'EGP 200,000.00'
+      amount: `${formatPrice(200000)}+`,
+      balance: formatPrice(200000)
     }
   ]
 
@@ -423,14 +425,14 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       id: 1,
       date: '7/2/2025',
       time: '01:22 AM',
-      amount: 'EGP 6,000.00',
+      amount: formatPrice(6000),
       notes: '-'
     },
     {
       id: 2,
       date: '6/29/2025', 
       time: '12:33 AM',
-      amount: 'EGP 7,000.00',
+      amount: formatPrice(7000),
       notes: 'سداد'
     }
   ]
@@ -594,7 +596,7 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       header: 'المبلغ الإجمالي', 
       accessor: 'total_amount', 
       width: 150,
-      render: (value: number) => <span className="text-green-400 font-medium">EGP {value.toFixed(2)}</span>
+      render: (value: number) => <span className="text-green-400 font-medium">{formatPrice(value)}</span>
     },
     { 
       id: 'notes', 
@@ -694,7 +696,7 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       header: 'السعر', 
       accessor: 'unit_purchase_price', 
       width: 100,
-      render: (value: number) => <span className="text-green-400 font-medium">EGP {value.toFixed(2)}</span>
+      render: (value: number) => <span className="text-green-400 font-medium">{formatPrice(value)}</span>
     },
     { 
       id: 'discount_amount', 
@@ -710,7 +712,7 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       width: 120,
       render: (value: any, item: any) => {
         const total = (item.quantity * item.unit_purchase_price) - (item.discount_amount || 0)
-        return <span className="text-green-400 font-bold">EGP {total.toFixed(2)}</span>
+        return <span className="text-green-400 font-bold">{formatPrice(total)}</span>
       }
     },
     { 
@@ -873,7 +875,7 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
                 {/* Supplier Balance */}
                 <div className="p-4 border-b border-gray-600">
                   <div className="bg-blue-600 rounded p-4 text-center">
-                    <div className="text-2xl font-bold text-white">EGP 190,322.00</div>
+                    <div className="text-2xl font-bold text-white">{formatPrice(190322)}</div>
                     <div className="text-blue-200 text-sm">رصيد المورد</div>
                   </div>
                 </div>
@@ -925,11 +927,11 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
                     <span className="text-gray-400 text-sm">عدد الفواتير</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-green-400">EGP 3,322.00</span>
+                    <span className="text-green-400">{formatPrice(3322)}</span>
                     <span className="text-gray-400 text-sm">إجمالي المشتريات</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-blue-400">EGP 664.40</span>
+                    <span className="text-blue-400">{formatPrice(664.40)}</span>
                     <span className="text-gray-400 text-sm">متوسط قيمة الطلبية</span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -990,7 +992,7 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
                     <div className="bg-[#2B3544] border-b border-gray-600 p-4">
                       <div className="flex items-center justify-between">
                         <div className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
-                          دائن EGP 190,322.00
+                          دائن {formatPrice(190322)}
                         </div>
                         <div className="text-white text-lg font-medium">كشف حساب المورد</div>
                       </div>
@@ -1095,7 +1097,7 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
                         </div>
                         <div className="text-right">
                           <div className="text-white text-lg font-medium">دفعات المورد</div>
-                          <div className="text-gray-400 text-sm mt-1">إجمالي الدفعات: EGP 13,000.00</div>
+                          <div className="text-gray-400 text-sm mt-1">إجمالي الدفعات: {formatPrice(13000)}</div>
                         </div>
                       </div>
                     </div>

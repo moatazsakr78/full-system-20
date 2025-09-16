@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useFormatPrice } from '@/lib/hooks/useCurrency';
 
 // Order status type
 type OrderStatus = 'pending' | 'processing' | 'ready_for_pickup' | 'ready_for_shipping' | 'shipped' | 'delivered' | 'cancelled' | 'issue';
@@ -54,6 +55,7 @@ const statusColors: Record<OrderStatus, string> = {
 
 export default function OrdersPage() {
   const router = useRouter();
+  const formatPrice = useFormatPrice();
   const [activeTab, setActiveTab] = useState<'completed' | 'pending'>('completed');
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
@@ -455,18 +457,18 @@ export default function OrdersPage() {
                         {order.subtotal && (
                           <div className="flex justify-between">
                             <span className="text-gray-600">مبلغ الفاتورة:</span>
-                            <span className="text-gray-800 font-medium">{order.subtotal.toFixed(2)} ريال</span>
+                            <span className="text-gray-800 font-medium">{formatPrice(order.subtotal)}</span>
                           </div>
                         )}
                         {order.shipping && (
                           <div className="flex justify-between">
                             <span className="text-gray-600">الشحن:</span>
-                            <span className="text-gray-800 font-medium">{order.shipping.toFixed(2)} ريال</span>
+                            <span className="text-gray-800 font-medium">{formatPrice(order.shipping)}</span>
                           </div>
                         )}
                         <div className="flex justify-between font-semibold text-base pt-1 border-t border-gray-200">
                           <span className="text-gray-800">الإجمالي:</span>
-                          <span className="text-gray-800">{order.total.toFixed(2)} ريال</span>
+                          <span className="text-gray-800">{formatPrice(order.total)}</span>
                         </div>
                       </div>
                     </div>
@@ -506,18 +508,18 @@ export default function OrdersPage() {
                             {order.subtotal && (
                               <div className="flex justify-between items-center gap-4">
                                 <span className="text-gray-600 text-base">مبلغ الفاتورة:</span>
-                                <span className="text-gray-800 font-medium whitespace-nowrap text-base">{order.subtotal.toFixed(2)} ريال</span>
+                                <span className="text-gray-800 font-medium whitespace-nowrap text-base">{formatPrice(order.subtotal)}</span>
                               </div>
                             )}
                             {order.shipping && (
                               <div className="flex justify-between items-center gap-4">
                                 <span className="text-gray-600 text-base">الشحن:</span>
-                                <span className="text-gray-800 font-medium whitespace-nowrap text-base">{order.shipping.toFixed(2)} ريال</span>
+                                <span className="text-gray-800 font-medium whitespace-nowrap text-base">{formatPrice(order.shipping)}</span>
                               </div>
                             )}
                             <div className="flex justify-between items-center gap-4 font-semibold text-lg pt-2 border-t border-gray-200">
                               <span className="text-gray-800">المبلغ الإجمالي:</span>
-                              <span className="text-gray-800 whitespace-nowrap">{order.total.toFixed(2)} ريال</span>
+                              <span className="text-gray-800 whitespace-nowrap">{formatPrice(order.total)}</span>
                             </div>
                           </div>
                         </div>
@@ -558,7 +560,7 @@ export default function OrdersPage() {
                                   <div className="space-y-1">
                                     <div className="flex justify-between items-center">
                                       <span className="text-xs text-gray-600">السعر:</span>
-                                      <span className="text-sm font-medium text-gray-800">{item.price?.toFixed(2) || '0'} ريال</span>
+                                      <span className="text-sm font-medium text-gray-800">{formatPrice(item.price || 0)}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                       <span className="text-xs text-gray-600">الكمية:</span>
@@ -567,7 +569,7 @@ export default function OrdersPage() {
                                     <div className="flex justify-between items-center border-t border-gray-200 pt-1">
                                       <span className="text-xs text-gray-800 font-medium">الإجمالي:</span>
                                       <span className="text-sm font-bold text-gray-800">
-                                        {((item.quantity * (item.price || 0))).toFixed(2)} ريال
+                                        {formatPrice(item.quantity * (item.price || 0))}
                                       </span>
                                     </div>
                                   </div>
@@ -614,7 +616,7 @@ export default function OrdersPage() {
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                       <span className="text-base font-medium text-gray-800">
-                                        {item.price?.toFixed(2) || '0.00'} ريال
+                                        {formatPrice(item.price || 0)}
                                       </span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
@@ -624,7 +626,7 @@ export default function OrdersPage() {
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                       <span className="text-base font-bold text-gray-800">
-                                        {((item.quantity * (item.price || 0))).toFixed(2)} ريال
+                                        {formatPrice(item.quantity * (item.price || 0))}
                                       </span>
                                     </td>
                                     <td className="px-6 py-4 text-center text-base text-gray-600">-</td>
@@ -670,7 +672,7 @@ export default function OrdersPage() {
                                   </td>
                                   <td className="px-4 py-3 text-center">
                                     <span className="text-sm font-medium text-gray-800 whitespace-nowrap">
-                                      {item.price?.toFixed(2) || '0.00'} ريال
+                                      {formatPrice(item.price || 0)}
                                     </span>
                                   </td>
                                   <td className="px-4 py-3 text-center">
@@ -680,7 +682,7 @@ export default function OrdersPage() {
                                   </td>
                                   <td className="px-4 py-3 text-center">
                                     <span className="text-sm font-bold text-gray-800 whitespace-nowrap">
-                                      {((item.quantity * (item.price || 0))).toFixed(2)} ريال
+                                      {formatPrice(item.quantity * (item.price || 0))}
                                     </span>
                                   </td>
                                 </tr>

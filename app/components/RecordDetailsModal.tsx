@@ -6,6 +6,7 @@ import ResizableTable from './tables/ResizableTable'
 import { supabase } from '../lib/supabase/client'
 import ConfirmDeleteModal from './ConfirmDeleteModal'
 import SimpleDateFilterModal, { DateFilter } from './SimpleDateFilterModal'
+import { useFormatPrice } from '@/lib/hooks/useCurrency'
 
 interface RecordDetailsModalProps {
   isOpen: boolean
@@ -16,6 +17,7 @@ interface RecordDetailsModalProps {
 type ViewMode = 'split' | 'records-only' | 'details-only'
 
 export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDetailsModalProps) {
+  const formatPrice = useFormatPrice();
   const [selectedTransaction, setSelectedTransaction] = useState(0) // First row selected (index 0)
   const [showRecordDetails, setShowRecordDetails] = useState(true)
   const [activeTab, setActiveTab] = useState('transactions') // 'transactions', 'payments', 'statement'
@@ -540,8 +542,8 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       time: '07:46 AM',
       description: 'REC-175254784358 قيد محاسبي',
       type: 'قيد محاسبي',
-      amount: 'EGP 1,677.00+',
-      balance: 'EGP 190,322.00'
+      amount: `${formatPrice(1677)}+`,
+      balance: formatPrice(190322)
     },
     {
       id: 2,
@@ -549,8 +551,8 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       time: '01:22 AM',
       description: 'تحويل داخلي',
       type: 'تحويل',
-      amount: 'EGP 6,000.00-',
-      balance: 'EGP 188,645.00'
+      amount: `${formatPrice(6000)}-`,
+      balance: formatPrice(188645)
     },
     {
       id: 3,
@@ -558,8 +560,8 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       time: '04:44 AM',
       description: 'REC-175142668178 قيد محاسبي',
       type: 'قيد محاسبي',
-      amount: 'EGP 210.00+',
-      balance: 'EGP 194,645.00'
+      amount: `${formatPrice(210)}+`,
+      balance: formatPrice(194645)
     },
     {
       id: 4,
@@ -567,8 +569,8 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       time: '12:33 AM',
       description: 'تسوية حسابية',
       type: 'تسوية',
-      amount: 'EGP 7,000.00-',
-      balance: 'EGP 194,435.00'
+      amount: `${formatPrice(7000)}-`,
+      balance: formatPrice(194435)
     },
     {
       id: 5,
@@ -576,8 +578,8 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       time: '06:05 PM',
       description: 'REC-175120953803 قيد محاسبي',
       type: 'قيد محاسبي',
-      amount: 'EGP 850.00+',
-      balance: 'EGP 201,435.00'
+      amount: `${formatPrice(850)}+`,
+      balance: formatPrice(201435)
     },
     {
       id: 6,
@@ -585,8 +587,8 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       time: '05:42 PM',
       description: 'REC-175120816250 قيد محاسبي',
       type: 'قيد محاسبي',
-      amount: 'EGP 100.00+',
-      balance: 'EGP 200,585.00'
+      amount: `${formatPrice(100)}+`,
+      balance: formatPrice(200585)
     },
     {
       id: 7,
@@ -594,8 +596,8 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       time: '11:23 PM',
       description: 'REC-175114219445 قيد محاسبي',
       type: 'قيد محاسبي',
-      amount: 'EGP 485.00+',
-      balance: 'EGP 200,485.00'
+      amount: `${formatPrice(485)}+`,
+      balance: formatPrice(200485)
     },
     {
       id: 8,
@@ -603,8 +605,8 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       time: '04:35 PM',
       description: 'الرصيد الأولي',
       type: 'رصيد أولي',
-      amount: 'EGP 200,000.00+',
-      balance: 'EGP 200,000.00'
+      amount: `${formatPrice(200000)}+`,
+      balance: formatPrice(200000)
     }
   ]
 
@@ -614,14 +616,14 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       id: 1,
       date: '7/2/2025',
       time: '01:22 AM',
-      amount: 'EGP 6,000.00',
+      amount: formatPrice(6000),
       notes: 'تحويل داخلي'
     },
     {
       id: 2,
       date: '6/29/2025', 
       time: '12:33 AM',
-      amount: 'EGP 7,000.00',
+      amount: formatPrice(7000),
       notes: 'تسوية حسابية'
     }
   ]
@@ -634,7 +636,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       date: 'July 15, 2025',
       day: 'الثلاثاء',
       barcode: '1234567890123',
-      totalAmount: 'EGP 1,677.00',
+      totalAmount: formatPrice(1677),
       paymentMethod: 'نقدي',
       invoiceType: 'بيع',
       notes: 'فاتورة عادية',
@@ -647,7 +649,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       date: 'July 2, 2025', 
       day: 'الأربعاء',
       barcode: '1234567890124',
-      totalAmount: 'EGP 210.00',
+      totalAmount: formatPrice(210),
       paymentMethod: 'فيزا',
       invoiceType: 'بيع',
       notes: '',
@@ -660,7 +662,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       date: 'June 29, 2025',
       day: 'الأحد', 
       barcode: '1234567890125',
-      totalAmount: 'EGP 850.00',
+      totalAmount: formatPrice(850),
       paymentMethod: 'نقدي',
       invoiceType: 'بيع',
       notes: 'عميل VIP',
@@ -673,7 +675,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       date: 'June 29, 2025',
       day: 'الأحد',
       barcode: '1234567890126',
-      totalAmount: 'EGP -100.00',
+      totalAmount: `-${formatPrice(100)}`,
       paymentMethod: 'نقدي',
       invoiceType: 'مرتجع',
       notes: 'مرتجع معيب',
@@ -686,7 +688,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       date: 'June 28, 2025',
       day: 'السبت',
       barcode: '1234567890127',
-      totalAmount: 'EGP 485.00', 
+      totalAmount: formatPrice(485), 
       paymentMethod: 'ماستركارد',
       invoiceType: 'بيع',
       notes: '',
@@ -1259,7 +1261,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
                 {/* Record Balance */}
                 <div className="p-4 border-b border-gray-600">
                   <div className="bg-purple-600 rounded p-4 text-center">
-                    <div className="text-2xl font-bold text-white">EGP 190,322.00</div>
+                    <div className="text-2xl font-bold text-white">{formatPrice(190322)}</div>
                     <div className="text-purple-200 text-sm">رصيد السجل</div>
                   </div>
                 </div>
@@ -1314,11 +1316,11 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
                     <span className="text-gray-400 text-sm">عدد المعاملات</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-green-400">EGP 3,322.00</span>
+                    <span className="text-green-400">{formatPrice(3322)}</span>
                     <span className="text-gray-400 text-sm">إجمالي المدين</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-red-400">EGP 2,658.00</span>
+                    <span className="text-red-400">{formatPrice(2658)}</span>
                     <span className="text-gray-400 text-sm">إجمالي الدائن</span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -1379,7 +1381,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
                     <div className="bg-[#2B3544] border-b border-gray-600 p-4">
                       <div className="flex items-center justify-between">
                         <div className="bg-purple-600 text-white px-4 py-2 rounded text-sm font-medium">
-                          رصيد EGP 190,322.00
+                          رصيد {formatPrice(190322)}
                         </div>
                         <div className="text-white text-lg font-medium">كشف حساب السجل</div>
                       </div>
@@ -1484,7 +1486,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
                         </div>
                         <div className="text-right">
                           <div className="text-white text-lg font-medium">تحويلات السجل</div>
-                          <div className="text-gray-400 text-sm mt-1">إجمالي التحويلات: EGP 13,000.00</div>
+                          <div className="text-gray-400 text-sm mt-1">إجمالي التحويلات: {formatPrice(13000)}</div>
                         </div>
                       </div>
                     </div>

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useOptimisticCart } from '../../lib/optimistic-ui';
 import { Product, ProductColor } from '../../components/website/shared/types';
 import { supabase } from '../lib/supabase/client';
+import { useFormatPrice } from '@/lib/hooks/useCurrency';
 
 interface DatabaseProduct {
   id: string;
@@ -191,14 +192,15 @@ interface ProductDetailsModalProps {
   onUpdateCart: (updatedCart: Product[]) => void;
 }
 
-export default function ProductDetailsModal({ 
-  isOpen, 
-  onClose, 
-  productId, 
-  userCart, 
-  onUpdateCart 
+export default function ProductDetailsModal({
+  isOpen,
+  onClose,
+  productId,
+  userCart,
+  onUpdateCart
 }: ProductDetailsModalProps) {
   const router = useRouter();
+  const formatPrice = useFormatPrice();
   const [productDetails, setProductDetails] = useState<ProductDetail | null>(null);
   const [suggestedProductsList, setSuggestedProductsList] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -330,7 +332,7 @@ export default function ProductDetailsModal({
             'الوحدة': product.unit || 'قطعة',
             'المخزون': product.stock?.toString() || '0',
             'الحد الأدنى للمخزون': product.min_stock?.toString() || '0',
-            'سعر الجملة': product.wholesale_price ? `${product.wholesale_price} ريال` : 'غير محدد'
+            'سعر الجملة': product.wholesale_price ? formatPrice(product.wholesale_price) : 'غير محدد'
           },
           colors: colorVariants?.map(variant => ({
             id: variant.id,
@@ -584,9 +586,9 @@ export default function ProductDetailsModal({
 
             {/* Price */}
             <div className="flex items-center gap-4">
-              <span className="text-3xl font-bold" style={{color: '#5D1F1F'}}>{productDetails.price} ريال</span>
+              <span className="text-3xl font-bold" style={{color: '#5D1F1F'}}>{formatPrice(productDetails.price)}</span>
               {productDetails.originalPrice && (
-                <span className="text-xl text-gray-500 line-through">{productDetails.originalPrice} ريال</span>
+                <span className="text-xl text-gray-500 line-through">{formatPrice(productDetails.originalPrice)}</span>
               )}
               {productDetails.isOnSale && (
                 <span className="px-3 py-1 rounded-full text-sm font-bold" style={{backgroundColor: '#F5F1F1', color: '#5D1F1F'}}>
@@ -847,9 +849,9 @@ export default function ProductDetailsModal({
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           {product.originalPrice && (
-                            <span className="text-sm text-gray-500 line-through">{product.originalPrice} ريال</span>
+                            <span className="text-sm text-gray-500 line-through">{formatPrice(product.originalPrice)}</span>
                           )}
-                          <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>{product.price} ريال</span>
+                          <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>{formatPrice(product.price)}</span>
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
