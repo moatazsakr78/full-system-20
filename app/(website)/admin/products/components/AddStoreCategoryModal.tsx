@@ -82,8 +82,10 @@ export default function AddStoreCategoryModal({
         setSearchTerm('');
         setSelectAll(false);
 
-        // Load category products
-        loadCategoryProducts(editingCategory.id);
+        // Load category products only for existing categories
+        if (editingCategory.id) {
+          loadCategoryProducts(editingCategory.id);
+        }
       } else {
         // Reset for new category
         setCategoryName('');
@@ -291,7 +293,10 @@ export default function AddStoreCategoryModal({
               <div className="p-4 bg-white border-b border-gray-300 flex-shrink-0">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-bold text-gray-800">
-                    تصفح المنتجات لفئة &quot;{categoryName}&quot;
+                    {editingCategory
+                      ? `تصفح المنتجات لفئة "${categoryName}"`
+                      : `تصفح المنتجات للفئة الجديدة${categoryName ? ` "${categoryName}"` : ''}`
+                    }
                   </h3>
                   <button
                     onClick={() => setIsBrowseMode(false)}
@@ -347,7 +352,7 @@ export default function AddStoreCategoryModal({
                   WebkitScrollbar: { display: 'none' }
                 }}
               >
-                {isLoadingCategoryProducts ? (
+                {isLoadingCategoryProducts && editingCategory ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
                     <span className="mr-3 text-gray-500">جاري تحميل المنتجات...</span>
@@ -411,7 +416,7 @@ export default function AddStoreCategoryModal({
                   </div>
                 )}
 
-                {!isLoadingCategoryProducts && filteredProducts.length === 0 && (
+                {(!isLoadingCategoryProducts || !editingCategory) && filteredProducts.length === 0 && (
                   <div className="text-center py-12 text-gray-500">
                     <svg className="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -601,7 +606,7 @@ export default function AddStoreCategoryModal({
 
               {/* Products List */}
               <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                {isLoadingCategoryProducts ? (
+                {isLoadingCategoryProducts && editingCategory ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
                     <span className="mr-3 text-gray-500">جاري تحميل منتجات الفئة...</span>
@@ -644,7 +649,7 @@ export default function AddStoreCategoryModal({
                   </div>
                 ))}
 
-                {!isLoadingCategoryProducts && filteredProducts.length === 0 && (
+                {(!isLoadingCategoryProducts || !editingCategory) && filteredProducts.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -675,8 +680,8 @@ export default function AddStoreCategoryModal({
               إلغاء
             </button>
 
-            {/* Browse button - only show for editing categories */}
-            {editingCategory && !isBrowseMode && (
+            {/* Browse button - show for both new and editing categories */}
+            {!isBrowseMode && (
               <button
                 onClick={() => setIsBrowseMode(true)}
                 className="px-4 py-2 text-blue-600 hover:text-blue-800 font-medium border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-2"
