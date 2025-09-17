@@ -550,38 +550,42 @@ export default function MobileHome({
           </div>
         </section>
 
-        {/* Featured Products - Horizontal Scroll */}
-        <section className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-black">المنتجات المميزة</h3>
-          </div>
-          
-          {featuredProducts.length > 0 ? (
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {featuredProducts.map((product) => (
-                <div key={product.id} className="flex-shrink-0 w-44">
-                  <InteractiveProductCard
-                    product={product}
-                    onAddToCart={handleAddToCart}
-                    deviceType="mobile"
-                    onProductClick={handleProductClick}
-                  />
-                </div>
-              ))}
+        {/* Featured Products - Only show when no specific category is selected */}
+        {selectedCategory === 'الكل' && (
+          <section className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-black">المنتجات المميزة</h3>
             </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="text-gray-400 text-lg mb-2">⭐</div>
-              <p className="text-gray-500">لا توجد منتجات مميزة حالياً</p>
-              <p className="text-gray-400 text-sm">يمكنك إضافة منتجات مميزة من لوحة إدارة المنتجات</p>
-            </div>
-          )}
-        </section>
+
+            {featuredProducts.length > 0 ? (
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {featuredProducts.map((product) => (
+                  <div key={product.id} className="flex-shrink-0 w-44">
+                    <InteractiveProductCard
+                      product={product}
+                      onAddToCart={handleAddToCart}
+                      deviceType="mobile"
+                      onProductClick={handleProductClick}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-lg mb-2">⭐</div>
+                <p className="text-gray-500">لا توجد منتجات مميزة حالياً</p>
+                <p className="text-gray-400 text-sm">يمكنك إضافة منتجات مميزة من لوحة إدارة المنتجات</p>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* All Products */}
         <section id="products" className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-black">جميع المنتجات</h3>
+            <h3 className="text-xl font-bold text-black">
+              {selectedCategory === 'الكل' ? 'جميع المنتجات' : selectedCategory}
+            </h3>
           </div>
           
           <div className="grid grid-cols-2 gap-3">

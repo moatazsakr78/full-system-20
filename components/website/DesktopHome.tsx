@@ -427,24 +427,26 @@ export default function DesktopHome({
       {/* Desktop Main Content */}
       <main className="max-w-[80%] mx-auto px-4 py-8">
 
-        {/* Featured Products */}
-        <section className="mb-8">
-          <h3 className="text-3xl font-bold mb-6 text-black">المنتجات المميزة</h3>
-          {featuredProducts.length > 0 ? (
-            <FeaturedProductsCarousel
-              products={featuredProducts}
-              onAddToCart={handleAddToCart}
-              itemsPerView={4}
-              onProductClick={handleProductClick}
-            />
-          ) : (
-            <div className="text-center py-12">
-              <div className="text-gray-400 text-lg mb-2">⭐</div>
-              <p className="text-gray-500">لا توجد منتجات مميزة حالياً</p>
-              <p className="text-gray-400 text-sm">يمكنك إضافة منتجات مميزة من لوحة إدارة المنتجات</p>
-            </div>
-          )}
-        </section>
+        {/* Featured Products - Only show when no specific category is selected */}
+        {selectedCategory === 'الكل' && (
+          <section className="mb-8">
+            <h3 className="text-3xl font-bold mb-6 text-black">المنتجات المميزة</h3>
+            {featuredProducts.length > 0 ? (
+              <FeaturedProductsCarousel
+                products={featuredProducts}
+                onAddToCart={handleAddToCart}
+                itemsPerView={4}
+                onProductClick={handleProductClick}
+              />
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-lg mb-2">⭐</div>
+                <p className="text-gray-500">لا توجد منتجات مميزة حالياً</p>
+                <p className="text-gray-400 text-sm">يمكنك إضافة منتجات مميزة من لوحة إدارة المنتجات</p>
+              </div>
+            )}
+          </section>
+        )}
 
 
         {/* Categories Section */}
@@ -459,7 +461,9 @@ export default function DesktopHome({
 
         {/* All Products */}
         <section id="products" className="mb-8">
-          <h3 className="text-3xl font-bold mb-6 text-black">جميع المنتجات</h3>
+          <h3 className="text-3xl font-bold mb-6 text-black">
+            {selectedCategory === 'الكل' ? 'جميع المنتجات' : selectedCategory}
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {filteredProducts.map((product) => (
               <InteractiveProductCard

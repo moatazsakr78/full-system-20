@@ -468,34 +468,38 @@ export default function TabletHome({
           </div>
         </section>
 
-        {/* Featured Products - Horizontal Scroll */}
-        <section className="mb-7">
-          <h3 className="text-3xl font-bold mb-5 text-black">المنتجات المميزة</h3>
-          {featuredProducts.length > 0 ? (
-            <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
-              {featuredProducts.map((product) => (
-                <div key={product.id} className="flex-shrink-0 w-64">
-                  <InteractiveProductCard
-                    product={product}
-                    onAddToCart={handleAddToCart}
-                    deviceType="tablet"
-                    onProductClick={handleProductClick}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <div className="text-gray-400 text-lg mb-2">⭐</div>
-              <p className="text-gray-500">لا توجد منتجات مميزة حالياً</p>
-              <p className="text-gray-400 text-sm">يمكنك إضافة منتجات مميزة من لوحة إدارة المنتجات</p>
-            </div>
-          )}
-        </section>
+        {/* Featured Products - Only show when no specific category is selected */}
+        {selectedCategory === 'الكل' && (
+          <section className="mb-7">
+            <h3 className="text-3xl font-bold mb-5 text-black">المنتجات المميزة</h3>
+            {featuredProducts.length > 0 ? (
+              <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
+                {featuredProducts.map((product) => (
+                  <div key={product.id} className="flex-shrink-0 w-64">
+                    <InteractiveProductCard
+                      product={product}
+                      onAddToCart={handleAddToCart}
+                      deviceType="tablet"
+                      onProductClick={handleProductClick}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-lg mb-2">⭐</div>
+                <p className="text-gray-500">لا توجد منتجات مميزة حالياً</p>
+                <p className="text-gray-400 text-sm">يمكنك إضافة منتجات مميزة من لوحة إدارة المنتجات</p>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* All Products */}
         <section id="products" className="mb-7">
-          <h3 className="text-3xl font-bold mb-5 text-black">جميع المنتجات</h3>
+          <h3 className="text-3xl font-bold mb-5 text-black">
+            {selectedCategory === 'الكل' ? 'جميع المنتجات' : selectedCategory}
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {filteredProducts.map((product) => (
               <InteractiveProductCard

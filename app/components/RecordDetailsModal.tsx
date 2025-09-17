@@ -899,7 +899,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       header: 'المبلغ الإجمالي', 
       accessor: 'total_amount', 
       width: 150,
-      render: (value: number) => <span className="text-green-400 font-medium">{value.toFixed(2)} ريال</span>
+      render: (value: number) => <span className="text-green-400 font-medium">{formatPrice(value, 'system')}</span>
     },
     { 
       id: 'payment_method', 
