@@ -116,30 +116,11 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
                   </div>
                 </button>
 
-                {/* Manage Products */}
-                <button
-                  onClick={() => {
-                    // Handle Manage Products navigation for admin
-                    window.location.href = '/admin/products';
-                    onClose();
-                  }}
-                  className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
-                >
-                  <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
-                    <CubeIcon className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="flex-1 text-right">
-                    <h3 className="font-semibold text-base text-black">إدارة المنتجات</h3>
-                    <p className="text-xs text-gray-600">إضافة وتعديل وحذف المنتجات</p>
-                  </div>
-                </button>
-
-
                 {/* Store Management */}
                 <button
                   onClick={() => {
-                    // Handle Store Management navigation for admin
-                    alert('سيتم إضافة صفحة إدارة المتجر قريباً');
+                    // Navigate to admin products page for store management
+                    window.location.href = '/admin/products';
                     onClose();
                   }}
                   className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
@@ -149,7 +130,7 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
                   </div>
                   <div className="flex-1 text-right">
                     <h3 className="font-semibold text-base text-black">إدارة المتجر</h3>
-                    <p className="text-xs text-gray-600">إعدادات وإدارة المتجر العامة</p>
+                    <p className="text-xs text-gray-600">إدارة المنتجات والفئات وإعدادات المتجر</p>
                   </div>
                 </button>
 
