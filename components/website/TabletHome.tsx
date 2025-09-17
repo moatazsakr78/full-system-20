@@ -473,20 +473,26 @@ export default function TabletHome({
           <h3 className="text-3xl font-bold mb-5 text-black">فئات المنتجات</h3>
           <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
             {categories.slice(0, 8).map((category) => (
-              <div 
-                key={category.id} 
-                className="bg-white p-4 rounded-lg text-center hover:shadow-lg transition-all duration-200 border border-gray-200 group flex-shrink-0 w-40"
+              <div
+                key={category.id}
+                className="bg-white rounded-lg text-center hover:shadow-lg transition-all duration-200 border border-gray-200 group flex-shrink-0 w-48 overflow-hidden"
                 onClick={() => setSelectedCategory(category.name)}
+                style={{ height: '200px' }} // زيادة الارتفاع أكثر للجهاز اللوحي
               >
-                <div className="mb-4">
-                  <img 
-                    src={category.image} 
-                    alt={category.name} 
-                    className="w-full h-24 object-cover rounded-lg"
-                  />
+                <div className="h-full flex flex-col">
+                  {/* الصورة تملأ معظم المكون */}
+                  <div className="flex-1 overflow-hidden">
+                    <img
+                      src={category.image}
+                      alt={category.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  {/* منطقة صغيرة للنص في الأسفل */}
+                  <div className="bg-white p-3 border-t border-gray-100">
+                    <h4 className="font-semibold text-sm text-gray-800 group-hover:text-red-500 transition-colors truncate">{category.name}</h4>
+                  </div>
                 </div>
-                <h4 className="font-semibold text-base text-gray-800 group-hover:text-red-500 transition-colors truncate">{category.name}</h4>
-                <p className="text-sm text-gray-500 mt-1">{category.productCount} منتج</p>
               </div>
             ))}
           </div>

@@ -81,39 +81,39 @@ export default function CategoryCarousel({
       <div className="mx-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {visibleCategories.map((category, index) => (
-            <div 
-              key={category.id} 
-              className="bg-custom-gray rounded-lg p-6 hover:bg-gray-300 transition-all duration-300 border border-gray-300 shadow-md cursor-pointer group transform hover:scale-105 hover:shadow-xl"
+            <div
+              key={category.id}
+              className="bg-white rounded-lg hover:bg-gray-50 transition-all duration-300 border border-gray-300 shadow-md cursor-pointer group transform hover:scale-105 hover:shadow-xl overflow-hidden"
               onClick={() => handleCategoryClick(category)}
               style={{
                 animationName: 'fadeInUp',
                 animationDuration: '0.6s',
                 animationTimingFunction: 'ease-out',
                 animationDelay: `${index * 0.1}s`,
-                animationFillMode: 'both'
+                animationFillMode: 'both',
+                height: '280px' // تكبير الارتفاع طولياً
               }}
             >
-              <div className="relative mb-4">
-                <img 
-                  src={category.image || '/placeholder-category.jpg'} 
-                  alt={category.name} 
-                  className="w-full h-40 object-cover rounded-lg group-hover:scale-110 transition-transform duration-500"
-                />
-                {category.icon && (
-                  <div className="absolute inset-0 bg-black bg-opacity-20 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <span className="text-4xl">{category.icon}</span>
-                  </div>
-                )}
-              </div>
-              <div className="text-center">
-                <h4 className="font-bold text-lg mb-2 text-gray-800 transition-colors group-hover:text-[#5D1F1F]">
-                  {category.name}
-                </h4>
-                {category.productCount !== undefined && (
-                  <p className="text-gray-600 text-sm">
-                    {category.productCount} منتج
-                  </p>
-                )}
+              <div className="relative h-full flex flex-col">
+                {/* الصورة تملأ معظم المكون */}
+                <div className="flex-1 relative overflow-hidden">
+                  <img
+                    src={category.image || '/placeholder-category.jpg'}
+                    alt={category.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  {category.icon && (
+                    <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <span className="text-4xl">{category.icon}</span>
+                    </div>
+                  )}
+                </div>
+                {/* منطقة صغيرة للنص في الأسفل */}
+                <div className="bg-white p-3 text-center border-t border-gray-100">
+                  <h4 className="font-bold text-base text-gray-800 transition-colors group-hover:text-[#5D1F1F] truncate">
+                    {category.name}
+                  </h4>
+                </div>
               </div>
             </div>
           ))}
