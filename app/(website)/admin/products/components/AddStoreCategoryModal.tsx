@@ -349,8 +349,8 @@ export default function AddStoreCategoryModal({
                 style={{
                   scrollbarWidth: 'none',
                   msOverflowStyle: 'none',
-                  WebkitScrollbar: { display: 'none' }
-                }}
+                  WebkitScrollbar: 'none'
+                } as React.CSSProperties}
               >
                 {isLoadingCategoryProducts && editingCategory ? (
                   <div className="flex items-center justify-center py-12">
