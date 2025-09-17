@@ -110,7 +110,7 @@ function SortableCategoryCard({ category, index, onToggleVisibility, isDragging 
         <CategoryImage
           src={category.image}
           alt={category.name}
-          className="w-full h-24 object-cover rounded-lg"
+          className="w-full h-48 object-cover rounded-lg"
         />
       </div>
 
@@ -173,7 +173,7 @@ function CategoryCard({ category, index, onToggleVisibility }: { category: Categ
         <CategoryImage
           src={category.image}
           alt={category.name}
-          className="w-full h-24 object-cover rounded-lg"
+          className="w-full h-48 object-cover rounded-lg"
         />
       </div>
 

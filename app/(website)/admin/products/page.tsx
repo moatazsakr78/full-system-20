@@ -418,9 +418,9 @@ export default function ProductManagementPage() {
   }
 
   return (
-    <div className="min-h-screen text-gray-800" style={{backgroundColor: '#c0c0c0'}}>
-      {/* Header */}
-      <header className="border-b border-gray-700 py-1" style={{backgroundColor: '#5d1f1f'}}>
+    <div className="h-screen flex flex-col text-gray-800" style={{backgroundColor: '#c0c0c0'}}>
+      {/* Header - Fixed */}
+      <header className="flex-shrink-0 border-b border-gray-700 py-1" style={{backgroundColor: '#5d1f1f'}}>
         <div className="w-full px-6 flex items-center justify-between">
           {/* Right side - Title and Action buttons */}
           <div className="flex items-center gap-1">
@@ -515,9 +515,11 @@ export default function ProductManagementPage() {
         </div>
       </header>
 
-      {/* Save Changes Bar */}
-      {hasUnsavedChanges && (
-        <div className="sticky top-0 z-40 bg-amber-50 border-b-2 border-amber-200 px-6 py-3">
+      {/* Main Content Container - Flex */}
+      <div className="flex-1 flex min-h-0">
+        {/* Save Changes Bar - Fixed at Bottom */}
+        {hasUnsavedChanges && (
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-amber-50 border-t-2 border-amber-200 px-6 py-3" style={{marginRight: '320px'}}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse"></div>
@@ -566,13 +568,12 @@ export default function ProductManagementPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+          </div>
+        )}
 
-      {/* Main Content */}
-      <div className="flex min-h-screen">
-        {/* Control Panel - Right Side */}
-        <div className="w-80 bg-white border-l border-gray-300 p-6">
+        {/* Sidebar - Fixed */}
+        <div className="flex-shrink-0 w-80 bg-white border-l border-gray-300 flex flex-col">
+          <div className="flex-1 overflow-y-auto scrollbar-hide p-6">
           <div className="mb-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4">لوحة التحكم</h2>
             
@@ -644,10 +645,12 @@ export default function ProductManagementPage() {
               </button>
             </div>
           </div>
+          </div>
         </div>
 
-        {/* Products Content - Left Side */}
-        <main className="flex-1 p-6">
+        {/* Products Content - Scrollable Main Area */}
+        <main className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto scrollbar-hide p-6">
           {/* Search and View Controls Bar */}
           <div className="bg-white border border-gray-300 rounded-lg py-3 px-4 mb-6">
             <div className="flex items-center justify-between gap-4">
@@ -755,29 +758,6 @@ export default function ProductManagementPage() {
               />
             </DragDropProvider>
           )}
-          
-          {/* Instructions */}
-          <div className="mt-8">
-            <div className="bg-white rounded-lg p-6 border border-gray-300 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">تعليمات الاستخدام:</h3>
-              {managementMode === 'products' ? (
-                <ul className="list-disc pr-5 space-y-2 text-gray-600">
-                  <li><strong>تبديل المراكز:</strong> اضغط على زر &quot;تبديل المراكز&quot; لتفعيل خاصية السحب والإفلات، ثم اسحب المنتجات لإعادة ترتيبها</li>
-                  <li><strong>إخفاء/إظهار:</strong> استخدم مفتاح &quot;مخفي من المتجر&quot; لإخفاء أو إظهار المنتج في الموقع</li>
-                  <li><strong>المنتجات المميزة:</strong> فعل مفتاح &quot;منتج مميز&quot; لإضافة المنتج لقسم المنتجات المميزة</li>
-                  <li><strong>المنتجات المقترحة:</strong> اضغط على &quot;إدارة المقترحات&quot; لتحديد المنتجات التي ستظهر كمقترحات مع هذا المنتج</li>
-                  <li><strong>⚠️ مهم:</strong> جميع التغييرات تتطلب الضغط على زر &quot;حفظ التغييرات&quot; لتطبيقها على المتجر</li>
-                </ul>
-              ) : (
-                <ul className="list-disc pr-5 space-y-2 text-gray-600">
-                  <li><strong>تبديل المراكز:</strong> اضغط على زر &quot;تبديل المراكز&quot; لتفعيل خاصية السحب والإفلات، ثم اسحب الفئات لإعادة ترتيبها</li>
-                  <li><strong>إخفاء/إظهار:</strong> استخدم مفتاح التبديل لإخفاء أو إظهار الفئة في الموقع</li>
-                  <li><strong>ترتيب الفئات:</strong> يتم عرض الفئات حسب الترتيب المحدد، ويمكن إعادة ترتيبها بالسحب والإفلات</li>
-                  <li><strong>ألوان الفئات:</strong> كل فئة لها لون مميز يساعد في التنظيم والعرض</li>
-                  <li><strong>⚠️ مهم:</strong> جميع التغييرات تتطلب الضغط على زر &quot;حفظ التغييرات&quot; لتطبيقها على المتجر</li>
-                </ul>
-              )}
-            </div>
           </div>
         </main>
       </div>

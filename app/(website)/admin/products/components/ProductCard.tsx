@@ -72,10 +72,10 @@ export default function ProductCard({
 
       {/* Product Image */}
       <div className="relative mb-3">
-        <img 
-          src={product.image} 
-          alt={product.name} 
-          className="w-full h-48 object-cover rounded-lg"
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-full h-60 object-cover rounded-lg"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             if (target.src !== '/placeholder-product.svg') {
