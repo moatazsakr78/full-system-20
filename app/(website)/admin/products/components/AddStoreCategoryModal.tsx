@@ -297,10 +297,10 @@ export default function AddStoreCategoryModal({
           </div>
 
           {/* Products Selection Section */}
-          <div className="flex-1 flex flex-col bg-gray-50">
+          <div className="flex-1 flex flex-col bg-gray-50 min-h-0">
 
             {/* Products Header */}
-            <div className="p-4 bg-white border-b border-gray-300">
+            <div className="p-4 bg-white border-b border-gray-300 flex-shrink-0">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold text-gray-800">
                   اختر المنتجات ({selectedProducts.size} محدد)
@@ -334,7 +334,7 @@ export default function AddStoreCategoryModal({
             </div>
 
             {/* Products List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide min-h-0">
               {filteredProducts.map((product) => (
                 <div
                   key={product.id}

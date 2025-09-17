@@ -96,92 +96,68 @@ function SortableCategoryCard({ category, index, onToggleVisibility, isDragging 
       {...attributes}
       {...listeners}
       className={`
-        bg-gray-50 rounded-lg p-4 border border-gray-200 
+        bg-white rounded-lg p-3 border border-gray-200 relative
         transition-all duration-200 cursor-move
         ${isSortableDragging || isDragging
-          ? 'shadow-2xl rotate-3 scale-105 bg-white border-blue-400 z-50 opacity-90' 
+          ? 'shadow-2xl rotate-3 scale-105 bg-white border-blue-400 z-50 opacity-90'
           : 'hover:shadow-md hover:scale-102'
         }
         ${isSortableDragging ? 'ring-2 ring-blue-400 ring-opacity-75' : ''}
       `}
     >
-      {/* Category Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-800 truncate">
-          {category.name}
-        </h3>
-        <div className="flex items-center gap-2">
-          {/* Drag Handle Icon */}
-          <div className="text-gray-400 hover:text-gray-600 transition-colors cursor-move">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-            </svg>
-          </div>
-          {/* Visibility Toggle */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleVisibility(category.id);
-            }}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-              category.isHidden 
-                ? 'bg-gray-300 hover:bg-gray-400' 
-                : 'bg-green-500 hover:bg-green-600'
-            }`}
-            title={category.isHidden ? 'مخفي من المتجر' : 'ظاهر في المتجر'}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                category.isHidden ? 'translate-x-1' : 'translate-x-6'
-              }`}
-            />
-          </button>
-        </div>
-      </div>
-      
       {/* Category Image */}
       <div className="mb-3">
-        <CategoryImage 
-          src={category.image} 
-          alt={category.name} 
-          className="w-full h-32 object-cover rounded-lg"
+        <CategoryImage
+          src={category.image}
+          alt={category.name}
+          className="w-full h-24 object-cover rounded-lg"
         />
       </div>
-      
-      {/* Category Description */}
-      {category.description && (
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-          {category.description}
-        </p>
-      )}
-      
-      {/* Category Color */}
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-sm text-gray-600">اللون:</span>
-        <div 
-          className="w-6 h-6 rounded-full border border-gray-300"
-          style={{ backgroundColor: category.color }}
-        ></div>
+
+      {/* Category Name */}
+      <h3 className="text-sm font-semibold text-gray-800 text-center mb-3 truncate" title={category.name}>
+        {category.name}
+      </h3>
+
+      {/* Visibility Toggle - Centered */}
+      <div className="flex justify-center">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleVisibility(category.id);
+          }}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+            category.isHidden
+              ? 'bg-gray-300 hover:bg-gray-400'
+              : 'bg-green-500 hover:bg-green-600'
+          }`}
+          title={category.isHidden ? 'مخفي من المتجر' : 'ظاهر في المتجر'}
+        >
+          <span
+            className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+              category.isHidden ? 'translate-x-1' : 'translate-x-5'
+            }`}
+          />
+        </button>
       </div>
-      
-      {/* Category Status and Order */}
-      <div className="flex items-center justify-between">
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-          category.isHidden 
-            ? 'bg-red-100 text-red-800 border border-red-200' 
-            : 'bg-green-100 text-green-800 border border-green-200'
-        }`}>
-          {category.isHidden ? 'مخفي' : 'ظاهر'}
-        </span>
-        
-        <span className="text-sm text-gray-500">
-          الترتيب: {index + 1}
-        </span>
+
+      {/* Status Indicator - Top Right Corner */}
+      <div className="absolute top-2 right-2">
+        <span className={`inline-block w-3 h-3 rounded-full ${
+          category.isHidden ? 'bg-red-400' : 'bg-green-400'
+        }`} title={category.isHidden ? 'مخفي' : 'ظاهر'}></span>
       </div>
-      
+
+      {/* Drag Handle - Top Left Corner */}
+      <div className="absolute top-2 left-2 text-gray-400 hover:text-gray-600 transition-colors cursor-move">
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+        </svg>
+      </div>
+
       {/* Drag Visual Feedback */}
       {(isSortableDragging || isDragging) && (
-        <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse">
+        <div className="absolute bottom-2 left-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse">
           يتم السحب...
         </div>
       )}
@@ -191,70 +167,45 @@ function SortableCategoryCard({ category, index, onToggleVisibility, isDragging 
 
 function CategoryCard({ category, index, onToggleVisibility }: { category: Category; index: number; onToggleVisibility: (categoryId: string) => void }) {
   return (
-    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-all duration-200">
-      {/* Category Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-800 truncate">
-          {category.name}
-        </h3>
-        <div className="flex items-center gap-2">
-          {/* Visibility Toggle */}
-          <button
-            onClick={() => onToggleVisibility(category.id)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-              category.isHidden 
-                ? 'bg-gray-300 hover:bg-gray-400' 
-                : 'bg-green-500 hover:bg-green-600'
-            }`}
-            title={category.isHidden ? 'مخفي من المتجر' : 'ظاهر في المتجر'}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                category.isHidden ? 'translate-x-1' : 'translate-x-6'
-              }`}
-            />
-          </button>
-        </div>
-      </div>
-      
+    <div className="bg-white rounded-lg p-3 border border-gray-200 hover:shadow-md transition-all duration-200 relative">
       {/* Category Image */}
       <div className="mb-3">
-        <CategoryImage 
-          src={category.image} 
-          alt={category.name} 
-          className="w-full h-32 object-cover rounded-lg"
+        <CategoryImage
+          src={category.image}
+          alt={category.name}
+          className="w-full h-24 object-cover rounded-lg"
         />
       </div>
-      
-      {/* Category Description */}
-      {category.description && (
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-          {category.description}
-        </p>
-      )}
-      
-      {/* Category Color */}
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-sm text-gray-600">اللون:</span>
-        <div 
-          className="w-6 h-6 rounded-full border border-gray-300"
-          style={{ backgroundColor: category.color }}
-        ></div>
+
+      {/* Category Name */}
+      <h3 className="text-sm font-semibold text-gray-800 text-center mb-3 truncate" title={category.name}>
+        {category.name}
+      </h3>
+
+      {/* Visibility Toggle - Centered */}
+      <div className="flex justify-center">
+        <button
+          onClick={() => onToggleVisibility(category.id)}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+            category.isHidden
+              ? 'bg-gray-300 hover:bg-gray-400'
+              : 'bg-green-500 hover:bg-green-600'
+          }`}
+          title={category.isHidden ? 'مخفي من المتجر' : 'ظاهر في المتجر'}
+        >
+          <span
+            className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+              category.isHidden ? 'translate-x-1' : 'translate-x-5'
+            }`}
+          />
+        </button>
       </div>
-      
-      {/* Category Status */}
-      <div className="flex items-center justify-between">
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-          category.isHidden 
-            ? 'bg-red-100 text-red-800 border border-red-200' 
-            : 'bg-green-100 text-green-800 border border-green-200'
-        }`}>
-          {category.isHidden ? 'مخفي' : 'ظاهر'}
-        </span>
-        
-        <span className="text-sm text-gray-500">
-          الترتيب: {index + 1}
-        </span>
+
+      {/* Status Indicator - Top Right Corner */}
+      <div className="absolute top-2 right-2">
+        <span className={`inline-block w-3 h-3 rounded-full ${
+          category.isHidden ? 'bg-red-400' : 'bg-green-400'
+        }`} title={category.isHidden ? 'مخفي' : 'ظاهر'}></span>
       </div>
     </div>
   );
@@ -313,7 +264,7 @@ export default function CategoryManagementGrid({
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={categoryIds} strategy={rectSortingStrategy}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 p-6">
               {categories.map((category, index) => (
                 <SortableCategoryCard
                   key={category.id}
@@ -366,7 +317,7 @@ export default function CategoryManagementGrid({
   // Normal (non-drag) mode
   return (
     <div className="bg-white rounded-lg border border-gray-300 overflow-hidden shadow-sm">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 p-6">
         {categories.map((category, index) => (
           <CategoryCard
             key={category.id}

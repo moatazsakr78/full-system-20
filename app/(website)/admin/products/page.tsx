@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProducts } from '../../../lib/hooks/useProducts';
+import { useStoreCategories } from '../../../../lib/hooks/useStoreCategories';
 import { DragDropProvider } from './components/DragDropProvider';
 import ProductManagementGrid from './components/ProductManagementGrid';
 import CategoryManagementGrid from './components/CategoryManagementGrid';
@@ -25,6 +26,7 @@ interface ProductManagementItem {
 export default function ProductManagementPage() {
   const router = useRouter();
   const { products: databaseProducts, isLoading, fetchProducts } = useProducts();
+  const { categories: storeCategories, isLoading: isCategoriesLoading, fetchCategories } = useStoreCategories();
   const [products, setProducts] = useState<ProductManagementItem[]>([]);
   const [originalProducts, setOriginalProducts] = useState<ProductManagementItem[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -83,39 +85,31 @@ export default function ProductManagementPage() {
     }
   }, [databaseProducts, hasUnsavedChanges, isSaving]);
 
-  // Fetch categories from database
+  // Convert store categories to management format
   useEffect(() => {
-    const fetchCategories = async () => {
-      if (managementMode === 'categories' && !isSaving) {
-        try {
-          const { data, error } = await supabase
-            .from('categories')
-            .select('*')
-            .order('sort_order', { ascending: true });
-          
-          if (error) throw error;
-          
-          const convertedCategories = (data || []).map((cat: any, index: number) => ({
-            id: cat.id,
-            name: cat.name,
-            description: cat.description || '',
-            image: cat.image_url || '',
-            isHidden: !cat.is_active,
-            displayOrder: cat.sort_order || index,
-            color: cat.color || '#3B82F6'
-          }));
-          
-          setCategories(convertedCategories);
-          setOriginalCategories(JSON.parse(JSON.stringify(convertedCategories)));
-          setHasUnsavedChanges(false);
-        } catch (error) {
-          console.error('Error fetching categories:', error);
-        }
-      }
-    };
-    
-    fetchCategories();
-  }, [managementMode, isSaving]);
+    if (storeCategories && storeCategories.length >= 0 && managementMode === 'categories' && !isSaving) {
+      const convertedCategories = storeCategories.map((cat: any, index: number) => ({
+        id: cat.id,
+        name: cat.name,
+        description: cat.description || '',
+        image: cat.image_url || '',
+        isHidden: !cat.is_active,
+        displayOrder: cat.sort_order || index,
+        color: cat.color || '#3B82F6'
+      }));
+
+      setCategories(convertedCategories);
+      setOriginalCategories(JSON.parse(JSON.stringify(convertedCategories)));
+      setHasUnsavedChanges(false);
+    }
+  }, [storeCategories, managementMode, isSaving]);
+
+  // Load store categories when switching to categories mode
+  useEffect(() => {
+    if (managementMode === 'categories') {
+      fetchCategories();
+    }
+  }, [managementMode]);
 
   const toggleDragMode = () => {
     setIsDragMode(!isDragMode);
@@ -795,6 +789,7 @@ export default function ProductManagementPage() {
         products={products}
         onCategoryCreated={() => {
           // Refresh data after category creation
+          fetchCategories();
           fetchProducts();
         }}
       />
