@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { XMarkIcon, PlusIcon, MinusIcon, ShoppingCartIcon } from '@heroicons/react/24/outline'
+import { useCurrency } from '../../lib/hooks/useCurrency'
 
 interface AddToCartModalProps {
   isOpen: boolean
@@ -16,6 +17,10 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, 
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
   const [isEditingQuantity, setIsEditingQuantity] = useState(false)
   const [tempQuantity, setTempQuantity] = useState('1')
+
+  // Use dynamic currency from settings
+  const { formatPrice, getCurrentCurrency } = useCurrency()
+  const currentCurrency = getCurrentCurrency('system')
 
   if (!isOpen || !product) return null
 
@@ -122,7 +127,7 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, 
               <div className="flex-1">
                 <h3 className="text-white font-medium text-sm">{product.name}</h3>
                 {!isTransferMode && (
-                  <p className="text-blue-400 font-bold text-lg">{(product.price || 0).toFixed(2)} ريال</p>
+                  <p className="text-blue-400 font-bold text-lg">{formatPrice(product.price || 0, 'system')}</p>
                 )}
                 {isTransferMode && (
                   <p className="text-orange-400 font-bold text-sm">وضع النقل</p>
@@ -205,7 +210,7 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, 
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">المجموع</span>
                 <span className="text-white font-bold text-xl">
-                  {((product.price || 0) * quantity).toFixed(2)} ريال
+                  {formatPrice((product.price || 0) * quantity, 'system')}
                 </span>
               </div>
             )}

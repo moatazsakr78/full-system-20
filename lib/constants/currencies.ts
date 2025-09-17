@@ -6,7 +6,9 @@
 // Base supported currencies in the application
 export const SUPPORTED_CURRENCIES = {
   EGYPTIAN_POUND: 'جنيه',
-  SAUDI_RIYAL: 'ريال'
+  SAUDI_RIYAL: 'ريال',
+  EGP: 'جنيه',
+  SAR: 'ريال'
 } as const;
 
 // Base currency list - will be extended with custom currencies
@@ -47,13 +49,23 @@ export const DEFAULT_CURRENCY_SETTINGS: CurrencySettings = {
   unifiedCurrency: DEFAULT_UNIFIED_CURRENCY
 };
 
+// Currency code mapping to Arabic names
+export const CURRENCY_CODE_MAP: Record<string, string> = {
+  'EGP': 'جنيه',
+  'SAR': 'ريال',
+  'جنيه': 'جنيه',
+  'ريال': 'ريال'
+};
+
 // Helper functions
 export const getCurrencySymbol = (currency: Currency): string => {
   return currency;
 };
 
-export const formatPrice = (amount: number, currency: Currency): string => {
-  return `${amount.toFixed(2)} ${currency}`;
+export const formatPrice = (amount: number, currency: Currency | string): string => {
+  // Convert currency code to Arabic name if needed
+  const displayCurrency = CURRENCY_CODE_MAP[currency] || currency;
+  return `${amount.toFixed(2)} ${displayCurrency}`;
 };
 
 export const isValidCurrency = (currency: string): boolean => {

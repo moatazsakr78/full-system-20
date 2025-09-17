@@ -24,7 +24,9 @@ const CurrencyDropdownWithDelete = ({
   onCustomChange,
   placeholder,
   arabicCurrencies,
-  onDeleteCurrency
+  onDeleteCurrency,
+  allowCustomInput = true,  // New prop to control custom input availability
+  allowDelete = true  // New prop to control delete button visibility
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -35,6 +37,8 @@ const CurrencyDropdownWithDelete = ({
   placeholder: string;
   arabicCurrencies: string[];
   onDeleteCurrency: (currency: string) => void;
+  allowCustomInput?: boolean;  // Optional prop
+  allowDelete?: boolean;  // Optional prop
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -61,8 +65,18 @@ const CurrencyDropdownWithDelete = ({
               key={currency}
               className="flex items-center justify-between p-2 hover:bg-[#374151] group"
             >
+              <button
+                onClick={() => {
+                  onCustomToggle(false);
+                  onChange(currency);
+                  setIsOpen(false);
+                }}
+                className="flex-1 text-right text-white text-sm py-1 px-2 hover:bg-[#374151] rounded"
+              >
+                {currency}
+              </button>
               <div className="flex items-center gap-2">
-                {index > 1 && (
+                {allowDelete && index > 1 && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -77,36 +91,28 @@ const CurrencyDropdownWithDelete = ({
                   </button>
                 )}
               </div>
-              <button
-                onClick={() => {
-                  onCustomToggle(false);
-                  onChange(currency);
-                  setIsOpen(false);
-                }}
-                className="flex-1 text-right text-white text-sm py-1 px-2 hover:bg-[#374151] rounded"
-              >
-                {currency}
-              </button>
             </div>
           ))}
 
-          {/* Custom option */}
-          <div className="border-t border-gray-600 p-2">
-            <button
-              onClick={() => {
-                onCustomToggle(true);
-                setIsOpen(false);
-              }}
-              className="w-full text-right text-white text-sm py-1 px-2 hover:bg-[#374151] rounded"
-            >
-              كتابة مخصصة...
-            </button>
-          </div>
+          {/* Custom option - only show if allowed */}
+          {allowCustomInput && (
+            <div className="border-t border-gray-600 p-2">
+              <button
+                onClick={() => {
+                  onCustomToggle(true);
+                  setIsOpen(false);
+                }}
+                className="w-full text-right text-white text-sm py-1 px-2 hover:bg-[#374151] rounded"
+              >
+                كتابة مخصصة...
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {/* Custom input field */}
-      {isCustom && (
+      {isCustom && allowCustomInput && (
         <input
           type="text"
           value={customValue}
@@ -612,6 +618,8 @@ export default function SettingsPage() {
                   placeholder="اكتب العملة..."
                   arabicCurrencies={arabicCurrencies}
                   onDeleteCurrency={handleDeleteCurrency}
+                  allowCustomInput={false}
+                  allowDelete={false}
                 />
               </div>
 
@@ -628,6 +636,8 @@ export default function SettingsPage() {
                   placeholder="اكتب العملة..."
                   arabicCurrencies={arabicCurrencies}
                   onDeleteCurrency={handleDeleteCurrency}
+                  allowCustomInput={false}
+                  allowDelete={false}
                 />
               </div>
             </div>
