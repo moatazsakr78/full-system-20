@@ -6,6 +6,7 @@ import { useProducts } from '../../../lib/hooks/useProducts';
 import { DragDropProvider } from './components/DragDropProvider';
 import ProductManagementGrid from './components/ProductManagementGrid';
 import CategoryManagementGrid from './components/CategoryManagementGrid';
+import AddStoreCategoryModal from './components/AddStoreCategoryModal';
 import { supabase } from '../../../lib/supabase/client';
 
 interface ProductManagementItem {
@@ -35,6 +36,7 @@ export default function ProductManagementPage() {
   const [managementMode, setManagementMode] = useState<'products' | 'categories'>('products');
   const [categories, setCategories] = useState<any[]>([]);
   const [originalCategories, setOriginalCategories] = useState<any[]>([]);
+  const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
 
   // Set client-side flag after component mounts
   useEffect(() => {
@@ -470,6 +472,20 @@ export default function ProductManagementPage() {
               </span>
             </button>
 
+            {/* Add Category Button */}
+            <div className="w-px h-8 bg-white/30 mx-2"></div>
+            <button
+              onClick={() => setIsAddCategoryModalOpen(true)}
+              className="flex flex-col items-center justify-center p-4 transition-colors group min-w-[100px] hover:text-green-200"
+            >
+              <svg className="w-8 h-8 mb-2 text-green-300 group-hover:text-green-200 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="text-sm font-bold text-center leading-tight text-green-300 group-hover:text-green-200 transition-colors">
+                إضافة فئة
+              </span>
+            </button>
+
             {/* Save Order Button - appears when in drag mode */}
             {isDragMode && (
               <>
@@ -771,6 +787,17 @@ export default function ProductManagementPage() {
           </div>
         </main>
       </div>
+
+      {/* Add Store Category Modal */}
+      <AddStoreCategoryModal
+        isOpen={isAddCategoryModalOpen}
+        onClose={() => setIsAddCategoryModalOpen(false)}
+        products={products}
+        onCategoryCreated={() => {
+          // Refresh data after category creation
+          fetchProducts();
+        }}
+      />
     </div>
   );
 }

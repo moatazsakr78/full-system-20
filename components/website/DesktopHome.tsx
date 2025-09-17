@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProducts, Product as DatabaseProduct } from '../../app/lib/hooks/useProducts';
 import { UserInfo, Product } from './shared/types';
@@ -8,6 +8,7 @@ import AuthButtons from '../../app/components/auth/AuthButtons';
 import RightSidebar from '../../app/components/layout/RightSidebar';
 import { useRightSidebar } from '../../app/lib/hooks/useRightSidebar';
 import { useUserProfile } from '../../lib/hooks/useUserProfile';
+import { useStoreCategoriesWithProducts } from '../../lib/hooks/useStoreCategories';
 import CategoryCarousel from './CategoryCarousel';
 import FeaturedProductsCarousel from './FeaturedProductsCarousel';
 import InteractiveProductCard from './InteractiveProductCard';
@@ -53,6 +54,9 @@ export default function DesktopHome({
   // Get cart badge count and cart functions
   const { cartBadgeCount } = useCartBadge();
   const { addToCart } = useCart();
+
+  // Get store categories with their products
+  const { categoriesWithProducts, isLoading: isCategoriesLoading } = useStoreCategoriesWithProducts();
   
   // Handle adding products to cart
   const handleAddToCart = async (product: Product) => {
@@ -138,36 +142,23 @@ export default function DesktopHome({
     fetchProductsWithColors();
   }, [databaseProducts]);
 
-  // Fetch categories from database
+  // Convert store categories to website format
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const { supabase } = await import('../../app/lib/supabase/client');
-        const { data, error } = await supabase
-          .from('categories')
-          .select('*')
-          .eq('is_active', true)
-          .order('sort_order', { ascending: true });
-        
-        if (error) throw error;
-        
-        const convertedCategories = (data || []).map((cat: any) => ({
-          id: cat.id,
-          name: cat.name,
-          description: cat.name,
-          icon: '📦',
-          image: cat.image_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=300&fit=crop',
-          productCount: 0 // We could calculate this if needed
-        }));
-        
-        setCategories(convertedCategories);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      }
-    };
-    
-    fetchCategories();
-  }, []);
+    if (categoriesWithProducts && categoriesWithProducts.length > 0) {
+      const convertedCategories = categoriesWithProducts.map((storeCategory: any) => ({
+        id: storeCategory.id,
+        name: storeCategory.name,
+        description: storeCategory.description || storeCategory.name,
+        icon: '📦',
+        image: storeCategory.image_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=300&fit=crop',
+        productCount: storeCategory.products?.length || 0
+      }));
+
+      setCategories(convertedCategories);
+    } else {
+      setCategories([]);
+    }
+  }, [categoriesWithProducts]);
 
   // Set client-side flag after component mounts
   useEffect(() => {
@@ -186,15 +177,48 @@ export default function DesktopHome({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isClient]);
 
-  const filteredProducts = websiteProducts.filter(product => {
-    const matchesSearch = searchQuery === '' || 
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesCategory = selectedCategory === 'الكل' || product.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProducts = React.useMemo(() => {
+    let productsToFilter = websiteProducts;
+
+    // If a specific store category is selected, get products from that category
+    if (selectedCategory !== 'الكل' && categoriesWithProducts.length > 0) {
+      const selectedStoreCategory = categoriesWithProducts.find((cat: any) => cat.name === selectedCategory);
+      if (selectedStoreCategory && selectedStoreCategory.products) {
+        // Convert store category products to website product format
+        productsToFilter = selectedStoreCategory.products.map((product: any) => {
+          const dbProduct = websiteProducts.find(wp => wp.id === product.id);
+          return dbProduct || {
+            id: product.id,
+            name: product.name,
+            description: '',
+            price: product.price,
+            image: product.main_image_url,
+            category: selectedCategory,
+            colors: [],
+            brand: 'El Farouk Group',
+            stock: 0,
+            rating: 0,
+            reviews: 0,
+            isOnSale: false,
+            tags: [],
+            isFeatured: false
+          };
+        });
+      } else {
+        // No products in this store category
+        productsToFilter = [];
+      }
+    }
+
+    // Apply search filter
+    return productsToFilter.filter(product => {
+      const matchesSearch = searchQuery === '' ||
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      return matchesSearch;
+    });
+  }, [websiteProducts, selectedCategory, searchQuery, categoriesWithProducts]);
 
   const featuredProducts = websiteProducts.filter(product => product.isFeatured || product.isOnSale);
 

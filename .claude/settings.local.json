@@ -263,7 +263,10 @@
       "Bash(start http://localhost:3002/my-orders)",
       "Bash(start http://localhost:3000/settings)",
       "Bash(start http://localhost:3000/pos)",
-      "Bash(start http://localhost:3001/pos)"
+      "Bash(start http://localhost:3001/pos)",
+      "mcp__supabase__list_migrations",
+      "Bash(start http://localhost:3001/admin/products)",
+      "Bash(move:*)"
     ],
     "deny": [],
     "additionalDirectories": [
