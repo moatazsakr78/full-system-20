@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { XMarkIcon, PlusIcon, MinusIcon, ShoppingCartIcon } from '@heroicons/react/24/outline'
+import { useCurrency } from '../../lib/hooks/useCurrency'
 
 interface ColorSelectionModalProps {
   isOpen: boolean
@@ -41,6 +42,10 @@ export default function ColorSelectionModal({
   const [purchasePrice, setPurchasePrice] = useState(product?.cost_price || product?.price || 0)
   const [isEditingPrice, setIsEditingPrice] = useState(false)
   const [tempPrice, setTempPrice] = useState('')
+
+  // Use dynamic currency from system settings
+  const { formatPrice, getCurrentCurrency } = useCurrency()
+  const currentCurrency = getCurrentCurrency('system')
 
   // Reset purchase price when product changes
   useEffect(() => {
@@ -278,7 +283,7 @@ export default function ColorSelectionModal({
                     ? `وضع النقل - من: ${transferFromLocation?.name || 'غير محدد'}`
                     : isPurchaseMode
                       ? 'وضع الشراء'
-                      : `${(product.price || 0).toFixed(2)} ريال`
+                      : formatPrice(product.price || 0, 'system')
                   }
                 </p>
               </div>
@@ -329,7 +334,7 @@ export default function ColorSelectionModal({
 
               {!isTransferMode && (
                 <div className="text-center mt-3">
-                  <span className="text-blue-400 font-bold text-lg">{totalPrice.toFixed(2)} ريال</span>
+                  <span className="text-blue-400 font-bold text-lg">{formatPrice(totalPrice, 'system')}</span>
                 </div>
               )}
             </div>

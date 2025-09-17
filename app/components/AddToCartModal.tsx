@@ -18,7 +18,7 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, 
   const [isEditingQuantity, setIsEditingQuantity] = useState(false)
   const [tempQuantity, setTempQuantity] = useState('1')
 
-  // Use dynamic currency from settings
+  // Use dynamic currency from system settings
   const { formatPrice, getCurrentCurrency } = useCurrency()
   const currentCurrency = getCurrentCurrency('system')
 
