@@ -267,7 +267,8 @@
       "mcp__supabase__list_migrations",
       "Bash(start http://localhost:3001/admin/products)",
       "Bash(move:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(start http://localhost:3002/admin/products)"
     ],
     "deny": [],
     "additionalDirectories": [

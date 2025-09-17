@@ -26,7 +26,7 @@ interface ProductManagementItem {
 export default function ProductManagementPage() {
   const router = useRouter();
   const { products: databaseProducts, isLoading, fetchProducts } = useProducts();
-  const { categories: storeCategories, isLoading: isCategoriesLoading, fetchCategories } = useStoreCategories();
+  const { categories: storeCategories, isLoading: isCategoriesLoading, fetchCategories, deleteCategory } = useStoreCategories();
   const [products, setProducts] = useState<ProductManagementItem[]>([]);
   const [originalProducts, setOriginalProducts] = useState<ProductManagementItem[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -39,6 +39,9 @@ export default function ProductManagementPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [originalCategories, setOriginalCategories] = useState<any[]>([]);
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
+  const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   // Set client-side flag after component mounts
   useEffect(() => {
@@ -153,11 +156,46 @@ export default function ProductManagementPage() {
     if (!category) return;
 
     const newHiddenState = !category.isHidden;
-    
-    setCategories(prev => prev.map(c => 
+
+    setCategories(prev => prev.map(c =>
       c.id === categoryId ? { ...c, isHidden: newHiddenState } : c
     ));
     setHasUnsavedChanges(true);
+  };
+
+  // Handle category selection
+  const handleCategorySelect = (categoryId: string) => {
+    setSelectedCategoryId(selectedCategoryId === categoryId ? null : categoryId);
+  };
+
+  // Handle edit category
+  const handleEditCategory = () => {
+    if (selectedCategoryId) {
+      const category = categories.find(c => c.id === selectedCategoryId);
+      if (category) {
+        setEditingCategory(category);
+        setIsEditCategoryModalOpen(true);
+      }
+    }
+  };
+
+  // Handle delete category
+  const handleDeleteCategory = async () => {
+    if (selectedCategoryId) {
+      const category = categories.find(c => c.id === selectedCategoryId);
+      if (category && confirm(`هل أنت متأكد من حذف فئة "${category.name}"؟`)) {
+        try {
+          await deleteCategory(selectedCategoryId);
+          setSelectedCategoryId(null);
+          // Remove from local state
+          setCategories(prev => prev.filter(c => c.id !== selectedCategoryId));
+          alert(`تم حذف فئة "${category.name}" بنجاح`);
+        } catch (error) {
+          console.error('Error deleting category:', error);
+          alert('حدث خطأ أثناء حذف الفئة');
+        }
+      }
+    }
   };
 
   const handleCategoryReorder = (reorderedCategories: any[]) => {
@@ -466,17 +504,59 @@ export default function ProductManagementPage() {
               </span>
             </button>
 
-            {/* Add Category Button */}
+            {/* Category Management Buttons */}
             <div className="w-px h-8 bg-white/30 mx-2"></div>
+
+            {/* Add Category Button */}
             <button
               onClick={() => setIsAddCategoryModalOpen(true)}
-              className="flex flex-col items-center justify-center p-4 transition-colors group min-w-[100px] hover:text-green-200"
+              className="flex flex-col items-center justify-center p-4 transition-colors group min-w-[100px] hover:bg-white/10"
             >
-              <svg className="w-8 h-8 mb-2 text-green-300 group-hover:text-green-200 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 mb-2 text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
               </svg>
-              <span className="text-sm font-bold text-center leading-tight text-green-300 group-hover:text-green-200 transition-colors">
+              <span className="text-sm font-bold text-center leading-tight text-white transition-colors">
                 إضافة فئة
+              </span>
+            </button>
+
+            <div className="w-px h-8 bg-white/30 mx-1"></div>
+
+            {/* Edit Category Button */}
+            <button
+              onClick={handleEditCategory}
+              disabled={!selectedCategoryId}
+              className={`flex flex-col items-center justify-center p-4 transition-colors group min-w-[100px] ${
+                selectedCategoryId
+                  ? 'hover:bg-white/10 text-white'
+                  : 'text-white/30 cursor-not-allowed'
+              }`}
+            >
+              <svg className="w-8 h-8 mb-2 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              <span className="text-sm font-bold text-center leading-tight transition-colors">
+                تعديل فئة
+              </span>
+            </button>
+
+            <div className="w-px h-8 bg-white/30 mx-1"></div>
+
+            {/* Delete Category Button */}
+            <button
+              onClick={handleDeleteCategory}
+              disabled={!selectedCategoryId}
+              className={`flex flex-col items-center justify-center p-4 transition-colors group min-w-[100px] ${
+                selectedCategoryId
+                  ? 'hover:bg-white/10 text-white'
+                  : 'text-white/30 cursor-not-allowed'
+              }`}
+            >
+              <svg className="w-8 h-8 mb-2 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span className="text-sm font-bold text-center leading-tight transition-colors">
+                حذف فئة
               </span>
             </button>
 
@@ -755,6 +835,8 @@ export default function ProductManagementPage() {
                 isDragMode={isDragMode}
                 onReorder={handleCategoryReorder}
                 onToggleVisibility={toggleCategoryVisibility}
+                selectedCategoryId={selectedCategoryId}
+                onCategorySelect={handleCategorySelect}
               />
             </DragDropProvider>
           )}
@@ -771,6 +853,25 @@ export default function ProductManagementPage() {
           // Refresh data after category creation
           fetchCategories();
           fetchProducts();
+        }}
+      />
+
+      {/* Edit Store Category Modal */}
+      <AddStoreCategoryModal
+        isOpen={isEditCategoryModalOpen}
+        onClose={() => {
+          setIsEditCategoryModalOpen(false);
+          setEditingCategory(null);
+        }}
+        products={products}
+        editingCategory={editingCategory}
+        onCategoryCreated={() => {
+          // Refresh data after category update
+          fetchCategories();
+          fetchProducts();
+          setIsEditCategoryModalOpen(false);
+          setEditingCategory(null);
+          setSelectedCategoryId(null);
         }}
       />
     </div>

@@ -17,15 +17,17 @@ interface AddStoreCategoryModalProps {
   onClose: () => void;
   products: any[];
   onCategoryCreated?: () => void;
+  editingCategory?: any | null;
 }
 
 export default function AddStoreCategoryModal({
   isOpen,
   onClose,
   products,
-  onCategoryCreated
+  onCategoryCreated,
+  editingCategory
 }: AddStoreCategoryModalProps) {
-  const { createCategory } = useStoreCategories();
+  const { createCategory, updateCategory, getCategoryProducts, addProductsToCategory, removeProductsFromCategory } = useStoreCategories();
   const [isCreating, setIsCreating] = useState(false);
 
   // Form state - simplified
@@ -43,17 +45,55 @@ export default function AddStoreCategoryModal({
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
 
-  // Reset form when modal opens/closes
+  // Category products state (for editing)
+  const [categoryProducts, setCategoryProducts] = useState<any[]>([]);
+  const [isLoadingCategoryProducts, setIsLoadingCategoryProducts] = useState(false);
+
+  // Load category products for editing
+  const loadCategoryProducts = async (categoryId: string) => {
+    try {
+      setIsLoadingCategoryProducts(true);
+      const categoryProductsData = await getCategoryProducts(categoryId);
+      setCategoryProducts(categoryProductsData);
+
+      // Set selected products from category
+      const categoryProductIds = categoryProductsData.map((cp: any) => cp.product_id);
+      setSelectedProducts(new Set(categoryProductIds));
+    } catch (error) {
+      console.error('Error loading category products:', error);
+      setCategoryProducts([]);
+      setSelectedProducts(new Set());
+    } finally {
+      setIsLoadingCategoryProducts(false);
+    }
+  };
+
+  // Reset form when modal opens/closes or load editing data
   useEffect(() => {
     if (isOpen) {
-      setCategoryName('');
-      setImageUrl('');
-      setImageFile(null);
-      setSearchTerm('');
-      setSelectedProducts(new Set());
-      setSelectAll(false);
+      if (editingCategory) {
+        // Load editing data
+        console.log('Editing category data:', editingCategory);
+        setCategoryName(editingCategory.name || '');
+        setImageUrl(editingCategory.image || editingCategory.image_url || '');
+        setImageFile(null);
+        setSearchTerm('');
+        setSelectAll(false);
+
+        // Load category products
+        loadCategoryProducts(editingCategory.id);
+      } else {
+        // Reset for new category
+        setCategoryName('');
+        setImageUrl('');
+        setImageFile(null);
+        setSearchTerm('');
+        setSelectedProducts(new Set());
+        setSelectAll(false);
+        setCategoryProducts([]);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, editingCategory]);
 
   // Filter products based on search
   const filteredProducts = products.filter(product =>
@@ -149,7 +189,7 @@ export default function AddStoreCategoryModal({
       return;
     }
 
-    if (selectedProducts.size === 0) {
+    if (!editingCategory && selectedProducts.size === 0) {
       if (!confirm('لم تقم بتحديد أي منتجات. هل تريد إنشاء فئة فارغة؟')) {
         return;
       }
@@ -158,15 +198,44 @@ export default function AddStoreCategoryModal({
     setIsCreating(true);
 
     try {
-      const categoryData: CreateStoreCategoryData = {
-        name: categoryName.trim(),
-        image_url: imageUrl.trim() || undefined,
-        product_ids: Array.from(selectedProducts)
-      };
+      if (editingCategory) {
+        // Update existing category
+        const updates = {
+          name: categoryName.trim(),
+          image_url: imageUrl.trim() || null
+        };
 
-      await createCategory(categoryData);
+        await updateCategory(editingCategory.id, updates);
 
-      alert(`تم إنشاء فئة "${categoryName}" بنجاح مع ${selectedProducts.size} منتج!`);
+        // Handle products changes for editing category
+        const currentProductIds = categoryProducts.map(cp => cp.product_id);
+        const newProductIds = Array.from(selectedProducts);
+
+        const productsToAdd = newProductIds.filter(id => !currentProductIds.includes(id));
+        const productsToRemove = currentProductIds.filter(id => !newProductIds.includes(id));
+
+        // Add new products
+        if (productsToAdd.length > 0) {
+          await addProductsToCategory(editingCategory.id, productsToAdd);
+        }
+
+        // Remove products
+        if (productsToRemove.length > 0) {
+          await removeProductsFromCategory(editingCategory.id, productsToRemove);
+        }
+
+        alert(`تم تحديث فئة "${categoryName}" بنجاح!`);
+      } else {
+        // Create new category
+        const categoryData: CreateStoreCategoryData = {
+          name: categoryName.trim(),
+          image_url: imageUrl.trim() || undefined,
+          product_ids: Array.from(selectedProducts)
+        };
+
+        await createCategory(categoryData);
+        alert(`تم إنشاء فئة "${categoryName}" بنجاح مع ${selectedProducts.size} منتج!`);
+      }
 
       if (onCategoryCreated) {
         onCategoryCreated();
@@ -174,8 +243,8 @@ export default function AddStoreCategoryModal({
 
       onClose();
     } catch (error) {
-      console.error('Error creating store category:', error);
-      alert('حدث خطأ أثناء إنشاء الفئة. يرجى المحاولة مرة أخرى.');
+      console.error('Error saving store category:', error);
+      alert(`حدث خطأ أثناء ${editingCategory ? 'تحديث' : 'إنشاء'} الفئة. يرجى المحاولة مرة أخرى.`);
     } finally {
       setIsCreating(false);
     }
@@ -193,7 +262,9 @@ export default function AddStoreCategoryModal({
 
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-red-600 bg-[#5d1f1f]">
-          <h2 className="text-lg font-bold text-white">إضافة فئة جديدة للمتجر</h2>
+          <h2 className="text-lg font-bold text-white">
+            {editingCategory ? 'تعديل فئة المتجر' : 'إضافة فئة جديدة للمتجر'}
+          </h2>
           <button
             onClick={onClose}
             className="p-2 text-gray-200 hover:text-white hover:bg-gray-600 rounded-full transition-colors"
@@ -296,15 +367,16 @@ export default function AddStoreCategoryModal({
             </div>
           </div>
 
-          {/* Products Selection Section */}
-          <div className="flex-1 flex flex-col bg-gray-50 min-h-0">
+          {/* Products Selection Section - Show for both new and editing categories */}
+          {(
+            <div className="flex-1 flex flex-col bg-gray-50 min-h-0">
 
-            {/* Products Header */}
-            <div className="p-4 bg-white border-b border-gray-300 flex-shrink-0">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  اختر المنتجات ({selectedProducts.size} محدد)
-                </h3>
+              {/* Products Header */}
+              <div className="p-4 bg-white border-b border-gray-300 flex-shrink-0">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    اختر المنتجات ({selectedProducts.size} محدد)
+                  </h3>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -335,7 +407,12 @@ export default function AddStoreCategoryModal({
 
             {/* Products List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide min-h-0">
-              {filteredProducts.map((product) => (
+              {isLoadingCategoryProducts ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="mr-3 text-gray-500">جاري تحميل منتجات الفئة...</span>
+                </div>
+              ) : filteredProducts.map((product) => (
                 <div
                   key={product.id}
                   className={`flex items-center gap-3 p-3 bg-white rounded-lg border transition-colors cursor-pointer ${
@@ -373,7 +450,7 @@ export default function AddStoreCategoryModal({
                 </div>
               ))}
 
-              {filteredProducts.length === 0 && (
+              {!isLoadingCategoryProducts && filteredProducts.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -383,12 +460,13 @@ export default function AddStoreCategoryModal({
               )}
             </div>
           </div>
+          )}
         </div>
 
         {/* Footer */}
         <div className="p-4 bg-white border-t border-gray-300 flex justify-between items-center">
           <div className="text-sm text-gray-600">
-            تم تحديد {selectedProducts.size} من {filteredProducts.length} منتج
+            {`تم تحديد ${selectedProducts.size} من ${filteredProducts.length} منتج`}
           </div>
 
           <div className="flex gap-3">
@@ -421,14 +499,14 @@ export default function AddStoreCategoryModal({
               {isCreating ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  جاري الإنشاء...
+                  {editingCategory ? 'جاري الحفظ...' : 'جاري الإنشاء...'}
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={editingCategory ? "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" : "M12 4v16m8-8H4"} />
                   </svg>
-                  إنشاء الفئة
+                  {editingCategory ? 'حفظ التعديل' : 'إنشاء الفئة'}
                 </>
               )}
             </button>

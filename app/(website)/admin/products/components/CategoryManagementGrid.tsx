@@ -65,6 +65,8 @@ interface CategoryManagementGridProps {
   isDragMode: boolean;
   onReorder: (reorderedCategories: Category[]) => void;
   onToggleVisibility: (categoryId: string) => void;
+  selectedCategoryId?: string | null;
+  onCategorySelect?: (categoryId: string) => void;
 }
 
 interface SortableCategoryCardProps {
@@ -72,9 +74,11 @@ interface SortableCategoryCardProps {
   index: number;
   onToggleVisibility: (categoryId: string) => void;
   isDragging?: boolean;
+  isSelected?: boolean;
+  onCategorySelect?: (categoryId: string) => void;
 }
 
-function SortableCategoryCard({ category, index, onToggleVisibility, isDragging = false }: SortableCategoryCardProps) {
+function SortableCategoryCard({ category, index, onToggleVisibility, isDragging = false, isSelected = false, onCategorySelect }: SortableCategoryCardProps) {
   const {
     attributes,
     listeners,
@@ -96,14 +100,16 @@ function SortableCategoryCard({ category, index, onToggleVisibility, isDragging 
       {...attributes}
       {...listeners}
       className={`
-        bg-white rounded-lg p-3 border border-gray-200 relative
+        bg-white rounded-lg p-3 border relative
         transition-all duration-200 cursor-move
         ${isSortableDragging || isDragging
           ? 'shadow-2xl rotate-3 scale-105 bg-white border-blue-400 z-50 opacity-90'
           : 'hover:shadow-md hover:scale-102'
         }
         ${isSortableDragging ? 'ring-2 ring-blue-400 ring-opacity-75' : ''}
+        ${isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'}
       `}
+      onClick={() => onCategorySelect?.(category.id)}
     >
       {/* Category Image */}
       <div className="mb-3">
@@ -165,9 +171,20 @@ function SortableCategoryCard({ category, index, onToggleVisibility, isDragging 
   );
 }
 
-function CategoryCard({ category, index, onToggleVisibility }: { category: Category; index: number; onToggleVisibility: (categoryId: string) => void }) {
+function CategoryCard({ category, index, onToggleVisibility, isSelected = false, onCategorySelect }: {
+  category: Category;
+  index: number;
+  onToggleVisibility: (categoryId: string) => void;
+  isSelected?: boolean;
+  onCategorySelect?: (categoryId: string) => void;
+}) {
   return (
-    <div className="bg-white rounded-lg p-3 border border-gray-200 hover:shadow-md transition-all duration-200 relative">
+    <div
+      className={`bg-white rounded-lg p-3 border hover:shadow-md transition-all duration-200 relative cursor-pointer ${
+        isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'
+      }`}
+      onClick={() => onCategorySelect?.(category.id)}
+    >
       {/* Category Image */}
       <div className="mb-3">
         <CategoryImage
@@ -215,7 +232,9 @@ export default function CategoryManagementGrid({
   categories,
   isDragMode,
   onReorder,
-  onToggleVisibility
+  onToggleVisibility,
+  selectedCategoryId,
+  onCategorySelect
 }: CategoryManagementGridProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   
@@ -271,6 +290,8 @@ export default function CategoryManagementGrid({
                   category={category}
                   index={index}
                   onToggleVisibility={onToggleVisibility}
+                  isSelected={selectedCategoryId === category.id}
+                  onCategorySelect={onCategorySelect}
                 />
               ))}
             </div>
@@ -283,6 +304,8 @@ export default function CategoryManagementGrid({
                 index={categories.findIndex(c => c.id === draggedCategory.id)}
                 onToggleVisibility={onToggleVisibility}
                 isDragging
+                isSelected={selectedCategoryId === draggedCategory.id}
+                onCategorySelect={onCategorySelect}
               />
             ) : null}
           </DragOverlay>
@@ -324,6 +347,8 @@ export default function CategoryManagementGrid({
             category={category}
             index={index}
             onToggleVisibility={onToggleVisibility}
+            isSelected={selectedCategoryId === category.id}
+            onCategorySelect={onCategorySelect}
           />
         ))}
       </div>
