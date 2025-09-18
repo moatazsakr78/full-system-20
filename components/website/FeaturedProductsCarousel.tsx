@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Product } from './shared/types';
 import { useUserProfile } from '../../lib/hooks/useUserProfile';
 import { useWebsiteCurrency } from '@/lib/hooks/useCurrency';
+import { useRatingsDisplay } from '../../lib/hooks/useRatingSettings';
 
 interface FeaturedProductsCarouselProps {
   products: Product[];
@@ -24,9 +25,12 @@ export default function FeaturedProductsCarousel({
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const websiteCurrency = useWebsiteCurrency();
-  
+
   // Get user profile to check role
   const { profile } = useUserProfile();
+
+  // Get rating settings
+  const { showRatings } = useRatingsDisplay();
   
   // Determine which price to display based on user role
   const getDisplayPrice = (product: Product) => {
@@ -148,12 +152,15 @@ export default function FeaturedProductsCarousel({
                     )}
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-400">⭐</span>
-                    <span className="text-sm text-gray-400">{product.rating} ({product.reviews})</span>
+                {/* Ratings Section - Only show if enabled in settings */}
+                {showRatings && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <span className="text-yellow-400">⭐</span>
+                      <span className="text-sm text-gray-400">{product.rating} ({product.reviews})</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
               <button 
                 onClick={async (e) => {

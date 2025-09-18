@@ -6,6 +6,7 @@ import { Product, ProductColor } from './shared/types';
 import { useCart } from '../../lib/contexts/CartContext';
 import { useUserProfile } from '../../lib/hooks/useUserProfile';
 import { useWebsiteCurrency } from '@/lib/hooks/useCurrency';
+import { useRatingsDisplay } from '../../lib/hooks/useRatingSettings';
 
 interface InteractiveProductCardProps {
   product: Product;
@@ -34,9 +35,12 @@ export default function InteractiveProductCard({
   // Get cart functions for direct access
   const { addToCart: directAddToCart } = useCart();
   const websiteCurrency = useWebsiteCurrency();
-  
+
   // Get user profile to check role
   const { profile } = useUserProfile();
+
+  // Get rating settings
+  const { showRatings } = useRatingsDisplay();
   
   // Determine which price to display based on user role
   const getDisplayPrice = () => {
@@ -318,14 +322,17 @@ export default function InteractiveProductCard({
             )}
           </div>
         </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <span className="text-yellow-400">⭐</span>
-            <span className="text-sm text-gray-400">
-              {product.rating} ({product.reviews})
-            </span>
+        {/* Ratings Section - Only show if enabled in settings */}
+        {showRatings && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <span className="text-yellow-400">⭐</span>
+              <span className="text-sm text-gray-400">
+                {product.rating} ({product.reviews})
+              </span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
       
       {/* Desktop/Tablet Button */}

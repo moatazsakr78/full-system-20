@@ -102,11 +102,6 @@ export default function CategoryCarousel({
                     alt={category.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
-                  {category.icon && (
-                    <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span className="text-4xl">{category.icon}</span>
-                    </div>
-                  )}
                 </div>
                 {/* منطقة صغيرة للنص في الأسفل */}
                 <div className="bg-white p-3 text-center border-t border-gray-100">

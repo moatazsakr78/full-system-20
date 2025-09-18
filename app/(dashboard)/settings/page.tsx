@@ -13,6 +13,7 @@ import Sidebar from '@/app/components/layout/Sidebar';
 import { Currency, DEFAULT_SYSTEM_CURRENCY, DEFAULT_WEBSITE_CURRENCY, DEFAULT_UNIFIED_CURRENCY, CURRENCY_MODES } from '@/lib/constants/currencies';
 import { useCurrencySettings } from '@/lib/hooks/useCurrency';
 import { useCurrencySettings as useDbCurrencySettings } from '@/lib/hooks/useSystemSettings';
+import { useRatingsDisplay } from '@/lib/hooks/useRatingSettings';
 
 // Custom dropdown component with delete buttons
 const CurrencyDropdownWithDelete = ({
@@ -224,6 +225,9 @@ export default function SettingsPage() {
   const [customWebsiteCurrency, setCustomWebsiteCurrency] = useState('');
   const [customUnifiedCurrency, setCustomUnifiedCurrency] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Ratings settings using hook
+  const { showRatings, updateRatingSettings, isLoading: isRatingsLoading } = useRatingsDisplay();
 
   // Update pending state when database values change
   useEffect(() => {
@@ -643,6 +647,29 @@ export default function SettingsPage() {
             </div>
           )}
 
+          {/* Ratings Settings */}
+          <div className="space-y-3 mt-6">
+            <h3 className="text-white font-medium text-lg">إعدادات التقييمات</h3>
+            <div className="flex justify-between items-center">
+              <label className="text-white text-sm font-medium">إظهار تقييمات المنتجات (النجوم)</label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showRatings}
+                  onChange={async (e) => {
+                    try {
+                      await updateRatingSettings(e.target.checked);
+                    } catch (error) {
+                      console.error('Error updating rating settings:', error);
+                    }
+                  }}
+                  disabled={isRatingsLoading}
+                  className="sr-only peer"
+                />
+                <div className={`w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 ${isRatingsLoading ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
+              </label>
+            </div>
+          </div>
 
         </div>
 
