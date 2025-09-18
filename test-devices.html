@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار التقييمات على الأجهزة المختلفة</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .device-test {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-link {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px;
+            background: #3B82F6;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .test-link:hover {
+            background: #2563EB;
+        }
+    </style>
+</head>
+<body>
+    <h1>اختبار التقييمات على الأجهزة المختلفة</h1>
+
+    <div class="device-test">
+        <h2>🖥️ كمبيوتر مكتبي</h2>
+        <p>انقر للاختبار على شاشة الكمبيوتر:</p>
+        <a href="http://localhost:3001" class="test-link" target="_blank">فتح الموقع - كمبيوتر</a>
+    </div>
+
+    <div class="device-test">
+        <h2>📱 هاتف محمول</h2>
+        <p>لاختبار الهاتف، استخدم Developer Tools:</p>
+        <ol>
+            <li>اضغط F12 في المتصفح</li>
+            <li>اضغط على أيقونة الهاتف (Toggle device toolbar)</li>
+            <li>اختر جهاز iPhone أو Galaxy</li>
+            <li>انقر على الرابط أدناه</li>
+        </ol>
+        <a href="http://localhost:3001" class="test-link" target="_blank">فتح الموقع - هاتف</a>
+    </div>
+
+    <div class="device-test">
+        <h2>📲 جهاز لوحي</h2>
+        <p>لاختبار الجهاز اللوحي، استخدم Developer Tools:</p>
+        <ol>
+            <li>اضغط F12 في المتصفح</li>
+            <li>اضغط على أيقونة الهاتف (Toggle device toolbar)</li>
+            <li>اختر جهاز iPad أو Galaxy Tab</li>
+            <li>انقر على الرابط أدناه</li>
+        </ol>
+        <a href="http://localhost:3001" class="test-link" target="_blank">فتح الموقع - لوحي</a>
+    </div>
+
+    <div class="device-test">
+        <h2>⚙️ صفحة الإعدادات</h2>
+        <p>لتغيير إعدادات التقييمات:</p>
+        <a href="http://localhost:3001/settings" class="test-link" target="_blank">فتح الإعدادات</a>
+    </div>
+
+    <div class="device-test">
+        <h2>📝 تعليمات الاختبار</h2>
+        <ol>
+            <li>اذهب إلى صفحة الإعدادات</li>
+            <li>انتقل إلى قسم "المظهر"</li>
+            <li>ابحث عن "إعدادات التقييمات"</li>
+            <li>جرب تشغيل وإيقاف "إظهار تقييمات المنتجات (النجوم)"</li>
+            <li>اذهب إلى الصفحة الرئيسية وتحقق من ظهور/اختفاء النجوم</li>
+            <li>كرر الاختبار على أجهزة مختلفة</li>
+        </ol>
+    </div>
+</body>
+</html>

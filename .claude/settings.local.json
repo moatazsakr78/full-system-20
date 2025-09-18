@@ -269,7 +269,8 @@
       "Bash(move:*)",
       "Bash(ls:*)",
       "Bash(start http://localhost:3002/admin/products)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(start test-devices.html)"
     ],
     "deny": [],
     "additionalDirectories": [
