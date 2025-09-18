@@ -51,11 +51,32 @@ export default function InteractiveProductCard({
   };
   
   // Create array of all available images (main image + additional images)
-  const allImages = product.images && product.images.length > 0 
-    ? [product.image, ...product.images].filter(Boolean) as string[]
-    : product.image 
-      ? [product.image]
-      : [];
+  const allImages = (() => {
+    const images = [];
+
+    // Add main image first
+    if (product.image) {
+      images.push(product.image);
+    }
+
+    // Add all additional images from the images array
+    if (product.images && Array.isArray(product.images)) {
+      const additionalImages = product.images.filter(img => img && img !== product.image);
+      images.push(...additionalImages);
+    }
+
+    const finalImages = images.filter(Boolean) as string[];
+
+    // Debug: uncomment to check product data
+    // console.log(`📸 Product "${product.name}":`, {
+    //   mainImage: product.image,
+    //   additionalImages: product.images,
+    //   totalImages: finalImages.length,
+    //   allImages: finalImages
+    // });
+
+    return finalImages;
+  })();
 
   // Get current display image - prioritize selected color images, then regular images
   const getCurrentDisplayImage = () => {
@@ -64,7 +85,13 @@ export default function InteractiveProductCard({
       const colorImages = [selectedColor.image_url, ...allImages.filter(img => img !== selectedColor.image_url)];
       return colorImages[currentImageIndex] || selectedColor.image_url;
     }
-    return allImages[currentImageIndex] || product.image || '/placeholder-product.svg';
+
+    // Return the image at current index, fallback to first image or placeholder
+    if (allImages.length > 0) {
+      return allImages[currentImageIndex] || allImages[0];
+    }
+
+    return product.image || '/placeholder-product.svg';
   };
 
   // Handle touch/swipe events for tablets
@@ -85,14 +112,14 @@ export default function InteractiveProductCard({
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     e.stopPropagation(); // Prevent navigation to product page
-    
+
     if (deviceType !== 'tablet') return;
 
     // Get available images array based on selected color
     const availableImages = selectedColor && selectedColor.image_url
       ? [selectedColor.image_url, ...allImages.filter(img => img !== selectedColor.image_url)]
       : allImages;
-    
+
     if (availableImages.length <= 1) return;
 
     // Handle swipe if there was movement
@@ -114,7 +141,7 @@ export default function InteractiveProductCard({
       }
     }
 
-    // Handle tap on sides if no swipe occurred
+    // Handle tap navigation if no swipe occurred - more responsive zones
     if (!hasMoved && touchStart) {
       const imageContainer = imageRef.current;
       if (!imageContainer) return;
@@ -125,46 +152,51 @@ export default function InteractiveProductCard({
       const containerWidth = rect.width;
       const relativeX = tapX - containerLeft;
 
-      // Divide image into three zones: left (40%), center (20%), right (40%)
-      const leftZone = containerWidth * 0.4;
-      const rightZone = containerWidth * 0.6;
+      // Divide image into sections based on number of images for better UX
+      const sectionWidth = containerWidth / availableImages.length;
+      const tappedSection = Math.floor(relativeX / sectionWidth);
+      const targetIndex = Math.max(0, Math.min(tappedSection, availableImages.length - 1));
 
-      if (relativeX < leftZone) {
-        // Tap on left side - previous image
-        const prevIndex = currentImageIndex === 0 ? availableImages.length - 1 : currentImageIndex - 1;
-        setCurrentImageIndex(prevIndex);
-      } else if (relativeX > rightZone) {
-        // Tap on right side - next image
-        const nextIndex = (currentImageIndex + 1) % availableImages.length;
-        setCurrentImageIndex(nextIndex);
+      if (targetIndex !== currentImageIndex) {
+        setCurrentImageIndex(targetIndex);
       }
-      // Center zone does nothing (allows for future functionality if needed)
     }
   };
 
   // Handle mouse movement over the image to cycle through images (for desktop and mobile)
   const handleImageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (deviceType === 'tablet') return; // Disable mousemove for tablet
-    
+
     const imageContainer = imageRef.current;
     if (!imageContainer) return;
 
-    // Get available images array based on selected color
+    // Get available images array - prioritize allImages for better image cycling
     const availableImages = selectedColor && selectedColor.image_url
       ? [selectedColor.image_url, ...allImages.filter(img => img !== selectedColor.image_url)]
       : allImages;
-    
+
     if (availableImages.length <= 1) return;
 
     const rect = imageContainer.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const containerWidth = rect.width;
-    
-    // Calculate which image to show based on mouse position
-    const imageIndex = Math.floor((mouseX / containerWidth) * availableImages.length);
+
+    // Make it more sensitive - divide image into equal sections based on image count
+    const normalizedPosition = Math.max(0, Math.min(1, mouseX / containerWidth)); // 0 to 1
+
+    // Calculate exact image index with more precision
+    const exactIndex = normalizedPosition * (availableImages.length - 1);
+    const imageIndex = Math.round(exactIndex); // Round to nearest image instead of floor
+
     const clampedIndex = Math.max(0, Math.min(imageIndex, availableImages.length - 1));
-    
-    setCurrentImageIndex(clampedIndex);
+
+    // Debug: uncomment to test image cycling
+    // console.log(`🖼️ Mouse Move on "${product.name}": Available=${availableImages.length}, Index=${clampedIndex}, Position=${normalizedPosition.toFixed(2)}`);
+
+    // Update immediately for better responsiveness
+    if (clampedIndex !== currentImageIndex) {
+      setCurrentImageIndex(clampedIndex);
+    }
   };
 
   // Reset to first image when mouse leaves (for desktop and mobile)
@@ -223,9 +255,9 @@ export default function InteractiveProductCard({
         }
       }}
     >
-      <div 
+      <div
         ref={imageRef}
-        className="relative mb-4" 
+        className="relative mb-4"
         onClick={(e) => {
           if (deviceType === 'tablet') {
             e.stopPropagation();
@@ -237,15 +269,19 @@ export default function InteractiveProductCard({
         onTouchMove={deviceType === 'tablet' ? handleTouchMove : undefined}
         onTouchEnd={deviceType === 'tablet' ? handleTouchEnd : undefined}
       >
-        <img 
+        <img
           src={getCurrentDisplayImage()}
-          alt={product.name} 
-          className={classes.imageClass}
+          alt={product.name}
+          className={`${classes.imageClass} transition-opacity duration-200`}
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             if (target.src !== '/placeholder-product.svg') {
               target.src = '/placeholder-product.svg';
             }
+          }}
+          style={{
+            filter: 'brightness(1.02)', // Slight brightness enhancement
+            transition: 'filter 0.2s ease-in-out'
           }}
         />
         {product.isOnSale && (
@@ -253,7 +289,8 @@ export default function InteractiveProductCard({
             -{product.discount}%
           </span>
         )}
-        
+
+
       </div>
       
       <div className="flex flex-col">

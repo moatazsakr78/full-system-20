@@ -46,6 +46,7 @@ export interface Product {
   is_featured?: boolean | null
   display_order?: number | null
   suggested_products?: string[] | null
+  additional_images?: any[] | null
   // Relations
   category?: {
     id: string

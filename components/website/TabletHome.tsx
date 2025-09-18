@@ -125,7 +125,7 @@ export default function TabletHome({
                 wholesale_price: Number(dbProduct.wholesale_price) || undefined,
                 originalPrice: hasDiscount ? Number(dbProduct.price) : undefined,
                 image: dbProduct.main_image_url || undefined,
-                images: dbProduct.main_image_url ? [dbProduct.main_image_url] : [],
+                images: dbProduct.allImages || [], // Use allImages from useProducts hook
                 colors: colors, // Real colors from product variants
                 category: dbProduct.category?.name || 'عام',
                 brand: 'El Farouk Group',

@@ -108,6 +108,10 @@ export default function DesktopHome({
                 image_url: variant.image_url || null
               }));
               
+              // Use allImages from useProducts hook which includes variant images
+              const productImages = dbProduct.allImages || [];
+
+
               return {
                 id: dbProduct.id,
                 name: dbProduct.name || 'منتج بدون اسم',
@@ -116,7 +120,7 @@ export default function DesktopHome({
                 wholesale_price: Number(dbProduct.wholesale_price) || undefined,
                 originalPrice: hasDiscount ? Number(dbProduct.price) : undefined,
                 image: dbProduct.main_image_url || undefined,
-                images: dbProduct.main_image_url ? [dbProduct.main_image_url] : [],
+                images: productImages, // Include both main and sub images
                 colors: colors, // Real colors from product variants
                 category: dbProduct.category?.name || 'عام',
                 brand: 'El Farouk Group',
