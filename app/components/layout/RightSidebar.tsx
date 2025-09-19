@@ -134,6 +134,23 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
                   </div>
                 </button>
 
+                {/* Go to POS System */}
+                <button
+                  onClick={() => {
+                    window.location.href = '/pos';
+                    onClose();
+                  }}
+                  className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"
+                >
+                  <div className="p-2 bg-[#5d1f1f] rounded-full group-hover:bg-red-700 transition-colors">
+                    <CubeIcon className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1 text-right">
+                    <h3 className="font-semibold text-base text-black">الانتقال للنظام</h3>
+                    <p className="text-xs text-gray-600">الانتقال إلى نظام نقاط البيع</p>
+                  </div>
+                </button>
+
                 {/* Shipping Details */}
                 <button
                   onClick={() => {

@@ -50,7 +50,7 @@ export default function InteractiveProductCard({
         ...product,
         id: selectedSize.product.id,
         name: selectedSize.product.name,
-        description: selectedSize.product.description || product.description,
+        description: selectedSize.product.description || product.description || 'لا يوجد وصف متاح',
         price: selectedSize.product.price,
         image: selectedSize.product.main_image_url || product.image,
         selectedSize: selectedSize
@@ -60,6 +60,13 @@ export default function InteractiveProductCard({
   };
 
   const currentProduct = getCurrentProductData();
+
+  // Debug logging
+  if (selectedSize) {
+    console.log('Selected size:', selectedSize);
+    console.log('Current product:', currentProduct);
+    console.log('Description:', currentProduct.description);
+  }
 
   // Determine which price to display based on user role
   const getDisplayPrice = () => {
@@ -321,26 +328,30 @@ export default function InteractiveProductCard({
       
       <div className="flex flex-col">
         <h4 className={classes.titleClass}>{currentProduct.name}</h4>
-        {/* Description with dynamic height based on colors availability */}
+        {/* Description with dynamic height based on colors and sizes availability */}
         <div
           className="mb-1"
           style={{
-            height: (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0)
-              ? (deviceType === 'tablet' ? '2.75rem' : '2.5rem')
-              : (deviceType === 'tablet' ? '4rem' : '3.75rem')
+            minHeight: (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0)
+              ? (deviceType === 'tablet' ? '4.2rem' : '3.6rem')
+              : (deviceType === 'tablet' ? '4.5rem' : '4rem')
           }}
         >
-          <p className={`text-sm overflow-hidden text-gray-600`} style={{
-            display: '-webkit-box',
-            WebkitLineClamp: (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0) ? 2 : 3,
-            WebkitBoxOrient: 'vertical',
-            lineHeight: '1.25rem',
-            maxHeight: (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0)
-              ? (deviceType === 'tablet' ? '2.75rem' : '2.5rem')
-              : (deviceType === 'tablet' ? '4rem' : '3.75rem')
-          }}>
-            {currentProduct.description}
-          </p>
+          <div
+            className="text-sm text-gray-600"
+            style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              lineHeight: '1.4rem',
+              maxHeight: '4.2rem',
+              wordWrap: 'break-word'
+            }}
+          >
+            {currentProduct.description || 'لا يوجد وصف متاح'}
+          </div>
         </div>
         
         {/* Color Options - Horizontal Scroll for colors */}
@@ -370,7 +381,7 @@ export default function InteractiveProductCard({
 
         {/* Size Options - Dropdown for sizes */}
         {product.sizes && product.sizes.length > 0 ? (
-          <div className={`${deviceType === 'tablet' ? 'h-9' : 'h-8'} mb-2`}>
+          <div className={`${deviceType === 'tablet' ? 'h-10' : 'h-9'} mb-1`}>
             <select
               value={selectedSize?.id || ''}
               onChange={(e) => {
@@ -385,8 +396,8 @@ export default function InteractiveProductCard({
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className={`w-full bg-white border border-gray-300 rounded-lg px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all ${
-                deviceType === 'tablet' ? 'py-2 text-base' : 'py-1.5'
+              className={`w-full bg-white border border-gray-300 rounded-md px-3 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 transition-all shadow-sm ${
+                deviceType === 'tablet' ? 'py-2.5 text-base' : 'py-2'
               }`}
             >
               <option value="">اختر المقاس</option>
@@ -398,7 +409,7 @@ export default function InteractiveProductCard({
             </select>
           </div>
         ) : (
-          <div className={`${deviceType === 'tablet' ? 'h-1' : 'h-0.5'} mb-1`}></div>
+          <div className={`${deviceType === 'tablet' ? 'h-2' : 'h-1'} mb-1`}></div>
         )}
         
         <div className="flex items-center justify-between mb-3">
