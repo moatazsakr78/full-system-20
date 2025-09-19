@@ -40,8 +40,8 @@ interface LocationThreshold {
   locationId: string
   locationType: 'branch' | 'warehouse'
   locationName: string
-  quantity: number
-  minStockThreshold: number
+  quantity: number | undefined
+  minStockThreshold: number | undefined
 }
 
 interface LocationVariant {
@@ -431,8 +431,8 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
         locationId: branch.id,
         locationType: 'branch',
         locationName: branch.name,
-        quantity: 0,
-        minStockThreshold: 0
+        quantity: undefined,
+        minStockThreshold: undefined
       })
     })
     
@@ -442,8 +442,8 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
         locationId: warehouse.id,
         locationType: 'warehouse',
         locationName: warehouse.name,
-        quantity: 0,
-        minStockThreshold: 0
+        quantity: undefined,
+        minStockThreshold: undefined
       })
     })
     
@@ -749,10 +749,10 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
     setFormData(prev => ({ ...prev, [field]: value }))
   }
   
-  const handleThresholdChange = (locationId: string, field: 'quantity' | 'minStockThreshold', value: number) => {
+  const handleThresholdChange = (locationId: string, field: 'quantity' | 'minStockThreshold', value: number | undefined) => {
     setLocationThresholds(prev => {
-      const updated = prev.map(threshold => 
-        threshold.locationId === locationId 
+      const updated = prev.map(threshold =>
+        threshold.locationId === locationId
           ? { ...threshold, [field]: value }
           : threshold
       )
@@ -1405,12 +1405,12 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
         if (savedProduct) {
           // Update inventory entries
           const inventoryPromises = locationThresholds
-            .filter(threshold => threshold.quantity > 0 || threshold.minStockThreshold > 0)
+            .filter(threshold => (threshold.quantity !== undefined && threshold.quantity > 0) || (threshold.minStockThreshold !== undefined && threshold.minStockThreshold > 0))
             .map(async (threshold) => {
               const inventoryData: any = {
                 product_id: savedProduct!.id,
-                quantity: threshold.quantity,
-                min_stock: threshold.minStockThreshold
+                quantity: threshold.quantity ?? 0,
+                min_stock: threshold.minStockThreshold ?? 0
               }
               
               if (threshold.locationType === 'branch') {
@@ -1535,15 +1535,15 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
           
           // Create inventory entries for each location with quantities
           const inventoryEntriesToSave = locationThresholds
-            .filter(threshold => threshold.quantity > 0 || threshold.minStockThreshold > 0)
-          
+            .filter(threshold => (threshold.quantity !== undefined && threshold.quantity > 0) || (threshold.minStockThreshold !== undefined && threshold.minStockThreshold > 0))
+
           console.log('✅ Filtered inventory entries to save:', inventoryEntriesToSave)
-          
+
           const inventoryPromises = inventoryEntriesToSave.map(threshold => {
               const inventoryData: any = {
                 product_id: savedProduct!.id,
-                quantity: threshold.quantity,
-                min_stock: threshold.minStockThreshold
+                quantity: threshold.quantity ?? 0,
+                min_stock: threshold.minStockThreshold ?? 0
               }
               
               if (threshold.locationType === 'branch') {
@@ -2228,7 +2228,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                             فرع
                           </span>
                           <p className="text-blue-400 text-sm mt-2 font-medium">
-                            كمية: {locationThresholds.find(t => t.locationId === branch.id)?.quantity || 0} قطعة
+                            كمية: {locationThresholds.find(t => t.locationId === branch.id)?.quantity ?? 0} قطعة
                           </p>
                         </div>
                       ))}
@@ -2254,7 +2254,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                             مخزن
                           </span>
                           <p className="text-green-400 text-sm mt-2 font-medium">
-                            كمية: {locationThresholds.find(t => t.locationId === warehouse.id)?.quantity || 0} قطعة
+                            كمية: {locationThresholds.find(t => t.locationId === warehouse.id)?.quantity ?? 0} قطعة
                           </p>
                         </div>
                       ))}
@@ -2614,9 +2614,9 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                               </label>
                               <input
                                 type="number"
-                                value={threshold.quantity}
-                                onChange={(e) => handleThresholdChange(threshold.locationId, 'quantity', parseInt(e.target.value) || 0)}
-                                placeholder="0"
+                                value={threshold.quantity !== undefined ? threshold.quantity : ''}
+                                onChange={(e) => handleThresholdChange(threshold.locationId, 'quantity', e.target.value === '' ? undefined : parseInt(e.target.value))}
+                                placeholder=""
                                 min="0"
                                 className="w-full px-3 py-2 bg-[#374151] border border-[#4A5568] rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
@@ -2629,9 +2629,9 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                               </label>
                               <input
                                 type="number"
-                                value={threshold.minStockThreshold}
-                                onChange={(e) => handleThresholdChange(threshold.locationId, 'minStockThreshold', parseInt(e.target.value) || 0)}
-                                placeholder="0"
+                                value={threshold.minStockThreshold !== undefined ? threshold.minStockThreshold : ''}
+                                onChange={(e) => handleThresholdChange(threshold.locationId, 'minStockThreshold', e.target.value === '' ? undefined : parseInt(e.target.value))}
+                                placeholder=""
                                 min="0"
                                 className="w-full px-3 py-2 bg-[#374151] border border-[#4A5568] rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />

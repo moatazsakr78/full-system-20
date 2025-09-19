@@ -63,6 +63,7 @@ export function useStoreCategories() {
     }
   };
 
+
   // Create new store category
   const createCategory = async (categoryData: CreateStoreCategoryData) => {
     try {
