@@ -8,6 +8,7 @@ import { DragDropProvider } from './components/DragDropProvider';
 import ProductManagementGrid from './components/ProductManagementGrid';
 import CategoryManagementGrid from './components/CategoryManagementGrid';
 import AddStoreCategoryModal from './components/AddStoreCategoryModal';
+import ProductSizeModal from './components/ProductSizeModal';
 import { supabase } from '../../../lib/supabase/client';
 
 interface ProductManagementItem {
@@ -42,6 +43,7 @@ export default function ProductManagementPage() {
   const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [isProductSizeModalOpen, setIsProductSizeModalOpen] = useState(false);
 
   // Set client-side flag after component mounts
   useEffect(() => {
@@ -518,6 +520,25 @@ export default function ProductManagementPage() {
               </span>
             </button>
 
+            {/* Product Size Button - Only show in products mode */}
+            {managementMode === 'products' && (
+              <>
+                <div className="w-px h-8 bg-white/30 mx-2"></div>
+
+                <button
+                  onClick={() => setIsProductSizeModalOpen(true)}
+                  className="flex flex-col items-center justify-center p-4 transition-colors group min-w-[100px] hover:bg-white/10"
+                >
+                  <svg className="w-8 h-8 mb-2 text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  <span className="text-sm font-bold text-center leading-tight text-white transition-colors">
+                    حجم المنتج
+                  </span>
+                </button>
+              </>
+            )}
+
             {/* Category Management Buttons - Only show in categories mode */}
             {managementMode === 'categories' && (
               <>
@@ -855,6 +876,18 @@ export default function ProductManagementPage() {
           setIsEditCategoryModalOpen(false);
           setEditingCategory(null);
           setSelectedCategoryId(null);
+        }}
+      />
+
+      {/* Product Size Modal */}
+      <ProductSizeModal
+        isOpen={isProductSizeModalOpen}
+        onClose={() => setIsProductSizeModalOpen(false)}
+        products={products}
+        onSizeGroupCreated={() => {
+          // Refresh data after product size group creation
+          fetchProducts();
+          setIsProductSizeModalOpen(false);
         }}
       />
     </div>

@@ -35,6 +35,18 @@ export interface ProductColor {
   quantity?: number;
 }
 
+export interface ProductSize {
+  id: string;
+  name: string;
+  product: {
+    id: string;
+    name: string;
+    main_image_url?: string;
+    price: number;
+    description?: string;
+  };
+}
+
 export interface Product {
   id: string | number;
   name: string;
@@ -46,6 +58,8 @@ export interface Product {
   images?: string[];
   colors?: ProductColor[];
   selectedColor?: ProductColor | null;
+  sizes?: ProductSize[];
+  selectedSize?: ProductSize | null;
   category?: string;
   brand?: string;
   stock?: number;

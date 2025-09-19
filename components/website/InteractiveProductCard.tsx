@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Product, ProductColor } from './shared/types';
+import { Product, ProductColor, ProductSize } from './shared/types';
 import { useCart } from '../../lib/contexts/CartContext';
 import { useUserProfile } from '../../lib/hooks/useUserProfile';
 import { useWebsiteCurrency } from '@/lib/hooks/useCurrency';
@@ -24,6 +24,7 @@ export default function InteractiveProductCard({
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState<ProductColor | null>(null);
+  const [selectedSize, setSelectedSize] = useState<ProductSize | null>(null);
   const imageRef = useRef<HTMLDivElement>(null);
   
   // Mobile-specific states
@@ -41,27 +42,45 @@ export default function InteractiveProductCard({
 
   // Get rating settings
   const { showRatings } = useRatingsDisplay();
-  
+
+  // Get current product data based on selected size
+  const getCurrentProductData = () => {
+    if (selectedSize && selectedSize.product) {
+      return {
+        ...product,
+        id: selectedSize.product.id,
+        name: selectedSize.product.name,
+        description: selectedSize.product.description || product.description,
+        price: selectedSize.product.price,
+        image: selectedSize.product.main_image_url || product.image,
+        selectedSize: selectedSize
+      };
+    }
+    return product;
+  };
+
+  const currentProduct = getCurrentProductData();
+
   // Determine which price to display based on user role
   const getDisplayPrice = () => {
-    if (profile?.role === 'جملة' && product.wholesale_price) {
-      return product.wholesale_price;
+    if (profile?.role === 'جملة' && currentProduct.wholesale_price) {
+      return currentProduct.wholesale_price;
     }
-    return product.price;
+    return currentProduct.price;
   };
-  
+
   // Create array of all available images (main image + additional images)
   const allImages = (() => {
     const images = [];
 
     // Add main image first
-    if (product.image) {
-      images.push(product.image);
+    if (currentProduct.image) {
+      images.push(currentProduct.image);
     }
 
     // Add all additional images from the images array
-    if (product.images && Array.isArray(product.images)) {
-      const additionalImages = product.images.filter(img => img && img !== product.image);
+    if (currentProduct.images && Array.isArray(currentProduct.images)) {
+      const additionalImages = currentProduct.images.filter(img => img && img !== currentProduct.image);
       images.push(...additionalImages);
     }
 
@@ -217,6 +236,13 @@ export default function InteractiveProductCard({
     setCurrentImageIndex(0); // Reset image index when color changes
   };
 
+  // Handle size selection with product data update
+  const handleSizeSelect = (size: ProductSize, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigation to product page
+    setSelectedSize(size);
+    setCurrentImageIndex(0); // Reset image index when size changes
+  };
+
   // Get responsive classes based on device type
   const getResponsiveClasses = () => {
     switch (deviceType) {
@@ -249,9 +275,9 @@ export default function InteractiveProductCard({
       data-device-type={deviceType}
       onClick={() => {
         if (onProductClick) {
-          onProductClick(String(product.id));
+          onProductClick(String(currentProduct.id));
         } else {
-          router.push(`/product/${product.id}`);
+          router.push(`/product/${currentProduct.id}`);
         }
       }}
     >
@@ -294,26 +320,26 @@ export default function InteractiveProductCard({
       </div>
       
       <div className="flex flex-col">
-        <h4 className={classes.titleClass}>{product.name}</h4>
+        <h4 className={classes.titleClass}>{currentProduct.name}</h4>
         {/* Description with dynamic height based on colors availability */}
-        <div 
+        <div
           className="mb-1"
-          style={{ 
-            height: product.colors && product.colors.length > 0 
+          style={{
+            height: (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0)
               ? (deviceType === 'tablet' ? '2.75rem' : '2.5rem')
               : (deviceType === 'tablet' ? '4rem' : '3.75rem')
           }}
         >
           <p className={`text-sm overflow-hidden text-gray-600`} style={{
             display: '-webkit-box',
-            WebkitLineClamp: product.colors && product.colors.length > 0 ? 2 : 3,
+            WebkitLineClamp: (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0) ? 2 : 3,
             WebkitBoxOrient: 'vertical',
             lineHeight: '1.25rem',
-            maxHeight: product.colors && product.colors.length > 0 
+            maxHeight: (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0)
               ? (deviceType === 'tablet' ? '2.75rem' : '2.5rem')
               : (deviceType === 'tablet' ? '4rem' : '3.75rem')
           }}>
-            {product.description}
+            {currentProduct.description}
           </p>
         </div>
         
@@ -341,20 +367,53 @@ export default function InteractiveProductCard({
         ) : (
           <div className={`${deviceType === 'tablet' ? 'h-3' : 'h-2'} mb-1`}></div>
         )}
+
+        {/* Size Options - Dropdown for sizes */}
+        {product.sizes && product.sizes.length > 0 ? (
+          <div className={`${deviceType === 'tablet' ? 'h-9' : 'h-8'} mb-2`}>
+            <select
+              value={selectedSize?.id || ''}
+              onChange={(e) => {
+                const sizeId = e.target.value;
+                if (sizeId) {
+                  const size = product.sizes?.find(s => s.id === sizeId);
+                  if (size) {
+                    handleSizeSelect(size, e as any);
+                  }
+                } else {
+                  setSelectedSize(null);
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full bg-white border border-gray-300 rounded-lg px-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all ${
+                deviceType === 'tablet' ? 'py-2 text-base' : 'py-1.5'
+              }`}
+            >
+              <option value="">اختر المقاس</option>
+              {product.sizes.map((size) => (
+                <option key={size.id} value={size.id}>
+                  {size.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div className={`${deviceType === 'tablet' ? 'h-1' : 'h-0.5'} mb-1`}></div>
+        )}
         
         <div className="flex items-center justify-between mb-3">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              {product.originalPrice && (
+              {currentProduct.originalPrice && (
                 <span className="text-sm line-through text-gray-500">
-                  {product.originalPrice} {websiteCurrency}
+                  {currentProduct.originalPrice} {websiteCurrency}
                 </span>
               )}
               <span className="text-lg font-bold" style={{color: '#5D1F1F'}}>
                 {getDisplayPrice()} {websiteCurrency}
               </span>
             </div>
-            {profile?.role === 'جملة' && product.wholesale_price && (
+            {profile?.role === 'جملة' && currentProduct.wholesale_price && (
               <span className="text-xs text-blue-600 font-medium">سعر الجملة</span>
             )}
           </div>
@@ -377,9 +436,10 @@ export default function InteractiveProductCard({
         <button 
           onClick={async (e) => {
             e.stopPropagation();
-            const productToAdd = { 
-              ...product, 
+            const productToAdd = {
+              ...currentProduct,
               selectedColor: selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : null),
+              selectedSize: selectedSize,
               price: getDisplayPrice() // Use the display price based on user role
             };
             await onAddToCart(productToAdd);
@@ -502,9 +562,10 @@ export default function InteractiveProductCard({
               <button 
                 onClick={async (e) => {
                   e.stopPropagation();
-                  const productToAdd = { 
-                    ...product, 
-                    selectedColor: selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : null)
+                  const productToAdd = {
+                    ...currentProduct,
+                    selectedColor: selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : null),
+                    selectedSize: selectedSize
                   };
                   
                   const selectedColorName = productToAdd.selectedColor?.name || undefined;
@@ -512,9 +573,9 @@ export default function InteractiveProductCard({
                   const priceToUse = getDisplayPrice(); // Use the display price based on user role
                   
                   try {
-                    console.log('🛒 Adding to cart:', quantityToAdd, 'units of product:', product.name, 'at price:', priceToUse);
+                    console.log('🛒 Adding to cart:', quantityToAdd, 'units of product:', currentProduct.name, 'at price:', priceToUse);
                     // Use directAddToCart with the full quantity at once - much faster!
-                    await directAddToCart(String(product.id), quantityToAdd, priceToUse, selectedColorName);
+                    await directAddToCart(String(currentProduct.id), quantityToAdd, priceToUse, selectedColorName);
                     console.log('✅ Successfully added', quantityToAdd, 'units to cart');
                   } catch (error) {
                     console.error('❌ Error adding to cart:', error);

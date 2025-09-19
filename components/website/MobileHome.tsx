@@ -86,8 +86,63 @@ export default function MobileHome({
             console.error('Error fetching product variants:', variantsError);
           }
 
+          // Fetch size groups with their items
+          const { data: sizeGroups, error: sizeGroupsError } = await supabase
+            .from('product_size_groups')
+            .select(`
+              *,
+              product_size_group_items (
+                *,
+                products (
+                  id,
+                  name,
+                  main_image_url,
+                  price,
+                  description
+                )
+              )
+            `)
+            .eq('is_active', true);
+
+          if (sizeGroupsError) {
+            console.error('Error fetching size groups:', sizeGroupsError);
+          }
+
+          // Create a map of products that are part of size groups
+          const productsInSizeGroups = new Map();
+          sizeGroups?.forEach(group => {
+            if (group.product_size_group_items && group.product_size_group_items.length > 0) {
+              // Use the first item as the representative for the group
+              const representative = group.product_size_group_items[0];
+              if (representative.products) {
+                productsInSizeGroups.set(representative.products.id, {
+                  sizeGroup: group,
+                  sizes: group.product_size_group_items.map((item: any) => ({
+                    id: item.product_id,
+                    name: item.size_name,
+                    product: item.products
+                  }))
+                });
+              }
+            }
+          });
+
+          // Create a set of product IDs that should be hidden (all except representatives)
+          const hiddenProductIds = new Set();
+          sizeGroups?.forEach(group => {
+            if (group.product_size_group_items && group.product_size_group_items.length > 1) {
+              // Hide all products except the first one (representative)
+              group.product_size_group_items.slice(1).forEach((item: any) => {
+                hiddenProductIds.add(item.product_id);
+              });
+            }
+          });
+
           const convertedProducts: Product[] = databaseProducts
-            .filter((dbProduct: DatabaseProduct) => !dbProduct.is_hidden) // Hide hidden products
+            .filter((dbProduct: DatabaseProduct) =>
+              !dbProduct.is_hidden && // Hide hidden products
+              !hiddenProductIds.has(dbProduct.id) // Hide duplicate products in size groups
+            )
             .map((dbProduct: DatabaseProduct) => {
               // Calculate if product has discount
               const hasDiscount = dbProduct.discount_percentage && dbProduct.discount_percentage > 0;
@@ -103,6 +158,10 @@ export default function MobileHome({
                 hex: variant.color_hex || '#000000',
                 image_url: variant.image_url || null
               }));
+
+              // Get sizes for this product (if it's part of a size group)
+              const sizeGroupInfo = productsInSizeGroups.get(dbProduct.id);
+              const sizes = sizeGroupInfo ? sizeGroupInfo.sizes : [];
               
               return {
                 id: dbProduct.id,
@@ -114,6 +173,7 @@ export default function MobileHome({
                 image: dbProduct.main_image_url || undefined,
                 images: dbProduct.allImages || [], // Use allImages from useProducts hook
                 colors: colors, // Real colors from product variants
+                sizes: sizes,
                 category: dbProduct.category?.name || 'عام',
                 brand: 'El Farouk Group',
                 stock: dbProduct.stock || 0,

@@ -56,7 +56,7 @@ interface DatabaseProduct {
   } | null;
 }
 
-interface ProductDetail extends Product {
+interface ProductDetail extends Omit<Product, 'sizes'> {
   gallery: string[];
   specifications: { [key: string]: string };
   sizes: { name: string; available: boolean }[];
