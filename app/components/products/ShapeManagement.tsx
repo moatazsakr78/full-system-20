@@ -4,10 +4,19 @@ import { useState } from 'react'
 import { useShapes, Shape } from '../../lib/hooks/useShapes'
 import { ShapeModal } from './ShapeModal'
 
-export function ShapeManagement() {
-  const { shapes, loading, addShape, updateShape, deleteShape } = useShapes()
+interface ShapeManagementProps {
+  productShapes?: any[]
+  setProductShapes?: (shapes: any[]) => void
+  isEditMode?: boolean
+}
+
+export function ShapeManagement({ productShapes = [], setProductShapes, isEditMode = false }: ShapeManagementProps) {
+  const { shapes: allShapes, loading, addShape, updateShape, deleteShape } = useShapes()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingShape, setEditingShape] = useState<Shape | null>(null)
+
+  // Use productShapes for editing mode, empty array for new product mode
+  const displayShapes = isEditMode ? productShapes : []
 
   const handleEdit = (shape: Shape) => {
     setEditingShape(shape)
@@ -64,12 +73,12 @@ export function ShapeManagement() {
       </div>
 
       <div className="grid grid-cols-1 gap-2">
-        {shapes.length === 0 ? (
+        {displayShapes.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
-            لا توجد أشكال مضافة بعد
+            {isEditMode ? 'لا توجد أشكال مرتبطة بهذا المنتج' : 'لا توجد أشكال مضافة بعد'}
           </div>
         ) : (
-          shapes.map((shape) => (
+          displayShapes.map((shape) => (
             <div
               key={shape.id}
               className="bg-[#374151] rounded-lg p-3 flex items-center justify-between hover:bg-[#4B5563] transition-colors"

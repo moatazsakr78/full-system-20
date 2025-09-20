@@ -120,6 +120,10 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
   const [colorName, setColorName] = useState('')
   const [selectedColor, setSelectedColor] = useState('#000000')
   const [editingColorId, setEditingColorId] = useState<string | null>(null)
+
+  // Product shapes state (shapes linked to current product)
+  const [productShapes, setProductShapes] = useState<any[]>([])
+  const [isLoadingShapes, setIsLoadingShapes] = useState(false)
   
   // New states for location variant management
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null)
@@ -322,6 +326,63 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
           console.log('🎨 LOAD: No colors found anywhere, setting empty array')
           setProductColors([])
         }
+      }
+
+      // Load product shapes if we're editing a product
+      if (editProduct.variantsData) {
+        console.log('🔶 Checking variants data for shapes:', editProduct.variantsData)
+
+        // Extract unique shapes from all locations
+        const shapeMap = new Map<string, any>()
+
+        Object.values(editProduct.variantsData).forEach((variants: any) => {
+          if (Array.isArray(variants)) {
+            variants.forEach((variant: any) => {
+              if (variant.variant_type === 'shape' && variant.name && variant.name !== 'غير محدد') {
+                let imageUrl: string | undefined = variant.image_url // Get image from dedicated field
+                let barcodeValue: string | undefined = variant.barcode // Get barcode from variant
+
+                // Try to get image and barcode from variant value JSON
+                try {
+                  if (variant.value && variant.value.startsWith('{')) {
+                    const valueData = JSON.parse(variant.value)
+                    if (valueData.image && !imageUrl) imageUrl = valueData.image
+                    if (valueData.barcode && !barcodeValue) barcodeValue = valueData.barcode
+                  }
+                } catch (e) {
+                  console.warn('Failed to parse variant value JSON for shape:', e)
+                }
+
+                // Add to map to avoid duplicates
+                if (!shapeMap.has(variant.name)) {
+                  shapeMap.set(variant.name, {
+                    id: `variant-${variant.name}-${Date.now()}`,
+                    name: variant.name,
+                    image_url: imageUrl,
+                    barcode: barcodeValue
+                  })
+
+                  console.log(`🔶 Extracted shape ${variant.name}:`, {
+                    image: imageUrl,
+                    barcode: barcodeValue
+                  })
+                }
+              }
+            })
+          }
+        })
+
+        const extractedShapes = Array.from(shapeMap.values())
+        if (extractedShapes.length > 0) {
+          console.log('🔶 LOAD: Extracted shapes from variants:', extractedShapes)
+          setProductShapes(extractedShapes)
+        } else {
+          console.log('🔶 LOAD: No shapes found, setting empty array')
+          setProductShapes([])
+        }
+      } else {
+        console.log('🔶 LOAD: No variants data, setting empty shapes array')
+        setProductShapes([])
       }
       
       // Set barcodes if available
@@ -1742,6 +1803,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
     setEditingBarcodeIndex(null)
     // Clear colors and variants
     setProductColors([])
+    setProductShapes([])
     setLocationVariants([])
     setSelectedLocation(null)
   }
@@ -2096,7 +2158,11 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
             <div className="flex-1 pt-4">
             {activeShapeColorTab === 'شكل وصف' && (
               <div>
-                <ShapeManagement />
+                <ShapeManagement
+                  productShapes={productShapes}
+                  setProductShapes={setProductShapes}
+                  isEditMode={!!editProduct}
+                />
               </div>
             )}
 
