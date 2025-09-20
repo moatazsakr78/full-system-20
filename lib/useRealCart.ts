@@ -125,6 +125,7 @@ export function useRealCart(): RealCartHook {
     quantity: number = 1,
     price: number,
     selectedColor?: string,
+    selectedShape?: string,
     selectedSize?: string
   ): Promise<boolean> => {
     try {
@@ -135,6 +136,7 @@ export function useRealCart(): RealCartHook {
         quantity,
         price,
         selectedColor,
+        selectedShape,
         selectedSize,
         sessionId: sessionIdRef.current
       });
@@ -147,9 +149,10 @@ export function useRealCart(): RealCartHook {
       }
       
       // Optimistic UI update - check if item exists and update accordingly
-      const existingItemIndex = cart.findIndex(item => 
+      const existingItemIndex = cart.findIndex(item =>
         item.product_id === productId &&
         (item.selected_color || '') === (selectedColor || '') &&
+        (item.selected_shape || '') === (selectedShape || '') &&
         (item.selected_size || '') === (selectedSize || '')
       );
       
@@ -171,6 +174,7 @@ export function useRealCart(): RealCartHook {
           quantity,
           price,
           selected_color: selectedColor || null,
+          selected_shape: selectedShape || null,
           selected_size: selectedSize || null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -185,6 +189,7 @@ export function useRealCart(): RealCartHook {
         quantity,
         price,
         selectedColor,
+        selectedShape,
         selectedSize
       );
       

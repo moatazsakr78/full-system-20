@@ -124,6 +124,7 @@ export type Database = {
           product_id: string
           quantity: number
           selected_color: string | null
+          selected_shape: string | null
           selected_size: string | null
           session_id: string
           updated_at: string | null
@@ -135,6 +136,7 @@ export type Database = {
           product_id: string
           quantity?: number
           selected_color?: string | null
+          selected_shape?: string | null
           selected_size?: string | null
           session_id: string
           updated_at?: string | null
@@ -146,6 +148,7 @@ export type Database = {
           product_id?: string
           quantity?: number
           selected_color?: string | null
+          selected_shape?: string | null
           selected_size?: string | null
           session_id?: string
           updated_at?: string | null
