@@ -10,6 +10,7 @@ interface CartItem {
   quantity: number;
   price: number;
   selected_color?: string;
+  selected_shape?: string;
   selected_size?: string;
   products?: {
     name: string;
@@ -20,7 +21,7 @@ interface CartItem {
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (productId: string, quantity: number, price: number, selectedColor?: string, selectedSize?: string) => Promise<void>;
+  addToCart: (productId: string, quantity: number, price: number, selectedColor?: string, selectedShape?: string, selectedSize?: string) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -40,9 +41,10 @@ function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
       return action.payload;
     
     case 'ADD_ITEM':
-      const existingItem = state.find(item => 
+      const existingItem = state.find(item =>
         item.product_id === action.payload.product_id &&
         (item.selected_color || '') === (action.payload.selected_color || '') &&
+        (item.selected_shape || '') === (action.payload.selected_shape || '') &&
         (item.selected_size || '') === (action.payload.selected_size || '')
       );
       
@@ -99,6 +101,7 @@ export function CartProvider({ children }: CartProviderProps) {
         quantity: item.quantity,
         price: item.price,
         selected_color: item.selected_color || undefined,
+        selected_shape: item.selected_shape || undefined,
         selected_size: item.selected_size || undefined,
         products: item.products
       }));
@@ -110,7 +113,7 @@ export function CartProvider({ children }: CartProviderProps) {
   };
 
   // Local cart operations (immediate UI updates + database sync)
-  const addToCart = async (productId: string, quantity: number, price: number, selectedColor?: string, selectedSize?: string) => {
+  const addToCart = async (productId: string, quantity: number, price: number, selectedColor?: string, selectedShape?: string, selectedSize?: string) => {
     // 1. Immediate UI update
     const newItem: CartItem = {
       id: `temp_${Date.now()}_${Math.random()}`, // Temporary ID for local state
@@ -118,6 +121,7 @@ export function CartProvider({ children }: CartProviderProps) {
       quantity,
       price,
       selected_color: selectedColor,
+      selected_shape: selectedShape,
       selected_size: selectedSize
     };
     
@@ -126,7 +130,7 @@ export function CartProvider({ children }: CartProviderProps) {
     // 2. Sync with database and refresh
     try {
       const sessionId = CartSession.getSessionId();
-      await CartService.addToCart(sessionId, productId, quantity, price, selectedColor, selectedSize);
+      await CartService.addToCart(sessionId, productId, quantity, price, selectedColor, selectedShape, selectedSize);
       // Refresh cart from database to ensure accuracy
       await syncWithDatabase();
     } catch (error) {

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Product, ProductColor, ProductSize } from './shared/types';
+import { Product, ProductColor, ProductShape, ProductSize } from './shared/types';
 import { useCart } from '../../lib/contexts/CartContext';
 import { useUserProfile } from '../../lib/hooks/useUserProfile';
 import { useWebsiteCurrency } from '@/lib/hooks/useCurrency';
@@ -24,6 +24,7 @@ export default function InteractiveProductCard({
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState<ProductColor | null>(null);
+  const [selectedShape, setSelectedShape] = useState<ProductShape | null>(null);
   const [selectedSize, setSelectedSize] = useState<ProductSize | null>(null);
   const imageRef = useRef<HTMLDivElement>(null);
   
@@ -104,8 +105,13 @@ export default function InteractiveProductCard({
     return finalImages;
   })();
 
-  // Get current display image - prioritize selected color images, then regular images
+  // Get current display image - prioritize selected shape, then color images, then regular images
   const getCurrentDisplayImage = () => {
+    // If a shape is selected and has an image, use it
+    if (selectedShape && selectedShape.image_url) {
+      return selectedShape.image_url;
+    }
+
     if (selectedColor && selectedColor.image_url) {
       // If a color is selected and has images, create array with color image first, then regular images
       const colorImages = [selectedColor.image_url, ...allImages.filter(img => img !== selectedColor.image_url)];
@@ -243,6 +249,18 @@ export default function InteractiveProductCard({
     setCurrentImageIndex(0); // Reset image index when color changes
   };
 
+  // Handle shape selection with toggle functionality
+  const handleShapeSelect = (shape: ProductShape, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigation to product page
+    // Toggle shape selection - if same shape is clicked, deselect it
+    if (selectedShape?.id === shape.id) {
+      setSelectedShape(null);
+    } else {
+      setSelectedShape(shape);
+    }
+    setCurrentImageIndex(0); // Reset image index when shape changes
+  };
+
   // Handle size selection with product data update
   const handleSizeSelect = (size: ProductSize, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent navigation to product page
@@ -328,11 +346,11 @@ export default function InteractiveProductCard({
       
       <div className="flex flex-col">
         <h4 className={classes.titleClass}>{currentProduct.name}</h4>
-        {/* Description with dynamic height based on colors and sizes availability */}
+        {/* Description with dynamic height based on colors, shapes and sizes availability */}
         <div
           className="mb-1"
           style={{
-            minHeight: (product.colors && product.colors.length > 0) || (product.sizes && product.sizes.length > 0)
+            minHeight: (product.colors && product.colors.length > 0) || (product.shapes && product.shapes.length > 0) || (product.sizes && product.sizes.length > 0)
               ? (deviceType === 'tablet' ? '4.2rem' : '3.6rem')
               : (deviceType === 'tablet' ? '4.5rem' : '4rem')
           }}
@@ -365,8 +383,8 @@ export default function InteractiveProductCard({
                   className={`${
                     deviceType === 'tablet' ? 'w-7 h-7' : 'w-6 h-6'
                   } rounded-full border-2 transition-all duration-200 flex-shrink-0 ${
-                    selectedColor?.id === color.id 
-                      ? 'border-gray-800 scale-110 shadow-md' 
+                    selectedColor?.id === color.id
+                      ? 'border-gray-800 scale-110 shadow-md'
                       : 'border-gray-300 hover:border-gray-500'
                   }`}
                   style={{ backgroundColor: color.hex }}
@@ -377,6 +395,39 @@ export default function InteractiveProductCard({
           </div>
         ) : (
           <div className={`${deviceType === 'tablet' ? 'h-3' : 'h-2'} mb-1`}></div>
+        )}
+
+        {/* Shape Options - Dropdown for shapes */}
+        {product.shapes && product.shapes.length > 0 ? (
+          <div className={`${deviceType === 'tablet' ? 'h-10' : 'h-9'} mb-1`}>
+            <select
+              value={selectedShape?.id || ''}
+              onChange={(e) => {
+                const shapeId = e.target.value;
+                if (shapeId) {
+                  const shape = product.shapes?.find(s => s.id === shapeId);
+                  if (shape) {
+                    handleShapeSelect(shape, e as any);
+                  }
+                } else {
+                  setSelectedShape(null);
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className={`w-full bg-white border border-gray-300 rounded-md px-3 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500 transition-all shadow-sm ${
+                deviceType === 'tablet' ? 'py-2.5 text-base' : 'py-2'
+              }`}
+            >
+              <option value="">اختر الشكل</option>
+              {product.shapes.map((shape) => (
+                <option key={shape.id} value={shape.id}>
+                  {shape.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div className={`${deviceType === 'tablet' ? 'h-2' : 'h-1'} mb-1`}></div>
         )}
 
         {/* Size Options - Dropdown for sizes */}
@@ -450,6 +501,7 @@ export default function InteractiveProductCard({
             const productToAdd = {
               ...currentProduct,
               selectedColor: selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : null),
+              selectedShape: selectedShape || (product.shapes && product.shapes.length > 0 ? product.shapes[0] : null),
               selectedSize: selectedSize,
               price: getDisplayPrice() // Use the display price based on user role
             };
@@ -576,17 +628,19 @@ export default function InteractiveProductCard({
                   const productToAdd = {
                     ...currentProduct,
                     selectedColor: selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : null),
+                    selectedShape: selectedShape || (product.shapes && product.shapes.length > 0 ? product.shapes[0] : null),
                     selectedSize: selectedSize
                   };
                   
                   const selectedColorName = productToAdd.selectedColor?.name || undefined;
+                  const selectedShapeName = productToAdd.selectedShape?.name || undefined;
                   const quantityToAdd = parseInt(quantity);
                   const priceToUse = getDisplayPrice(); // Use the display price based on user role
                   
                   try {
                     console.log('🛒 Adding to cart:', quantityToAdd, 'units of product:', currentProduct.name, 'at price:', priceToUse);
                     // Use directAddToCart with the full quantity at once - much faster!
-                    await directAddToCart(String(currentProduct.id), quantityToAdd, priceToUse, selectedColorName);
+                    await directAddToCart(String(currentProduct.id), quantityToAdd, priceToUse, selectedColorName, selectedShapeName);
                     console.log('✅ Successfully added', quantityToAdd, 'units to cart');
                   } catch (error) {
                     console.error('❌ Error adding to cart:', error);

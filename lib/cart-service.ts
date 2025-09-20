@@ -51,6 +51,7 @@ export class CartService {
     quantity: number = 1,
     price: number,
     selectedColor?: string,
+    selectedShape?: string,
     selectedSize?: string
   ): Promise<CartItemData | null> {
     try {
@@ -60,6 +61,7 @@ export class CartService {
         quantity,
         price,
         selectedColor,
+        selectedShape,
         selectedSize
       });
       // Check if item already exists in cart (handle null values properly)
@@ -72,10 +74,12 @@ export class CartService {
       // Find matching item considering null/empty string equivalence
       const existingItem = existingItems?.find(item => {
         const itemColor = item.selected_color || '';
+        const itemShape = item.selected_shape || '';
         const itemSize = item.selected_size || '';
         const inputColor = selectedColor || '';
+        const inputShape = selectedShape || '';
         const inputSize = selectedSize || '';
-        return itemColor === inputColor && itemSize === inputSize;
+        return itemColor === inputColor && itemShape === inputShape && itemSize === inputSize;
       });
       
       if (existingItem) {
@@ -92,6 +96,7 @@ export class CartService {
             quantity,
             price,
             selected_color: selectedColor,
+            selected_shape: selectedShape,
             selected_size: selectedSize
           })
           .select(`

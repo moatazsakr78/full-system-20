@@ -35,6 +35,13 @@ export interface ProductColor {
   quantity?: number;
 }
 
+export interface ProductShape {
+  id: string;
+  name: string;
+  image_url?: string;
+  quantity?: number;
+}
+
 export interface ProductSize {
   id: string;
   name: string;
@@ -58,6 +65,8 @@ export interface Product {
   images?: string[];
   colors?: ProductColor[];
   selectedColor?: ProductColor | null;
+  shapes?: ProductShape[];
+  selectedShape?: ProductShape | null;
   sizes?: ProductSize[];
   selectedSize?: ProductSize | null;
   category?: string;

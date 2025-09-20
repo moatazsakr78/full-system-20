@@ -63,7 +63,8 @@ export default function DesktopHome({
     try {
       console.log('🛒 Desktop: Adding product to cart:', product.name);
       const selectedColorName = product.selectedColor?.name || undefined;
-      await addToCart(String(product.id), 1, product.price, selectedColorName);
+      const selectedShapeName = product.selectedShape?.name || undefined;
+      await addToCart(String(product.id), 1, product.price, selectedColorName, selectedShapeName);
       console.log('✅ Desktop: Product added successfully');
     } catch (error) {
       console.error('❌ Desktop: Error adding product to cart:', error);
@@ -79,12 +80,12 @@ export default function DesktopHome({
     const fetchProductsWithColors = async () => {
       try {
         if (databaseProducts && databaseProducts.length > 0) {
-          // First, fetch all product variants for colors and size groups
+          // First, fetch all product variants for colors, shapes and size groups
           const { supabase } = await import('../../app/lib/supabase/client');
           const { data: variants, error: variantsError } = await supabase
             .from('product_variants')
             .select('*')
-            .eq('variant_type', 'color');
+            .in('variant_type', ['color', 'shape']);
 
           if (variantsError) {
             console.error('Error fetching product variants:', variantsError);
@@ -155,11 +156,19 @@ export default function DesktopHome({
                 : Number(dbProduct.price);
               
               // Get colors for this product
-              const productColors = variants?.filter(v => v.product_id === dbProduct.id) || [];
+              const productColors = variants?.filter(v => v.product_id === dbProduct.id && v.variant_type === 'color') || [];
               const colors = productColors.map((variant: any) => ({
                 id: variant.id,
                 name: variant.color_name || variant.name || 'لون غير محدد',
                 hex: variant.color_hex || '#000000',
+                image_url: variant.image_url || null
+              }));
+
+              // Get shapes for this product
+              const productShapes = variants?.filter(v => v.product_id === dbProduct.id && v.variant_type === 'shape') || [];
+              const shapes = productShapes.map((variant: any) => ({
+                id: variant.id,
+                name: variant.name || 'شكل غير محدد',
                 image_url: variant.image_url || null
               }));
 
@@ -181,6 +190,7 @@ export default function DesktopHome({
                 image: dbProduct.main_image_url || undefined,
                 images: productImages, // Include both main and sub images
                 colors: colors, // Real colors from product variants
+                shapes: shapes, // Real shapes from product variants
                 sizes: sizes, // Real sizes from size groups
                 category: dbProduct.category?.name || 'عام',
                 brand: 'El Farouk Group',

@@ -2315,9 +2315,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
                               className="w-full px-2 py-1.5 bg-[#2B3441] border border-[#4A5568] rounded text-white focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-xs"
                             >
                               <option value="color">لون المنتج</option>
-                              {shapes.length > 0 && (
-                                <option value="shape">شكل وصف</option>
-                              )}
+                              <option value="shape">شكل وصف</option>
                             </select>
                           </div>
 
