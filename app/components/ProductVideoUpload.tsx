@@ -202,7 +202,7 @@ export default function ProductVideoUpload({
                 <span className="text-gray-300 text-sm">
                   يجب حفظ المنتج أولاً قبل رفع الفيديوهات
                 </span>
-                <p className="text-xs text-gray-400 mt-1">اضغط على "حفظ" أو "إنشاء" أولاً</p>
+                <p className="text-xs text-gray-400 mt-1">اضغط على &quot;حفظ&quot; أو &quot;إنشاء&quot; أولاً</p>
               </>
             ) : (
               <>
