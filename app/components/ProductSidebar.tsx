@@ -9,6 +9,8 @@ import { uploadProductImage, PRODUCT_STORAGE_BUCKETS, getProductImageUrl } from 
 import { uploadAndSetMainImage, uploadAndSetSubImage, addAdditionalVersionedImage, uploadVersionedProductImage } from '../lib/services/simpleImageVersioning'
 import { Product } from '../lib/hooks/useProducts'
 import { checkProductPurchaseHistory, PurchaseHistoryCheck } from '../lib/utils/purchase-cost-management'
+import { useProductVideos, ProductVideo } from '../lib/hooks/useProductVideos'
+import ProductVideoUpload from './ProductVideoUpload'
 
 interface Branch {
   id: string
@@ -141,7 +143,13 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
   // Image management states
   const [mainProductImages, setMainProductImages] = useState<ImageFile[]>([])
   const [additionalImages, setAdditionalImages] = useState<ImageFile[]>([])
-  
+
+  // Video management states
+  const [productVideos, setProductVideos] = useState<ProductVideo[]>([])
+  const [pendingVideos, setPendingVideos] = useState<File[]>([])
+  const [videoUploadProgress, setVideoUploadProgress] = useState<{[key: string]: number}>({})
+  const { getProductVideos, initializeBucket, uploadVideo } = useProductVideos()
+
   // Save state
   const [isSaving, setIsSaving] = useState(false)
   
@@ -394,7 +402,10 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
       
       // Load existing images immediately (doesn't depend on branches/warehouses)
       loadExistingImages()
-      
+
+      // Load existing videos
+      loadExistingVideos()
+
       // Check purchase history for cost editing permissions
       checkProductPurchasePermissions()
       
@@ -801,6 +812,22 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
     }
   }
 
+  // Load existing videos for edit mode
+  const loadExistingVideos = async () => {
+    if (!editProduct) return
+
+    try {
+      // Initialize bucket first
+      await initializeBucket()
+
+      // Load videos from database
+      const videos = await getProductVideos(editProduct.id)
+      setProductVideos(videos)
+    } catch (error) {
+      console.error('Error loading product videos:', error)
+    }
+  }
+
   // Force re-render of shape image view when quantities change
   useEffect(() => {
     // This effect ensures the shape image view updates when quantities are modified
@@ -910,6 +937,98 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
       return prev.filter(img => img.id !== id)
     })
   }
+
+  // Video handlers
+  const handleVideoAdd = (video: ProductVideo) => {
+    setProductVideos(prev => [...prev, video])
+  }
+
+  const handleVideoRemove = (videoId: string) => {
+    setProductVideos(prev => prev.filter(v => v.id !== videoId))
+  }
+
+  const handleVideoReorder = (videos: ProductVideo[]) => {
+    setProductVideos(videos)
+  }
+
+  // Handle pending video upload for new products
+  const handlePendingVideoUpload = (files: FileList) => {
+    const videoFiles = Array.from(files).filter(file => file.type.startsWith('video/'))
+
+    if (videoFiles.length === 0) {
+      alert('يرجى اختيار ملفات فيديو صالحة')
+      return
+    }
+
+    // Check file sizes
+    const maxSize = 100 * 1024 * 1024 // 100MB
+    const oversizedFiles = videoFiles.filter(file => file.size > maxSize)
+    if (oversizedFiles.length > 0) {
+      alert('بعض ملفات الفيديو كبيرة جداً. الحد الأقصى 100 ميجابايت لكل ملف')
+      return
+    }
+
+    setPendingVideos(prev => [...prev, ...videoFiles])
+  }
+
+  // Remove pending video
+  const removePendingVideo = (index: number) => {
+    setPendingVideos(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // Upload pending videos after product creation
+  const uploadPendingVideos = async (productId: string) => {
+    if (pendingVideos.length === 0) return
+
+    for (let i = 0; i < pendingVideos.length; i++) {
+      const file = pendingVideos[i]
+      const fileId = `pending_${Date.now()}_${i}`
+
+      try {
+        // Initialize progress
+        setVideoUploadProgress(prev => ({ ...prev, [fileId]: 0 }))
+
+        // Use the built-in progress tracking
+        const result = await uploadVideo(productId, file, file.name, (progress) => {
+          setVideoUploadProgress(prev => ({ ...prev, [fileId]: progress }))
+        })
+
+        if (result.success && result.video) {
+          handleVideoAdd(result.video)
+
+          // Clean up progress after showing completion
+          setTimeout(() => {
+            setVideoUploadProgress(prev => {
+              const newProgress = { ...prev }
+              delete newProgress[fileId]
+              return newProgress
+            })
+          }, 1500)
+        } else {
+          console.error('Video upload failed:', result.error)
+          setVideoUploadProgress(prev => {
+            const newProgress = { ...prev }
+            delete newProgress[fileId]
+            return newProgress
+          })
+        }
+      } catch (error) {
+        console.error('Error uploading video:', error)
+        setVideoUploadProgress(prev => {
+          const newProgress = { ...prev }
+          delete newProgress[fileId]
+          return newProgress
+        })
+      }
+    }
+
+    setPendingVideos([])
+  }
+
+  // Initialize video bucket on mount
+  useEffect(() => {
+    initializeBucket()
+  }, [initializeBucket])
 
   // Cleanup URLs on unmount
   useEffect(() => {
@@ -1728,13 +1847,17 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
             }
           }
 
+          // Upload pending videos for new product
+          console.log('🎬 Uploading pending videos for new product:', savedProduct.name)
+          await uploadPendingVideos(savedProduct.id)
+
           // Add a small delay to ensure all database transactions are committed
           await new Promise(resolve => setTimeout(resolve, 500))
-          
+
           // Trigger refresh of products list
           console.log('🔄 Triggering product list refresh after creation')
           onProductCreated?.()
-          
+
           // Success - clear form and close AFTER everything is saved
           handleClearFields()
           alert('تم إنشاء المنتج بنجاح!')
@@ -1806,6 +1929,10 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
     setProductShapes([])
     setLocationVariants([])
     setSelectedLocation(null)
+    // Clear videos
+    setProductVideos([])
+    setPendingVideos([])
+    setVideoUploadProgress({})
   }
 
 
@@ -2103,6 +2230,119 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
               onImageRemove={removeAdditionalImage}
               multiple={true}
             />
+
+            {/* Product Videos */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-3">
+                فيديوهات المنتج
+              </label>
+
+              {editProduct ? (
+                // For existing products, use the full video upload component
+                <ProductVideoUpload
+                  productId={editProduct.id}
+                  videos={productVideos}
+                  onVideoAdd={handleVideoAdd}
+                  onVideoRemove={handleVideoRemove}
+                  onVideoReorder={handleVideoReorder}
+                  disabled={false}
+                />
+              ) : (
+                // For new products, show a simplified video selection interface
+                <div className="space-y-4">
+                  <input
+                    type="file"
+                    accept="video/*"
+                    multiple
+                    onChange={(e) => e.target.files && handlePendingVideoUpload(e.target.files)}
+                    className="hidden"
+                    id="video-upload-input"
+                  />
+
+                  <div
+                    onClick={() => document.getElementById('video-upload-input')?.click()}
+                    className="flex items-center justify-center w-full px-4 py-8 bg-[#2B3544] border-2 border-dashed border-gray-600 rounded-lg cursor-pointer transition-all hover:border-gray-500 hover:bg-[#374151]"
+                  >
+                    <div className="text-center">
+                      <svg className="h-8 w-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-gray-300 text-sm">
+                        انقر لاختيار فيديوهات المنتج
+                      </span>
+                      <p className="text-xs text-gray-400 mt-1">MP4, WebM, MOV - حتى 100MB لكل ملف</p>
+                    </div>
+                  </div>
+
+                  {/* Show pending videos */}
+                  {pendingVideos.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-gray-300">
+                        الفيديوهات المختارة ({pendingVideos.length})
+                      </h4>
+
+                      {pendingVideos.map((video, index) => (
+                        <div key={index} className="flex items-center gap-3 p-3 bg-[#374151] rounded-lg border border-gray-600">
+                          <div className="flex-shrink-0">
+                            <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-medium text-white truncate text-sm">
+                              {video.name}
+                            </h5>
+                            <p className="text-xs text-gray-400">
+                              {(video.size / (1024 * 1024)).toFixed(1)} MB
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() => removePendingVideo(index)}
+                            className="p-1 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                            title="حذف الفيديو"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Video Upload Progress */}
+                  {Object.keys(videoUploadProgress).length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-gray-300">جاري رفع الفيديوهات...</h4>
+                      {Object.entries(videoUploadProgress).map(([id, progress]) => (
+                        <div key={id} className="bg-green-900/20 border border-green-600/30 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-green-400">جاري رفع الفيديو...</span>
+                            <span className="text-sm text-green-300">{Math.round(progress)}%</span>
+                          </div>
+                          <div className="w-full bg-green-900/40 rounded-full h-2">
+                            <div
+                              className="bg-green-500 h-2 rounded-full transition-all duration-500 ease-out"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {pendingVideos.length === 0 && (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-400">
+                        سيتم رفع الفيديوهات تلقائياً بعد إنشاء المنتج
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )
 

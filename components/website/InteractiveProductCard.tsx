@@ -359,12 +359,12 @@ export default function InteractiveProductCard({
             className="text-sm text-gray-600"
             style={{
               display: '-webkit-box',
-              WebkitLineClamp: 3,
+              WebkitLineClamp: (product.colors && product.colors.length > 0) || (product.shapes && product.shapes.length > 0) || (product.sizes && product.sizes.length > 0) ? 2 : 3,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               lineHeight: '1.4rem',
-              maxHeight: '4.2rem',
+              maxHeight: (product.colors && product.colors.length > 0) || (product.shapes && product.shapes.length > 0) || (product.sizes && product.sizes.length > 0) ? '2.8rem' : '4.2rem',
               wordWrap: 'break-word'
             }}
           >

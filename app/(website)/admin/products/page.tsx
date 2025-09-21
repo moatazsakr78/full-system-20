@@ -536,6 +536,7 @@ export default function ProductManagementPage() {
                     حجم المنتج
                   </span>
                 </button>
+
               </>
             )}
 
@@ -890,6 +891,7 @@ export default function ProductManagementPage() {
           setIsProductSizeModalOpen(false);
         }}
       />
+
     </div>
   );
 }
