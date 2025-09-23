@@ -307,6 +307,11 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const [quantity, setQuantity] = useState(1);
   const [isCompactHeaderVisible, setIsCompactHeaderVisible] = useState(false);
   const [currentSuggestedIndex, setCurrentSuggestedIndex] = useState(0);
+  const [isZooming, setIsZooming] = useState(false);
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [productVideos, setProductVideos] = useState<any[]>([]);
 
   // Fetch product data
   useEffect(() => {
@@ -358,6 +363,21 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
         // Get sub-images for this product
         const subImages = await getProductSubImages(product.id, product.name, product.video_url);
+
+        // Get product videos
+        try {
+          const { data: videos } = await supabase
+            .from('product_videos')
+            .select('*')
+            .eq('product_id', product.id)
+            .order('sort_order', { ascending: true });
+
+          if (videos) {
+            setProductVideos(videos);
+          }
+        } catch (videoError) {
+          console.error('Error fetching product videos:', videoError);
+        }
         
         // Build gallery array
         const gallery: string[] = [];
@@ -710,22 +730,136 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           <span className="text-gray-800 font-medium">{productDetails.name}</span>
         </nav>
 
-        {/* Product Main Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
-          {/* Main Product Image */}
-          <div className="lg:col-span-6 space-y-4">
-            {/* Main Image */}
-            <div className="w-full max-w-3xl aspect-square bg-white rounded-lg overflow-hidden shadow-lg">
-              <img 
-                src={currentGallery[selectedImage]} 
-                alt={productDetails.name}
-                className="w-full h-full object-cover"
-              />
+        {/* Product Main Section - Amazon Layout */}
+        <div className="grid grid-cols-12 gap-6 mb-12">
+          {/* Side Thumbnails */}
+          <div className="col-span-1">
+            <div className="space-y-2 sticky top-4">
+              {/* Image Thumbnails */}
+              {currentGallery.map((image, index) => (
+                <button
+                  key={`image-${index}`}
+                  onClick={() => {
+                    setSelectedImage(index);
+                    setSelectedVideo(null);
+                  }}
+                  onMouseEnter={() => {
+                    setSelectedImage(index);
+                    setSelectedVideo(null);
+                  }}
+                  className={`w-full aspect-square rounded border-2 overflow-hidden transition-all duration-200 ${
+                    selectedImage === index && !selectedVideo
+                      ? 'border-red-500 ring-1 ring-red-500'
+                      : 'border-gray-300 hover:border-red-300'
+                  }`}
+                >
+                  <img
+                    src={image}
+                    alt={`${productDetails.name} ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+
+              {/* Video Thumbnails */}
+              {productVideos.map((video, index) => (
+                <button
+                  key={`video-${index}`}
+                  onClick={() => {
+                    setSelectedVideo(video.video_url);
+                    setSelectedImage(-1);
+                  }}
+                  onMouseEnter={() => {
+                    setSelectedVideo(video.video_url);
+                    setSelectedImage(-1);
+                  }}
+                  className={`relative w-full aspect-square rounded border-2 overflow-hidden transition-all duration-200 ${
+                    selectedVideo === video.video_url
+                      ? 'border-red-500 ring-1 ring-red-500'
+                      : 'border-gray-300 hover:border-red-300'
+                  }`}
+                >
+                  <video
+                    src={video.video_url}
+                    className="w-full h-full object-cover"
+                    muted
+                    preload="metadata"
+                  />
+                  {/* Video Play Icon Overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Main Display Area */}
+          <div className="col-span-7">
+            <div
+              className="relative w-full aspect-square bg-white rounded-lg overflow-hidden shadow-lg cursor-zoom-in"
+              onMouseEnter={() => setIsZooming(true)}
+              onMouseLeave={() => setIsZooming(false)}
+              onMouseMove={(e) => {
+                if (isZooming) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = ((e.clientX - rect.left) / rect.width) * 100;
+                  const y = ((e.clientY - rect.top) / rect.height) * 100;
+                  setZoomPosition({ x, y });
+                }
+              }}
+            >
+              {selectedVideo ? (
+                <div className="relative w-full h-full">
+                  <video
+                    src={selectedVideo}
+                    className="w-full h-full object-cover"
+                    controls={false}
+                    muted
+                    preload="metadata"
+                  />
+                  {/* Video Play Button */}
+                  <button
+                    onClick={() => setShowVideoModal(true)}
+                    className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 hover:bg-opacity-50 transition-all"
+                  >
+                    <div className="w-20 h-20 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
+                      <svg className="w-8 h-8 text-gray-800 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </div>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <img
+                    src={currentGallery[selectedImage]}
+                    alt={productDetails.name}
+                    className={`w-full h-full object-cover transition-transform duration-200 ${
+                      isZooming ? 'scale-150' : 'scale-100'
+                    }`}
+                    style={{
+                      transformOrigin: isZooming ? `${zoomPosition.x}% ${zoomPosition.y}%` : 'center'
+                    }}
+                  />
+                  {/* Zoom Overlay */}
+                  {isZooming && (
+                    <div
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        background: `radial-gradient(circle 100px at ${zoomPosition.x}% ${zoomPosition.y}%, transparent 30%, rgba(0,0,0,0.1) 100%)`
+                      }}
+                    />
+                  )}
+                </>
+              )}
             </div>
           </div>
 
           {/* Product Info */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="col-span-4 space-y-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">{productDetails.name}</h1>
               <p className="text-gray-600">{productDetails.description}</p>
@@ -767,19 +901,16 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                     <button
                       key={color.id}
                       onClick={() => {
-                        // Toggle color selection - if same color is clicked, deselect it
                         if (selectedColor?.id === color.id) {
                           setSelectedColor(null);
-                          // Reset gallery to original when deselecting color
                           setCurrentGallery(productDetails.gallery || []);
                           setSelectedImage(0);
                         } else {
                           setSelectedColor(color);
-                          // Update gallery when color is selected
                           if (color.image_url && productDetails.gallery) {
                             const newGallery = [color.image_url, ...productDetails.gallery.filter(img => img !== color.image_url)];
                             setCurrentGallery(newGallery);
-                            setSelectedImage(0); // Reset to first image
+                            setSelectedImage(0);
                           } else {
                             setCurrentGallery(productDetails.gallery || []);
                           }
@@ -881,59 +1012,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               </button>
             </div>
           </div>
-
-          {/* Product Thumbnails Gallery */}
-          <div className="lg:col-span-2 space-y-3">
-            <div className="h-full min-h-[600px] max-h-[800px] overflow-y-auto scrollbar-hide space-y-3 mr-5">
-              {currentGallery.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`w-full aspect-square rounded-lg overflow-hidden transition-all duration-300 hover:scale-105 ${
-                    selectedImage === index 
-                      ? 'ring-2 ring-red-500 shadow-lg' 
-                      : 'hover:shadow-md'
-                  }`}
-                >
-                  <img 
-                    src={image} 
-                    alt={`${productDetails.name} ${index + 1}`}
-                    className="w-full h-full object-cover hover:brightness-110 transition-all duration-300"
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
-        {/* Product Details Tabs */}
-        <div className="mx-16">
-          <div className="bg-white rounded-lg p-6 shadow-lg mb-12">
-          <div className="border-b border-gray-200 mb-6">
-            <nav className="flex gap-8">
-              <button className="pb-4 border-b-2 font-semibold" style={{borderBottomColor: '#5D1F1F', color: '#5D1F1F'}}>الوصف التفصيلي</button>
-              <button className="pb-4 text-gray-600 transition-colors hover:text-[#5D1F1F]">المواصفات</button>
-              <button className="pb-4 text-gray-600 transition-colors hover:text-[#5D1F1F]">آراء العملاء</button>
-            </nav>
-          </div>
-          
-          <div className="prose max-w-none text-gray-700 leading-relaxed">
-            <p>{productDetails.detailedDescription}</p>
-            
-            <div className="mt-6">
-              <h4 className="font-semibold text-gray-800 mb-3">المواصفات الفنية:</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(productDetails.specifications).map(([key, value]) => (
-                  <div key={key} className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="font-medium text-gray-600">{key}:</span>
-                    <span className="text-gray-800">{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-        </div>
 
         {/* Suggested Products - Only show if there are suggested products */}
         {suggestedProductsList.length > 0 && (
@@ -1028,6 +1108,35 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           </section>
         )}
       </main>
+
+      {/* Video Modal */}
+      {showVideoModal && selectedVideo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
+          onClick={() => setShowVideoModal(false)}
+        >
+          <div className="relative max-w-4xl max-h-[80vh] w-full h-full flex items-center justify-center p-4">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowVideoModal(false)}
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center transition-all"
+            >
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Video Player */}
+            <video
+              src={selectedVideo}
+              className="w-full h-full object-contain rounded-lg"
+              controls
+              autoPlay
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="py-8 mt-12" style={{backgroundColor: '#4D4D4D', borderTop: '1px solid #666'}}>

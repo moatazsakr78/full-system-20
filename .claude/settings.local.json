@@ -274,7 +274,9 @@
       "Bash(start http://localhost:3001/products)",
       "Bash(start http://localhost:3003/products)",
       "Bash(start http://localhost:3004/products)",
-      "Bash(start http://localhost:3000/products)"
+      "Bash(start http://localhost:3000/products)",
+      "Bash(start http://localhost:3001/product/3f2d97c6-c4b7-491d-8ee3-55f03dbf13c9)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "additionalDirectories": [

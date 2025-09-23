@@ -216,6 +216,11 @@ export default function ProductDetailsModal({
   const [selectedSize, setSelectedSize] = useState<{ name: string; available: boolean } | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [currentSuggestedIndex, setCurrentSuggestedIndex] = useState(0);
+  const [isZooming, setIsZooming] = useState(false);
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [productVideos, setProductVideos] = useState<any[]>([]);
 
   // Fetch product data
   useEffect(() => {
@@ -269,6 +274,21 @@ export default function ProductDetailsModal({
 
         // Get sub-images for this product
         const subImages = await getProductSubImages(product.id, product.name, product.video_url);
+
+        // Get product videos
+        try {
+          const { data: videos } = await supabase
+            .from('product_videos')
+            .select('*')
+            .eq('product_id', product.id)
+            .order('sort_order', { ascending: true });
+
+          if (videos) {
+            setProductVideos(videos);
+          }
+        } catch (videoError) {
+          console.error('Error fetching product videos:', videoError);
+        }
         
         // Build gallery array
         const gallery: string[] = [];
@@ -549,25 +569,233 @@ export default function ProductDetailsModal({
           <span className="text-gray-800 font-medium">{productDetails.name}</span>
         </nav>
 
-        {/* Product Main Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
-          {/* Main Product Image */}
-          <div className="lg:col-span-6 space-y-4">
-            {/* Main Image */}
-            <div className="w-full max-w-3xl aspect-square bg-white rounded-lg overflow-hidden shadow-lg">
-              <img 
-                src={currentGallery[selectedImage]} 
-                alt={productDetails.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
+        {/* Product Main Section - Elegant Small Layout */}
+        <div className="grid grid-cols-12 gap-4 mb-12">
+          {/* Empty spacer - Left Side */}
+          <div className="col-span-1">
           </div>
 
-          {/* Product Info */}
-          <div className="lg:col-span-4 space-y-6">
+          {/* Main Product Image with L-shaped thumbnails around it */}
+          <div className="col-span-4 relative">
+            {/* Create unified media array (images + videos) */}
+            {(() => {
+              // Create a unified array of all media items
+              const allMediaItems = [];
+
+              // Add all images from gallery
+              currentGallery.forEach((imageUrl, index) => {
+                allMediaItems.push({
+                  type: 'image',
+                  url: imageUrl,
+                  index: index
+                });
+              });
+
+              // Add all videos
+              productVideos.forEach((video, index) => {
+                allMediaItems.push({
+                  type: 'video',
+                  url: video.video_url,
+                  videoIndex: index
+                });
+              });
+
+              return (
+                <>
+                  {/* Main Product Image */}
+                  <div
+                    className="relative w-full aspect-square bg-white rounded-lg overflow-hidden shadow-lg cursor-crosshair"
+                    onMouseEnter={() => setIsZooming(true)}
+                    onMouseLeave={() => setIsZooming(false)}
+                    onMouseMove={(e) => {
+                      if (isZooming) {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const x = ((e.clientX - rect.left) / rect.width) * 100;
+                        const y = ((e.clientY - rect.top) / rect.height) * 100;
+                        setZoomPosition({ x, y });
+                      }
+                    }}
+                  >
+                    {selectedVideo ? (
+                      <div className="relative w-full h-full">
+                        <video
+                          src={selectedVideo}
+                          className="w-full h-full object-cover"
+                          controls={false}
+                          muted
+                          preload="metadata"
+                        />
+                        <button
+                          onClick={() => setShowVideoModal(true)}
+                          className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 hover:bg-opacity-50 transition-all"
+                        >
+                          <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
+                            <svg className="w-6 h-6 text-gray-800 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          </div>
+                        </button>
+                      </div>
+                    ) : (
+                      <img
+                        src={currentGallery[selectedImage] || '/placeholder-image.jpg'}
+                        alt={productDetails.name}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    {/* Zoom hint */}
+                    {!isZooming && (
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                        مرر للتكبير
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right side thumbnails (vertical part of L) */}
+                  <div className="absolute top-0 -right-20 flex flex-col gap-2">
+                    {allMediaItems.slice(0, 4).map((mediaItem, index) => {
+                      const isSelected = mediaItem.type === 'video'
+                        ? selectedVideo === mediaItem.url
+                        : selectedImage === mediaItem.index && !selectedVideo;
+
+                      return (
+                        <button
+                          key={`right-${mediaItem.type}-${index}`}
+                          onClick={() => {
+                            if (mediaItem.type === 'video') {
+                              setSelectedVideo(mediaItem.url);
+                              setSelectedImage(-1);
+                            } else {
+                              setSelectedImage(mediaItem.index);
+                              setSelectedVideo(null);
+                            }
+                          }}
+                          onMouseEnter={() => {
+                            if (mediaItem.type === 'video') {
+                              setSelectedVideo(mediaItem.url);
+                              setSelectedImage(-1);
+                            } else {
+                              setSelectedImage(mediaItem.index);
+                              setSelectedVideo(null);
+                            }
+                          }}
+                          className={`relative w-16 aspect-square rounded border-2 overflow-hidden transition-all duration-200 ${
+                            isSelected
+                              ? 'border-red-500 ring-1 ring-red-500'
+                              : 'border-gray-300 hover:border-red-300'
+                          }`}
+                        >
+                          {mediaItem.type === 'video' ? (
+                            <>
+                              <video
+                                src={mediaItem.url}
+                                className="w-full h-full object-cover"
+                                muted
+                                preload="metadata"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z"/>
+                                </svg>
+                              </div>
+                            </>
+                          ) : (
+                            <img
+                              src={mediaItem.url}
+                              alt={`${productDetails.name} ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Bottom thumbnails (horizontal part of L) */}
+                  <div className="absolute -bottom-20 left-0 flex gap-2">
+                    {allMediaItems.slice(4, 8).map((mediaItem, index) => {
+                      const isSelected = mediaItem.type === 'video'
+                        ? selectedVideo === mediaItem.url
+                        : selectedImage === mediaItem.index && !selectedVideo;
+
+                      return (
+                        <button
+                          key={`bottom-${mediaItem.type}-${index}`}
+                          onClick={() => {
+                            if (mediaItem.type === 'video') {
+                              setSelectedVideo(mediaItem.url);
+                              setSelectedImage(-1);
+                            } else {
+                              setSelectedImage(mediaItem.index);
+                              setSelectedVideo(null);
+                            }
+                          }}
+                          onMouseEnter={() => {
+                            if (mediaItem.type === 'video') {
+                              setSelectedVideo(mediaItem.url);
+                              setSelectedImage(-1);
+                            } else {
+                              setSelectedImage(mediaItem.index);
+                              setSelectedVideo(null);
+                            }
+                          }}
+                          className={`relative w-16 aspect-square rounded border-2 overflow-hidden transition-all duration-200 ${
+                            isSelected
+                              ? 'border-red-500 ring-1 ring-red-500'
+                              : 'border-gray-300 hover:border-red-300'
+                          }`}
+                        >
+                          {mediaItem.type === 'video' ? (
+                            <>
+                              <video
+                                src={mediaItem.url}
+                                className="w-full h-full object-cover"
+                                muted
+                                preload="metadata"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z"/>
+                                </svg>
+                              </div>
+                            </>
+                          ) : (
+                            <img
+                              src={mediaItem.url}
+                              alt={`${productDetails.name} ${index + 5}`}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Elegant Zoom Overlay - Positioned next to main image */}
+          <div className="col-span-3 relative">
+            {isZooming && (
+              <div className="sticky top-4 w-full aspect-square bg-white rounded-lg shadow-xl border-2 border-gray-300 overflow-hidden">
+                <img
+                  src={selectedVideo || currentGallery[selectedImage]}
+                  alt={productDetails.name}
+                  className="w-full h-full object-cover scale-[2]"
+                  style={{
+                    transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`
+                  }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Product Info - Right Side */}
+          <div className="col-span-4 space-y-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">{productDetails.name}</h1>
-              <p className="text-gray-600">{productDetails.description}</p>
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">{productDetails.name}</h1>
+              <p className="text-gray-600 text-sm">{productDetails.description}</p>
             </div>
 
             {/* Rating and Reviews */}
@@ -585,13 +813,13 @@ export default function ProductDetailsModal({
             </div>
 
             {/* Price */}
-            <div className="flex items-center gap-4">
-              <span className="text-3xl font-bold" style={{color: '#5D1F1F'}}>{formatPrice(productDetails.price)}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl font-bold" style={{color: '#5D1F1F'}}>{formatPrice(productDetails.price)}</span>
               {productDetails.originalPrice && (
-                <span className="text-xl text-gray-500 line-through">{formatPrice(productDetails.originalPrice)}</span>
+                <span className="text-lg text-gray-500 line-through">{formatPrice(productDetails.originalPrice)}</span>
               )}
               {productDetails.isOnSale && (
-                <span className="px-3 py-1 rounded-full text-sm font-bold" style={{backgroundColor: '#F5F1F1', color: '#5D1F1F'}}>
+                <span className="px-2 py-1 rounded-full text-xs font-bold" style={{backgroundColor: '#F5F1F1', color: '#5D1F1F'}}>
                   خصم {productDetails.discount}%
                 </span>
               )}
@@ -600,31 +828,28 @@ export default function ProductDetailsModal({
             {/* Colors */}
             {productDetails.colors && productDetails.colors.length > 0 && (
               <div>
-                <h3 className="font-semibold text-gray-800 mb-3">اللون المتاح:</h3>
-                <div className="flex gap-3">
+                <h3 className="font-semibold text-gray-800 mb-2">اللون المتاح:</h3>
+                <div className="flex gap-2">
                   {productDetails.colors?.map((color) => (
                     <button
                       key={color.id}
                       onClick={() => {
-                        // Toggle color selection - if same color is clicked, deselect it
                         if (selectedColor?.id === color.id) {
                           setSelectedColor(null);
-                          // Reset gallery to original when deselecting color
                           setCurrentGallery(productDetails.gallery || []);
                           setSelectedImage(0);
                         } else {
                           setSelectedColor(color);
-                          // Update gallery when color is selected
                           if (color.image_url && productDetails.gallery) {
                             const newGallery = [color.image_url, ...productDetails.gallery.filter(img => img !== color.image_url)];
                             setCurrentGallery(newGallery);
-                            setSelectedImage(0); // Reset to first image
+                            setSelectedImage(0);
                           } else {
                             setCurrentGallery(productDetails.gallery || []);
                           }
                         }
                       }}
-                      className={`relative w-12 h-12 rounded-full border-2 transition-all ${
+                      className={`relative w-8 h-8 rounded-full border-2 transition-all ${
                         selectedColor?.id === color.id
                           ? 'border-red-500 shadow-lg scale-110'
                           : 'border-gray-300 hover:border-red-300'
@@ -634,7 +859,7 @@ export default function ProductDetailsModal({
                     >
                       {selectedColor?.id === color.id && (
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-4 h-4 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
                         </div>
@@ -642,21 +867,21 @@ export default function ProductDetailsModal({
                     </button>
                   ))}
                 </div>
-                <p className="text-sm text-gray-600 mt-2">اللون المحدد: {selectedColor?.name}</p>
+                <p className="text-xs text-gray-600 mt-1">اللون المحدد: {selectedColor?.name}</p>
               </div>
             )}
 
             {/* Sizes */}
             {productDetails.sizes.length > 0 && (
               <div>
-                <h3 className="font-semibold text-gray-800 mb-3">الحجم:</h3>
-                <div className="flex gap-3 flex-wrap">
+                <h3 className="font-semibold text-gray-800 mb-2">الحجم:</h3>
+                <div className="flex gap-2 flex-wrap">
                   {productDetails.sizes.map((size) => (
                     <button
                       key={size.name}
                       disabled={!size.available}
                       onClick={() => setSelectedSize(size)}
-                      className={`px-4 py-2 border rounded-lg transition-all ${
+                      className={`px-3 py-1 border rounded-lg transition-all text-sm ${
                         selectedSize?.name === size.name
                           ? 'border-red-500 bg-red-50 text-red-600 font-semibold'
                           : size.available
@@ -673,22 +898,22 @@ export default function ProductDetailsModal({
 
             {/* Quantity */}
             <div>
-              <h3 className="font-semibold text-gray-800 mb-3">الكمية:</h3>
-              <div className="flex items-center gap-3">
+              <h3 className="font-semibold text-gray-800 mb-2">الكمية:</h3>
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                   </svg>
                 </button>
-                <span className="text-xl font-semibold px-4">{quantity}</span>
+                <span className="text-lg font-semibold px-3">{quantity}</span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                 </button>
@@ -696,10 +921,10 @@ export default function ProductDetailsModal({
             </div>
 
             {/* Add to Cart Buttons */}
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-3 pt-3">
               <button
                 onClick={handleAddToCart}
-                className="flex-1 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                className="flex-1 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-sm"
                 style={{backgroundColor: '#5D1F1F'}}
                 onMouseEnter={(e) => {
                   (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
@@ -708,71 +933,21 @@ export default function ProductDetailsModal({
                   (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
                 }}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
                 </svg>
                 أضف إلى السلة
               </button>
-              <button className="px-6 py-3 border rounded-lg font-semibold transition-colors flex items-center justify-center" style={{borderColor: '#5D1F1F', color: '#5D1F1F'}} onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#F5F1F1'; }} onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = 'transparent'; }}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button className="px-4 py-2 border rounded-lg font-semibold transition-colors flex items-center justify-center text-sm" style={{borderColor: '#5D1F1F', color: '#5D1F1F'}} onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#F5F1F1'; }} onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = 'transparent'; }}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
               </button>
             </div>
           </div>
 
-          {/* Product Thumbnails Gallery */}
-          <div className="lg:col-span-2 space-y-3">
-            <div className="h-full min-h-[600px] max-h-[800px] overflow-y-auto scrollbar-hide space-y-3 mr-5">
-              {currentGallery.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`w-full aspect-square rounded-lg overflow-hidden transition-all duration-300 hover:scale-105 ${
-                    selectedImage === index 
-                      ? 'ring-2 ring-red-500 shadow-lg' 
-                      : 'hover:shadow-md'
-                  }`}
-                >
-                  <img 
-                    src={image} 
-                    alt={`${productDetails.name} ${index + 1}`}
-                    className="w-full h-full object-cover hover:brightness-110 transition-all duration-300"
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
-        {/* Product Details Tabs */}
-        <div className="mx-16">
-          <div className="bg-white rounded-lg p-6 shadow-lg mb-12">
-          <div className="border-b border-gray-200 mb-6">
-            <nav className="flex gap-8">
-              <button className="pb-4 border-b-2 font-semibold" style={{borderBottomColor: '#5D1F1F', color: '#5D1F1F'}}>الوصف التفصيلي</button>
-              <button className="pb-4 text-gray-600 transition-colors hover:text-[#5D1F1F]">المواصفات</button>
-              <button className="pb-4 text-gray-600 transition-colors hover:text-[#5D1F1F]">آراء العملاء</button>
-            </nav>
-          </div>
-          
-          <div className="prose max-w-none text-gray-700 leading-relaxed">
-            <p>{productDetails.detailedDescription}</p>
-            
-            <div className="mt-6">
-              <h4 className="font-semibold text-gray-800 mb-3">المواصفات الفنية:</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(productDetails.specifications).map(([key, value]) => (
-                  <div key={key} className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="font-medium text-gray-600">{key}:</span>
-                    <span className="text-gray-800">{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-        </div>
 
         {/* Suggested Products - Only show if there are suggested products */}
         {suggestedProductsList.length > 0 && (
@@ -884,6 +1059,35 @@ export default function ProductDetailsModal({
           </section>
         )}
       </main>
+
+      {/* Video Modal */}
+      {showVideoModal && selectedVideo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
+          onClick={() => setShowVideoModal(false)}
+        >
+          <div className="relative max-w-4xl max-h-[80vh] w-full h-full flex items-center justify-center p-4">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowVideoModal(false)}
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center transition-all"
+            >
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Video Player */}
+            <video
+              src={selectedVideo}
+              className="w-full h-full object-contain rounded-lg"
+              controls
+              autoPlay
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="py-8 mt-12" style={{backgroundColor: '#4D4D4D', borderTop: '1px solid #666'}}>
