@@ -1175,7 +1175,9 @@ export default function ProductDetailsModal({
                     const value = parseInt(e.target.value) || 1;
                     setQuantity(Math.max(1, value));
                   }}
-                  className="text-lg font-semibold px-3 py-1 w-16 text-center border border-gray-300 rounded-lg focus:outline-none focus:border-red-500"
+                  onFocus={(e) => e.target.select()}
+                  onClick={(e) => e.target.select()}
+                  className="text-lg font-semibold px-3 py-1 w-16 text-center border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <button
                   onClick={() => setQuantity(quantity + 1)}
