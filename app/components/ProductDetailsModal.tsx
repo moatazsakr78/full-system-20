@@ -992,12 +992,14 @@ export default function ProductDetailsModal({
                           setSelectedColor(null);
                           setCurrentGallery(productDetails.gallery || []);
                           setSelectedImage(0);
+                          setSelectedVideo(null);
                         } else {
                           setSelectedColor(color);
                           if (color.image_url && productDetails.gallery) {
                             const newGallery = [color.image_url, ...productDetails.gallery.filter(img => img !== color.image_url)];
                             setCurrentGallery(newGallery);
                             setSelectedImage(0);
+                            setSelectedVideo(null);
                           } else {
                             setCurrentGallery(productDetails.gallery || []);
                           }
@@ -1036,9 +1038,22 @@ export default function ProductDetailsModal({
                       key={shape.id}
                       onClick={() => {
                         if (selectedShape?.id === shape.id) {
+                          // إلغاء التحديد - العودة للمعرض الأصلي
                           setSelectedShape(null);
+                          setCurrentGallery(productDetails.gallery || []);
+                          setSelectedImage(0);
+                          setSelectedVideo(null);
                         } else {
+                          // اختيار شكل جديد
                           setSelectedShape(shape);
+
+                          // تغيير الصورة الرئيسية إذا كان للشكل صورة
+                          if (shape.image_url) {
+                            const newGallery = [shape.image_url, ...productDetails.gallery.filter(img => img !== shape.image_url)];
+                            setCurrentGallery(newGallery);
+                            setSelectedImage(0);
+                            setSelectedVideo(null); // إزالة الفيديو المحدد إن وجد
+                          }
                         }
                       }}
                       disabled={!shape.available}
