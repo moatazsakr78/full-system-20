@@ -364,19 +364,22 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         // Get sub-images for this product
         const subImages = await getProductSubImages(product.id, product.name, product.video_url);
 
-        // Get product videos
+        // Get product videos from product_videos table using any type workaround
         try {
-          const { data: videos } = await supabase
+          const { data: videos, error: videoError } = await (supabase as any)
             .from('product_videos')
             .select('*')
             .eq('product_id', product.id)
             .order('sort_order', { ascending: true });
 
-          if (videos) {
+          if (!videoError && videos) {
             setProductVideos(videos);
+          } else {
+            setProductVideos([]);
           }
         } catch (videoError) {
           console.error('Error fetching product videos:', videoError);
+          setProductVideos([]);
         }
         
         // Build gallery array

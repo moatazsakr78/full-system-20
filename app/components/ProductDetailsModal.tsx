@@ -275,19 +275,22 @@ export default function ProductDetailsModal({
         // Get sub-images for this product
         const subImages = await getProductSubImages(product.id, product.name, product.video_url);
 
-        // Get product videos
+        // Get product videos from product_videos table using any type workaround
         try {
-          const { data: videos } = await supabase
+          const { data: videos, error: videoError } = await (supabase as any)
             .from('product_videos')
             .select('*')
             .eq('product_id', product.id)
             .order('sort_order', { ascending: true });
 
-          if (videos) {
+          if (!videoError && videos) {
             setProductVideos(videos);
+          } else {
+            setProductVideos([]);
           }
         } catch (videoError) {
           console.error('Error fetching product videos:', videoError);
+          setProductVideos([]);
         }
         
         // Build gallery array
@@ -569,7 +572,7 @@ export default function ProductDetailsModal({
           <span className="text-gray-800 font-medium">{productDetails.name}</span>
         </nav>
 
-        {/* Product Main Section - Elegant Small Layout */}
+        {/* Product Main Section - L-shaped Layout */}
         <div className="grid grid-cols-12 gap-4 mb-12">
           {/* Empty spacer - Left Side */}
           <div className="col-span-1">
@@ -577,198 +580,173 @@ export default function ProductDetailsModal({
 
           {/* Main Product Image with L-shaped thumbnails around it */}
           <div className="col-span-4 relative">
-            {/* Create unified media array (images + videos) */}
+            {/* Main Product Image */}
+            <div
+              className="relative w-full aspect-square bg-white rounded-lg overflow-hidden shadow-lg cursor-crosshair"
+              onMouseEnter={() => setIsZooming(true)}
+              onMouseLeave={() => setIsZooming(false)}
+              onMouseMove={(e) => {
+                if (isZooming) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = ((e.clientX - rect.left) / rect.width) * 100;
+                  const y = ((e.clientY - rect.top) / rect.height) * 100;
+                  setZoomPosition({ x, y });
+                }
+              }}
+            >
+              {selectedVideo ? (
+                <div className="relative w-full h-full">
+                  <video
+                    src={selectedVideo}
+                    className="w-full h-full object-cover"
+                    controls={false}
+                    muted
+                    preload="metadata"
+                  />
+                  <button
+                    onClick={() => setShowVideoModal(true)}
+                    className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 hover:bg-opacity-50 transition-all"
+                  >
+                    <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
+                      <svg className="w-6 h-6 text-gray-800 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </div>
+                  </button>
+                </div>
+              ) : (
+                <img
+                  src={currentGallery[selectedImage]}
+                  alt={productDetails.name}
+                  className="w-full h-full object-cover"
+                />
+              )}
+              {/* Zoom hint */}
+              {!isZooming && (
+                <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                  مرر للتكبير
+                </div>
+              )}
+            </div>
+
+            {/* L-shaped thumbnails layout */}
             {(() => {
-              // Create a unified array of all media items
-              const allMediaItems = [];
+              // Combine all media (images + videos)
+              const allMedia = [
+                ...currentGallery.map((url, idx) => ({ type: 'image', url, imageIndex: idx })),
+                ...productVideos.map(video => ({ type: 'video', url: video.video_url, imageIndex: -1 }))
+              ];
 
-              // Add all images from gallery
-              currentGallery.forEach((imageUrl, index) => {
-                allMediaItems.push({
-                  type: 'image',
-                  url: imageUrl,
-                  index: index
-                });
-              });
-
-              // Add all videos
-              productVideos.forEach((video, index) => {
-                allMediaItems.push({
-                  type: 'video',
-                  url: video.video_url,
-                  videoIndex: index
-                });
-              });
+              if (allMedia.length === 0) return null;
 
               return (
                 <>
-                  {/* Main Product Image */}
-                  <div
-                    className="relative w-full aspect-square bg-white rounded-lg overflow-hidden shadow-lg cursor-crosshair"
-                    onMouseEnter={() => setIsZooming(true)}
-                    onMouseLeave={() => setIsZooming(false)}
-                    onMouseMove={(e) => {
-                      if (isZooming) {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const x = ((e.clientX - rect.left) / rect.width) * 100;
-                        const y = ((e.clientY - rect.top) / rect.height) * 100;
-                        setZoomPosition({ x, y });
-                      }
-                    }}
-                  >
-                    {selectedVideo ? (
-                      <div className="relative w-full h-full">
-                        <video
-                          src={selectedVideo}
-                          className="w-full h-full object-cover"
-                          controls={false}
-                          muted
-                          preload="metadata"
-                        />
-                        <button
-                          onClick={() => setShowVideoModal(true)}
-                          className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 hover:bg-opacity-50 transition-all"
-                        >
-                          <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
-                            <svg className="w-6 h-6 text-gray-800 ml-1" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M8 5v14l11-7z"/>
-                            </svg>
-                          </div>
-                        </button>
-                      </div>
-                    ) : (
-                      <img
-                        src={currentGallery[selectedImage] || '/placeholder-image.jpg'}
-                        alt={productDetails.name}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    {/* Zoom hint */}
-                    {!isZooming && (
-                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                        مرر للتكبير
-                      </div>
-                    )}
+                  {/* Right side vertical thumbnails (first 7) - Extra Large size */}
+                  <div className="absolute top-0 -right-28 flex flex-col space-y-2">
+                    {allMedia.slice(0, 7).map((media, index) => (
+                      <button
+                        key={`right-${index}`}
+                        onClick={() => {
+                          if (media.type === 'video') {
+                            setSelectedVideo(media.url);
+                            setSelectedImage(-1);
+                          } else {
+                            setSelectedImage(media.imageIndex);
+                            setSelectedVideo(null);
+                          }
+                        }}
+                        onMouseEnter={() => {
+                          if (media.type === 'video') {
+                            setSelectedVideo(media.url);
+                            setSelectedImage(-1);
+                          } else {
+                            setSelectedImage(media.imageIndex);
+                            setSelectedVideo(null);
+                          }
+                        }}
+                        className={`relative w-24 aspect-square rounded border-2 overflow-hidden transition-all duration-200 ${
+                          (media.type === 'video' ? selectedVideo === media.url : selectedImage === media.imageIndex && !selectedVideo)
+                            ? 'border-red-500 ring-1 ring-red-500'
+                            : 'border-gray-300 hover:border-red-300'
+                        }`}
+                      >
+                        {media.type === 'video' ? (
+                          <>
+                            <video
+                              src={media.url}
+                              className="w-full h-full object-cover"
+                              muted
+                              preload="metadata"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                              </svg>
+                            </div>
+                          </>
+                        ) : (
+                          <img
+                            src={media.url}
+                            alt={`${productDetails.name} ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </button>
+                    ))}
                   </div>
 
-                  {/* Right side thumbnails (vertical part of L) */}
-                  <div className="absolute top-0 -right-20 flex flex-col gap-2">
-                    {allMediaItems.slice(0, 4).map((mediaItem, index) => {
-                      const isSelected = mediaItem.type === 'video'
-                        ? selectedVideo === mediaItem.url
-                        : selectedImage === mediaItem.index && !selectedVideo;
-
-                      return (
-                        <button
-                          key={`right-${mediaItem.type}-${index}`}
-                          onClick={() => {
-                            if (mediaItem.type === 'video') {
-                              setSelectedVideo(mediaItem.url);
-                              setSelectedImage(-1);
-                            } else {
-                              setSelectedImage(mediaItem.index);
-                              setSelectedVideo(null);
-                            }
-                          }}
-                          onMouseEnter={() => {
-                            if (mediaItem.type === 'video') {
-                              setSelectedVideo(mediaItem.url);
-                              setSelectedImage(-1);
-                            } else {
-                              setSelectedImage(mediaItem.index);
-                              setSelectedVideo(null);
-                            }
-                          }}
-                          className={`relative w-16 aspect-square rounded border-2 overflow-hidden transition-all duration-200 ${
-                            isSelected
-                              ? 'border-red-500 ring-1 ring-red-500'
-                              : 'border-gray-300 hover:border-red-300'
-                          }`}
-                        >
-                          {mediaItem.type === 'video' ? (
-                            <>
-                              <video
-                                src={mediaItem.url}
-                                className="w-full h-full object-cover"
-                                muted
-                                preload="metadata"
-                              />
-                              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M8 5v14l11-7z"/>
-                                </svg>
-                              </div>
-                            </>
-                          ) : (
-                            <img
-                              src={mediaItem.url}
-                              alt={`${productDetails.name} ${index + 1}`}
+                  {/* Bottom horizontal thumbnails - Extra Large size */}
+                  <div className="absolute -bottom-28 right-0 flex space-x-2">
+                    {allMedia.slice(7).map((media, index) => (
+                      <button
+                        key={`bottom-${index}`}
+                        onClick={() => {
+                          if (media.type === 'video') {
+                            setSelectedVideo(media.url);
+                            setSelectedImage(-1);
+                          } else {
+                            setSelectedImage(media.imageIndex);
+                            setSelectedVideo(null);
+                          }
+                        }}
+                        onMouseEnter={() => {
+                          if (media.type === 'video') {
+                            setSelectedVideo(media.url);
+                            setSelectedImage(-1);
+                          } else {
+                            setSelectedImage(media.imageIndex);
+                            setSelectedVideo(null);
+                          }
+                        }}
+                        className={`relative w-24 aspect-square rounded border-2 overflow-hidden transition-all duration-200 ${
+                          (media.type === 'video' ? selectedVideo === media.url : selectedImage === media.imageIndex && !selectedVideo)
+                            ? 'border-red-500 ring-1 ring-red-500'
+                            : 'border-gray-300 hover:border-red-300'
+                        }`}
+                      >
+                        {media.type === 'video' ? (
+                          <>
+                            <video
+                              src={media.url}
                               className="w-full h-full object-cover"
+                              muted
+                              preload="metadata"
                             />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Bottom thumbnails (horizontal part of L) */}
-                  <div className="absolute -bottom-20 left-0 flex gap-2">
-                    {allMediaItems.slice(4, 8).map((mediaItem, index) => {
-                      const isSelected = mediaItem.type === 'video'
-                        ? selectedVideo === mediaItem.url
-                        : selectedImage === mediaItem.index && !selectedVideo;
-
-                      return (
-                        <button
-                          key={`bottom-${mediaItem.type}-${index}`}
-                          onClick={() => {
-                            if (mediaItem.type === 'video') {
-                              setSelectedVideo(mediaItem.url);
-                              setSelectedImage(-1);
-                            } else {
-                              setSelectedImage(mediaItem.index);
-                              setSelectedVideo(null);
-                            }
-                          }}
-                          onMouseEnter={() => {
-                            if (mediaItem.type === 'video') {
-                              setSelectedVideo(mediaItem.url);
-                              setSelectedImage(-1);
-                            } else {
-                              setSelectedImage(mediaItem.index);
-                              setSelectedVideo(null);
-                            }
-                          }}
-                          className={`relative w-16 aspect-square rounded border-2 overflow-hidden transition-all duration-200 ${
-                            isSelected
-                              ? 'border-red-500 ring-1 ring-red-500'
-                              : 'border-gray-300 hover:border-red-300'
-                          }`}
-                        >
-                          {mediaItem.type === 'video' ? (
-                            <>
-                              <video
-                                src={mediaItem.url}
-                                className="w-full h-full object-cover"
-                                muted
-                                preload="metadata"
-                              />
-                              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M8 5v14l11-7z"/>
-                                </svg>
-                              </div>
-                            </>
-                          ) : (
-                            <img
-                              src={mediaItem.url}
-                              alt={`${productDetails.name} ${index + 5}`}
-                              className="w-full h-full object-cover"
-                            />
-                          )}
-                        </button>
-                      );
-                    })}
+                            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                              </svg>
+                            </div>
+                          </>
+                        ) : (
+                          <img
+                            src={media.url}
+                            alt={`${productDetails.name} ${index + 8}`}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </button>
+                    ))}
                   </div>
                 </>
               );
