@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
-import { useOptimisticCart } from '../../lib/optimistic-ui';
 import { Product, ProductColor } from '../../components/website/shared/types';
 import { supabase } from '../lib/supabase/client';
 import { useFormatPrice } from '@/lib/hooks/useCurrency';
+import { useRatingsDisplay } from '../../lib/hooks/useRatingSettings';
+import { useCart } from '../../lib/contexts/CartContext';
+import CartModal from './CartModal';
 
 interface DatabaseProduct {
   id: string;
@@ -60,7 +62,8 @@ interface DatabaseProduct {
 interface ProductDetail extends Omit<Product, 'sizes'> {
   gallery: string[];
   specifications: { [key: string]: string };
-  sizes: { name: string; available: boolean }[];
+  shapes: { id: string; name: string; value: string; available: boolean }[];
+  sizes: { id: string; name: string; value: string; available: boolean }[];
   detailedDescription: string;
 }
 
@@ -188,32 +191,30 @@ interface ProductDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   productId: string;
-  userCart: Product[] | undefined;
-  onUpdateCart: (updatedCart: Product[]) => void;
 }
 
 export default function ProductDetailsModal({
   isOpen,
   onClose,
-  productId,
-  userCart,
-  onUpdateCart
+  productId
 }: ProductDetailsModalProps) {
   const router = useRouter();
   const formatPrice = useFormatPrice();
+  const { showRatings } = useRatingsDisplay();
+  const { cartItems, addToCart } = useCart();
   const [productDetails, setProductDetails] = useState<ProductDetail | null>(null);
+  const [showCartModal, setShowCartModal] = useState(false);
   const [suggestedProductsList, setSuggestedProductsList] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { cart, addToCart, removeFromCart, updateQuantity, clearCart } = useOptimisticCart(
-    userCart || []
-  );
+  // No longer using useOptimisticCart - using useCart from CartContext
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState<ProductColor | null>(null);
   const [currentGallery, setCurrentGallery] = useState<string[]>([]);
-  const [selectedSize, setSelectedSize] = useState<{ name: string; available: boolean } | null>(null);
+  const [selectedShape, setSelectedShape] = useState<{ id: string; name: string; value: string; available: boolean } | null>(null);
+  const [selectedSize, setSelectedSize] = useState<{ id: string; name: string; value: string; available: boolean } | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [currentSuggestedIndex, setCurrentSuggestedIndex] = useState(0);
   const [isZooming, setIsZooming] = useState(false);
@@ -253,12 +254,24 @@ export default function ProductDetailsModal({
           return;
         }
 
-        // Get color variants for this product
+        // Get all product variants (colors, shapes, sizes)
         const { data: colorVariants } = await supabase
           .from('product_variants')
           .select('id, name, color_hex, color_name, image_url, quantity')
           .eq('product_id', product.id)
           .eq('variant_type', 'color') as { data: any[] | null };
+
+        const { data: shapeVariants } = await supabase
+          .from('product_variants')
+          .select('id, name, value')
+          .eq('product_id', product.id)
+          .eq('variant_type', 'shape') as { data: any[] | null };
+
+        const { data: sizeVariants } = await supabase
+          .from('product_variants')
+          .select('id, name, value')
+          .eq('product_id', product.id)
+          .eq('variant_type', 'size') as { data: any[] | null };
 
         // Parse product description if it's JSON
         let actualDescription: string = product.description || "";
@@ -365,9 +378,18 @@ export default function ProductDetailsModal({
             quantity: variant.quantity || 0
           }))
           .sort((a, b) => (b.quantity || 0) - (a.quantity || 0)) || [], // Sort by quantity descending
-          sizes: [
-            { name: 'قياس عادي', available: true }
-          ]
+          shapes: shapeVariants?.map(variant => ({
+            id: variant.id,
+            name: variant.name,
+            value: variant.value,
+            available: true
+          })) || [],
+          sizes: sizeVariants?.map(variant => ({
+            id: variant.id,
+            name: variant.name,
+            value: variant.value,
+            available: true
+          })) || []
         };
 
         setProductDetails(productDetail);
@@ -383,7 +405,12 @@ export default function ProductDetailsModal({
             setCurrentGallery(newGallery);
           }
         }
-        setSelectedSize(productDetail.sizes[0]);
+        if (productDetail.shapes && productDetail.shapes.length > 0) {
+          setSelectedShape(productDetail.shapes[0]);
+        }
+        if (productDetail.sizes && productDetail.sizes.length > 0) {
+          setSelectedSize(productDetail.sizes[0]);
+        }
 
         // Fetch suggested products if available
         if ((product as any).suggested_products && Array.isArray((product as any).suggested_products) && (product as any).suggested_products.length > 0) {
@@ -457,25 +484,23 @@ export default function ProductDetailsModal({
     fetchProduct();
   }, [isOpen, productId]);
 
-  const handleAddToCart = () => {
-    if (!productDetails || !selectedColor || !selectedSize) return;
-    
-    const productToAdd = {
-      ...productDetails,
-      selectedColor: selectedColor.name,
-      selectedSize: selectedSize.name,
-      quantity
-    };
-    addToCart(productToAdd);
-    
-    // Update parent cart
-    onUpdateCart([...cart, productToAdd]);
-  };
+  const handleAddToCart = async () => {
+    if (!productDetails) return;
 
-  // Update parent cart when cart changes
-  useEffect(() => {
-    onUpdateCart(cart);
-  }, [cart, onUpdateCart]);
+    try {
+      await addToCart(
+        productId,
+        quantity,
+        productDetails.price,
+        selectedColor?.name,
+        selectedShape?.name,
+        selectedSize?.name
+      );
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert('حدث خطأ أثناء إضافة المنتج. يرجى المحاولة مرة أخرى.');
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -551,8 +576,14 @@ export default function ProductDetailsModal({
           </div>
           
           <div className="flex items-center gap-4">
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-white" style={{backgroundColor: '#5D1F1F'}} onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616'; }} onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F'; }}>
-              <span>السلة ({cart?.length || 0})</span>
+            <button
+              onClick={() => setShowCartModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-white"
+              style={{backgroundColor: '#5D1F1F'}}
+              onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616'; }}
+              onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F'; }}
+            >
+              <span>السلة ({cartItems?.length || 0})</span>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
               </svg>
@@ -779,19 +810,21 @@ export default function ProductDetailsModal({
               <p className="text-gray-600 text-sm">{productDetails.description}</p>
             </div>
 
-            {/* Rating and Reviews */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className={i < Math.floor(productDetails.rating || 0) ? 'text-yellow-400' : 'text-gray-300'}>
-                    ⭐
+            {/* Rating and Reviews - conditionally shown based on settings */}
+            {showRatings && (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <span key={i} className={i < Math.floor(productDetails.rating || 0) ? 'text-yellow-400' : 'text-gray-300'}>
+                      ⭐
+                    </span>
+                  ))}
+                  <span className="text-sm text-gray-600 mr-2">
+                    {productDetails.rating} ({productDetails.reviews} تقييم)
                   </span>
-                ))}
-                <span className="text-sm text-gray-600 mr-2">
-                  {productDetails.rating} ({productDetails.reviews} تقييم)
-                </span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Price */}
             <div className="flex items-center gap-3">
@@ -852,28 +885,48 @@ export default function ProductDetailsModal({
               </div>
             )}
 
+
+            {/* Shapes */}
+            {productDetails.shapes && productDetails.shapes.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-gray-800 mb-2">الشكل:</h3>
+                <select
+                  value={selectedShape?.id || ''}
+                  onChange={(e) => {
+                    const shape = productDetails.shapes?.find(s => s.id === e.target.value);
+                    setSelectedShape(shape || null);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 bg-white"
+                >
+                  <option value="">اختر الشكل</option>
+                  {productDetails.shapes?.map((shape) => (
+                    <option key={shape.id} value={shape.id} disabled={!shape.available}>
+                      {shape.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Sizes */}
-            {productDetails.sizes.length > 0 && (
+            {productDetails.sizes && productDetails.sizes.length > 0 && (
               <div>
                 <h3 className="font-semibold text-gray-800 mb-2">الحجم:</h3>
-                <div className="flex gap-2 flex-wrap">
-                  {productDetails.sizes.map((size) => (
-                    <button
-                      key={size.name}
-                      disabled={!size.available}
-                      onClick={() => setSelectedSize(size)}
-                      className={`px-3 py-1 border rounded-lg transition-all text-sm ${
-                        selectedSize?.name === size.name
-                          ? 'border-red-500 bg-red-50 text-red-600 font-semibold'
-                          : size.available
-                          ? 'border-gray-300 hover:border-red-300 bg-white'
-                          : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
-                      }`}
-                    >
+                <select
+                  value={selectedSize?.id || ''}
+                  onChange={(e) => {
+                    const size = productDetails.sizes?.find(s => s.id === e.target.value);
+                    setSelectedSize(size || null);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 bg-white"
+                >
+                  <option value="">اختر الحجم</option>
+                  {productDetails.sizes?.map((size) => (
+                    <option key={size.id} value={size.id} disabled={!size.available}>
                       {size.name}
-                    </button>
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
             )}
 
@@ -889,7 +942,16 @@ export default function ProductDetailsModal({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                   </svg>
                 </button>
-                <span className="text-lg font-semibold px-3">{quantity}</span>
+                <input
+                  type="number"
+                  value={quantity}
+                  min="1"
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 1;
+                    setQuantity(Math.max(1, value));
+                  }}
+                  className="text-lg font-semibold px-3 py-1 w-16 text-center border border-gray-300 rounded-lg focus:outline-none focus:border-red-500"
+                />
                 <button
                   onClick={() => setQuantity(quantity + 1)}
                   className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
@@ -1011,14 +1073,22 @@ export default function ProductDetailsModal({
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                          <span className="text-yellow-400">⭐</span>
-                          <span className="text-sm text-gray-400">{product.rating} ({product.reviews})</span>
-                        </div>
-                        <button 
-                          onClick={(e) => {
+                        {showRatings && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-yellow-400">⭐</span>
+                            <span className="text-sm text-gray-400">{product.rating} ({product.reviews})</span>
+                          </div>
+                        )}
+                        {!showRatings && <div></div>}
+                        <button
+                          onClick={async (e) => {
                             e.stopPropagation();
-                            addToCart(product);
+                            try {
+                              await addToCart(String(product.id), 1, product.price);
+                            } catch (error) {
+                              console.error('Error adding to cart:', error);
+                              alert('حدث خطأ أثناء إضافة المنتج.');
+                            }
                           }}
                           className="px-4 py-2 rounded-lg text-sm font-medium transition-colors text-white"
                           style={{backgroundColor: '#5D1F1F'}}
@@ -1213,6 +1283,12 @@ export default function ProductDetailsModal({
           </div>
         </div>
       </footer>
+
+      {/* Cart Modal */}
+      <CartModal
+        isOpen={showCartModal}
+        onClose={() => setShowCartModal(false)}
+      />
     </div>
   );
 }

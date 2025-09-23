@@ -623,8 +623,6 @@ export default function DesktopHome({
         isOpen={isProductModalOpen}
         onClose={handleCloseProductModal}
         productId={selectedProductId}
-        userCart={userInfo.cart}
-        onUpdateCart={onCartUpdate}
       />
 
       {/* Cart Modal */}
