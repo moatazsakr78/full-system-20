@@ -946,8 +946,8 @@ export default function ProductDetailsModal({
           {/* Product Info - Right Side */}
           <div className="col-span-4 space-y-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800 mb-2">{currentProductName}</h1>
-              <p className="text-gray-600 text-sm">{productDetails.description}</p>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">{currentProductName}</h1>
+              <p className="text-gray-600 text-lg">{productDetails.description}</p>
             </div>
 
             {/* Rating and Reviews - conditionally shown based on settings */}
@@ -968,9 +968,9 @@ export default function ProductDetailsModal({
 
             {/* Price */}
             <div className="flex items-center gap-3">
-              <span className="text-2xl font-bold" style={{color: '#5D1F1F'}}>{formatPrice(currentPrice)}</span>
+              <span className="text-3xl font-bold" style={{color: '#5D1F1F'}}>{formatPrice(currentPrice)}</span>
               {productDetails.originalPrice && (
-                <span className="text-lg text-gray-500 line-through">{formatPrice(productDetails.originalPrice)}</span>
+                <span className="text-xl text-gray-500 line-through">{formatPrice(productDetails.originalPrice)}</span>
               )}
               {productDetails.isOnSale && (
                 <span className="px-2 py-1 rounded-full text-xs font-bold" style={{backgroundColor: '#F5F1F1', color: '#5D1F1F'}}>
@@ -1124,7 +1124,7 @@ export default function ProductDetailsModal({
                         }
                       }}
                       disabled={!size.available}
-                      className={`px-3 py-1 border-2 rounded-lg transition-all text-sm ${
+                      className={`px-3 py-1 border-2 rounded-lg transition-all text-base ${
                         selectedSize?.id === size.id
                           ? 'border-red-500 bg-red-50 text-red-600 font-semibold'
                           : size.available
@@ -1134,9 +1134,9 @@ export default function ProductDetailsModal({
                       title={size.type === 'related_product' ? `${size.name} - ${formatPrice(size.price || 0)}` : size.name}
                     >
                       <div className="flex flex-col items-center text-center">
-                        <span className="text-xs">{size.name}</span>
+                        <span className="text-sm">{size.name}</span>
                         {size.type === 'related_product' && size.price && (
-                          <span className="text-xs opacity-75">{formatPrice(size.price)}</span>
+                          <span className="text-sm opacity-75">{formatPrice(size.price)}</span>
                         )}
                       </div>
                       {selectedSize?.id === size.id && (
