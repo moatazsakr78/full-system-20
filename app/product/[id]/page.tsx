@@ -7,6 +7,7 @@ import { UserInfo, Product, ProductColor } from '../../../components/website/sha
 import { supabase } from '../../lib/supabase/client';
 import { useRatingsDisplay } from '../../../lib/hooks/useRatingSettings';
 import { useCart } from '../../../lib/contexts/CartContext';
+import { useFormatPrice } from '../../../lib/hooks/useCurrency';
 import CartModal from '../../components/CartModal';
 
 interface DatabaseProduct {
@@ -61,8 +62,15 @@ interface DatabaseProduct {
 interface ProductDetail extends Omit<Product, 'sizes'> {
   gallery: string[];
   specifications: { [key: string]: string };
-  shapes: { id: string; name: string; value: string; available: boolean }[];
-  sizes: { id: string; name: string; value: string; available: boolean }[];
+  shapes: { id: string; name: string; image_url?: string; available: boolean }[];
+  sizes: {
+    id: string;
+    name: string;
+    price?: number;
+    product_id?: string;
+    available: boolean;
+    type: 'variant' | 'related_product';
+  }[];
   detailedDescription: string;
 }
 
@@ -281,6 +289,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const router = useRouter();
   const { showRatings } = useRatingsDisplay();
   const { cartItems, addToCart } = useCart();
+  const formatPrice = useFormatPrice();
   const [showCartModal, setShowCartModal] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
     type: 'desktop',
@@ -305,8 +314,15 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState<ProductColor | null>(null);
   const [currentGallery, setCurrentGallery] = useState<string[]>([]);
-  const [selectedShape, setSelectedShape] = useState<{ id: string; name: string; value: string; available: boolean } | null>(null);
-  const [selectedSize, setSelectedSize] = useState<{ id: string; name: string; value: string; available: boolean } | null>(null);
+  const [selectedShape, setSelectedShape] = useState<{ id: string; name: string; image_url?: string; available: boolean } | null>(null);
+  const [selectedSize, setSelectedSize] = useState<{
+    id: string;
+    name: string;
+    price?: number;
+    product_id?: string;
+    available: boolean;
+    type: 'variant' | 'related_product';
+  } | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [isCompactHeaderVisible, setIsCompactHeaderVisible] = useState(false);
   const [currentSuggestedIndex, setCurrentSuggestedIndex] = useState(0);
@@ -354,15 +370,58 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
         const { data: shapeVariants } = await supabase
           .from('product_variants')
-          .select('id, name, value')
+          .select('id, name, quantity, image_url')
           .eq('product_id', product.id)
           .eq('variant_type', 'shape') as { data: any[] | null };
 
         const { data: sizeVariants } = await supabase
           .from('product_variants')
-          .select('id, name, value')
+          .select('id, name, quantity')
           .eq('product_id', product.id)
           .eq('variant_type', 'size') as { data: any[] | null };
+
+        // البحث عن منتجات مترابطة (أحجام مختلفة) بناءً على اسم المنتج
+        let relatedSizeProducts: any[] = [];
+        try {
+          // استخراج الاسم الأساسي للمنتج (بدون مقياس/مقاس)
+          const baseName = product.name
+            .replace(/\s*مقاس\s*\d+\s*/g, '')
+            .replace(/\s*مقياس\s*\d+\s*/g, '')
+            .replace(/\s*حجم\s*(صغير|متوسط|كبير)\s*/g, '')
+            .trim();
+
+          if (baseName && baseName !== product.name) {
+            // البحث عن منتجات أخرى تحتوي على نفس الاسم الأساسي
+            const { data: relatedProducts } = await supabase
+              .from('products')
+              .select('id, name, price')
+              .ilike('name', `%${baseName}%`)
+              .neq('id', product.id)
+              .eq('is_active', true)
+              .limit(10);
+
+            if (relatedProducts && relatedProducts.length > 0) {
+              // فلترة المنتجات التي تحتوي على مقاس/مقياس
+              relatedSizeProducts = relatedProducts.filter(p =>
+                /مقاس|مقياس|حجم/.test(p.name)
+              ).map(p => {
+                // استخراج المقاس من الاسم
+                const sizeMatch = p.name.match(/مقاس\s*(\d+)|مقياس\s*(\d+)|حجم\s*(صغير|متوسط|كبير)/);
+                const sizeName = sizeMatch ? (sizeMatch[1] || sizeMatch[2] || sizeMatch[3]) : 'غير محدد';
+
+                return {
+                  id: p.id,
+                  name: `مقاس ${sizeName}`,
+                  price: p.price,
+                  product_id: p.id,
+                  available: true
+                };
+              });
+            }
+          }
+        } catch (error) {
+          console.log('Error finding related size products:', error);
+        }
 
         // Parse product description if it's JSON
         let actualDescription: string = product.description || "";
@@ -472,15 +531,27 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           shapes: shapeVariants?.map(variant => ({
             id: variant.id,
             name: variant.name,
-            value: variant.value,
-            available: true
+            image_url: variant.image_url,
+            available: (variant.quantity || 0) > 0
           })) || [],
-          sizes: sizeVariants?.map(variant => ({
-            id: variant.id,
-            name: variant.name,
-            value: variant.value,
-            available: true
-          })) || []
+          sizes: [
+            // أولاً: المقاسات من product_variants
+            ...(sizeVariants?.map(variant => ({
+              id: variant.id,
+              name: variant.name,
+              available: (variant.quantity || 0) > 0,
+              type: 'variant' as const
+            })) || []),
+            // ثانياً: المنتجات المترابطة كأحجام
+            ...relatedSizeProducts.map(product => ({
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              product_id: product.product_id,
+              available: product.available,
+              type: 'related_product' as const
+            }))
+          ]
         };
 
         setProductDetails(productDetail);
@@ -595,10 +666,19 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     if (!productDetails) return;
 
     try {
+      // إذا كان هناك حجم محدد وهو منتج مترابط، استخدم معرف ذلك المنتج وسعره
+      const productIdToAdd = selectedSize?.type === 'related_product' && selectedSize.product_id
+        ? selectedSize.product_id
+        : params.id;
+
+      const priceToUse = selectedSize?.type === 'related_product' && selectedSize.price
+        ? selectedSize.price
+        : productDetails.price;
+
       await addToCart(
-        params.id,
+        productIdToAdd,
         quantity,
-        productDetails.price,
+        priceToUse,
         selectedColor?.name,
         selectedShape?.name,
         selectedSize?.name
@@ -982,44 +1062,89 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
             {/* Shapes */}
             {productDetails.shapes && productDetails.shapes.length > 0 && (
               <div>
-                <h3 className="font-semibold text-gray-800 mb-3">الشكل:</h3>
-                <select
-                  value={selectedShape?.id || ''}
-                  onChange={(e) => {
-                    const shape = productDetails.shapes?.find(s => s.id === e.target.value);
-                    setSelectedShape(shape || null);
-                  }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 bg-white text-lg"
-                >
-                  <option value="">اختر الشكل</option>
+                <h3 className="font-semibold text-gray-800 mb-3">الشكل المتاح:</h3>
+                <div className="flex gap-3 flex-wrap">
                   {productDetails.shapes?.map((shape) => (
-                    <option key={shape.id} value={shape.id} disabled={!shape.available}>
+                    <button
+                      key={shape.id}
+                      onClick={() => {
+                        if (selectedShape?.id === shape.id) {
+                          setSelectedShape(null);
+                        } else {
+                          setSelectedShape(shape);
+                        }
+                      }}
+                      disabled={!shape.available}
+                      className={`px-4 py-2 border-2 rounded-lg transition-all text-sm font-medium ${
+                        selectedShape?.id === shape.id
+                          ? 'border-red-500 bg-red-50 text-red-600 shadow-lg'
+                          : shape.available
+                          ? 'border-gray-300 hover:border-red-300 bg-white text-gray-700 hover:bg-red-50'
+                          : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                      title={shape.name}
+                    >
                       {shape.name}
-                    </option>
+                      {selectedShape?.id === shape.id && (
+                        <span className="mr-2">
+                          <svg className="w-4 h-4 inline" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                      )}
+                    </button>
                   ))}
-                </select>
+                </div>
+                {selectedShape && (
+                  <p className="text-sm text-gray-600 mt-2">الشكل المحدد: {selectedShape?.name}</p>
+                )}
               </div>
             )}
 
             {/* Sizes */}
             {productDetails.sizes && productDetails.sizes.length > 0 && (
               <div>
-                <h3 className="font-semibold text-gray-800 mb-3">الحجم:</h3>
-                <select
-                  value={selectedSize?.id || ''}
-                  onChange={(e) => {
-                    const size = productDetails.sizes?.find(s => s.id === e.target.value);
-                    setSelectedSize(size || null);
-                  }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 bg-white text-lg"
-                >
-                  <option value="">اختر الحجم</option>
+                <h3 className="font-semibold text-gray-800 mb-3">الحجم المتاح:</h3>
+                <div className="flex gap-3 flex-wrap">
                   {productDetails.sizes?.map((size) => (
-                    <option key={size.id} value={size.id} disabled={!size.available}>
-                      {size.name}
-                    </option>
+                    <button
+                      key={size.id}
+                      onClick={() => {
+                        if (selectedSize?.id === size.id) {
+                          setSelectedSize(null);
+                        } else {
+                          setSelectedSize(size);
+                        }
+                      }}
+                      disabled={!size.available}
+                      className={`px-4 py-2 border-2 rounded-lg transition-all text-sm font-medium ${
+                        selectedSize?.id === size.id
+                          ? 'border-red-500 bg-red-50 text-red-600 shadow-lg'
+                          : size.available
+                          ? 'border-gray-300 hover:border-red-300 bg-white text-gray-700 hover:bg-red-50'
+                          : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                      title={size.type === 'related_product' ? `${size.name} - ${formatPrice(size.price || 0)}` : size.name}
+                    >
+                      <div className="flex flex-col items-center">
+                        <span>{size.name}</span>
+                        {size.type === 'related_product' && size.price && (
+                          <span className="text-xs opacity-75">{formatPrice(size.price)}</span>
+                        )}
+                      </div>
+                      {selectedSize?.id === size.id && (
+                        <span className="mr-2">
+                          <svg className="w-4 h-4 inline" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                      )}
+                    </button>
                   ))}
-                </select>
+                </div>
+                {selectedSize && (
+                  <p className="text-sm text-gray-600 mt-2">الحجم المحدد: {selectedSize?.name}</p>
+                )}
               </div>
             )}
 

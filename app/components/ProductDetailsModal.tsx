@@ -62,8 +62,17 @@ interface DatabaseProduct {
 interface ProductDetail extends Omit<Product, 'sizes'> {
   gallery: string[];
   specifications: { [key: string]: string };
-  shapes: { id: string; name: string; value: string; available: boolean }[];
-  sizes: { id: string; name: string; value: string; available: boolean }[];
+  shapes: { id: string; name: string; image_url?: string; available: boolean }[];
+  sizes: {
+    id: string;
+    name: string;
+    price?: number;
+    product_id?: string;
+    available: boolean;
+    type: 'variant' | 'related_product';
+    image_url?: string;
+    product_name?: string;
+  }[];
   detailedDescription: string;
 }
 
@@ -213,8 +222,17 @@ export default function ProductDetailsModal({
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState<ProductColor | null>(null);
   const [currentGallery, setCurrentGallery] = useState<string[]>([]);
-  const [selectedShape, setSelectedShape] = useState<{ id: string; name: string; value: string; available: boolean } | null>(null);
-  const [selectedSize, setSelectedSize] = useState<{ id: string; name: string; value: string; available: boolean } | null>(null);
+  const [selectedShape, setSelectedShape] = useState<{ id: string; name: string; image_url?: string; available: boolean } | null>(null);
+  const [selectedSize, setSelectedSize] = useState<{
+    id: string;
+    name: string;
+    price?: number;
+    product_id?: string;
+    available: boolean;
+    type: 'variant' | 'related_product';
+    image_url?: string;
+    product_name?: string;
+  } | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [currentSuggestedIndex, setCurrentSuggestedIndex] = useState(0);
   const [isZooming, setIsZooming] = useState(false);
@@ -222,6 +240,8 @@ export default function ProductDetailsModal({
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [productVideos, setProductVideos] = useState<any[]>([]);
+  const [currentPrice, setCurrentPrice] = useState<number>(0);
+  const [currentProductName, setCurrentProductName] = useState<string>('');
 
   // Fetch product data
   useEffect(() => {
@@ -263,15 +283,109 @@ export default function ProductDetailsModal({
 
         const { data: shapeVariants } = await supabase
           .from('product_variants')
-          .select('id, name, value')
+          .select('id, name, quantity, image_url')
           .eq('product_id', product.id)
           .eq('variant_type', 'shape') as { data: any[] | null };
 
         const { data: sizeVariants } = await supabase
           .from('product_variants')
-          .select('id, name, value')
+          .select('id, name, quantity')
           .eq('product_id', product.id)
           .eq('variant_type', 'size') as { data: any[] | null };
+
+        // البحث عن الأحجام الحقيقية من product_size_groups
+        let realSizeProducts: any[] = [];
+        try {
+          // أولاً، نبحث عن مجموعة الأحجام التي ينتمي إليها هذا المنتج
+          const { data: sizeGroupItems } = await supabase
+            .from('product_size_group_items')
+            .select(`
+              *,
+              size_group:product_size_groups(*)
+            `)
+            .eq('product_id', product.id);
+
+          if (sizeGroupItems && sizeGroupItems.length > 0) {
+            const sizeGroupId = sizeGroupItems[0].size_group_id;
+
+            // نجلب جميع المنتجات في نفس مجموعة الأحجام
+            const { data: allSizeItems } = await supabase
+              .from('product_size_group_items')
+              .select(`
+                *,
+                product:products(
+                  id,
+                  name,
+                  price,
+                  is_active,
+                  main_image_url
+                )
+              `)
+              .eq('size_group_id', sizeGroupId)
+              .order('sort_order');
+
+            if (allSizeItems && allSizeItems.length > 0) {
+              realSizeProducts = allSizeItems
+                .filter(item => item.product && item.product.is_active)
+                .map(item => ({
+                  id: item.product.id,
+                  name: item.size_name,
+                  price: item.product.price,
+                  product_id: item.product.id,
+                  available: true,
+                  type: 'related_product' as const,
+                  sort_order: item.sort_order,
+                  image_url: item.product.main_image_url, // إضافة صورة المقاس
+                  product_name: item.product.name // إضافة اسم المنتج الكامل
+                }))
+                .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+            }
+          }
+        } catch (error) {
+          console.log('Error finding real size products:', error);
+        }
+
+        // إذا لم نجد أحجام حقيقية، نبحث عن منتجات مترابطة بناءً على اسم المنتج (النظام القديم)
+        let relatedSizeProducts: any[] = [];
+        if (realSizeProducts.length === 0) {
+          try {
+            const baseName = product.name
+              .replace(/\s*مقاس\s*\d+\s*/g, '')
+              .replace(/\s*مقياس\s*\d+\s*/g, '')
+              .replace(/\s*حجم\s*(صغير|متوسط|كبير)\s*/g, '')
+              .trim();
+
+            if (baseName && baseName !== product.name) {
+              const { data: relatedProducts } = await supabase
+                .from('products')
+                .select('id, name, price')
+                .ilike('name', `%${baseName}%`)
+                .neq('id', product.id)
+                .eq('is_active', true)
+                .limit(10);
+
+              if (relatedProducts && relatedProducts.length > 0) {
+                relatedSizeProducts = relatedProducts.filter(p =>
+                  /مقاس|مقياس|حجم/.test(p.name)
+                ).map(p => {
+                  const sizeMatch = p.name.match(/مقاس\s*(\d+)|مقياس\s*(\d+)|حجم\s*(صغير|متوسط|كبير)/);
+                  const sizeName = sizeMatch ? (sizeMatch[1] || sizeMatch[2] || sizeMatch[3]) : 'غير محدد';
+
+                  return {
+                    id: p.id,
+                    name: `مقاس ${sizeName}`,
+                    price: p.price,
+                    product_id: p.id,
+                    available: true,
+                    type: 'related_product' as const
+                  };
+                });
+              }
+            }
+          } catch (error) {
+            console.log('Error finding related size products:', error);
+          }
+        }
 
         // Parse product description if it's JSON
         let actualDescription: string = product.description || "";
@@ -381,19 +495,35 @@ export default function ProductDetailsModal({
           shapes: shapeVariants?.map(variant => ({
             id: variant.id,
             name: variant.name,
-            value: variant.value,
-            available: true
+            image_url: variant.image_url,
+            available: (variant.quantity || 0) > 0
           })) || [],
-          sizes: sizeVariants?.map(variant => ({
-            id: variant.id,
-            name: variant.name,
-            value: variant.value,
-            available: true
-          })) || []
+          sizes: [
+            ...(sizeVariants?.map(variant => ({
+              id: variant.id,
+              name: variant.name,
+              available: (variant.quantity || 0) > 0,
+              type: 'variant' as const
+            })) || []),
+            // استخدام الأحجام الحقيقية أولاً، ثم النظام القديم كبديل
+            ...(realSizeProducts.length > 0 ? realSizeProducts : relatedSizeProducts).map(product => ({
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              product_id: product.product_id,
+              available: product.available,
+              type: 'related_product' as const,
+              image_url: product.image_url,
+              product_name: product.product_name
+            }))
+          ]
         };
 
         setProductDetails(productDetail);
         setCurrentGallery(gallery);
+        setCurrentPrice(productDetail.price);
+        setCurrentProductName(productDetail.name);
+
         
         // Set initial selections
         if (productDetail.colors && productDetail.colors.length > 0) {
@@ -488,10 +618,18 @@ export default function ProductDetailsModal({
     if (!productDetails) return;
 
     try {
+      const productIdToAdd = selectedSize?.type === 'related_product' && selectedSize.product_id
+        ? selectedSize.product_id
+        : productId;
+
+      const priceToUse = selectedSize?.type === 'related_product' && selectedSize.price
+        ? selectedSize.price
+        : currentPrice;
+
       await addToCart(
-        productId,
+        productIdToAdd,
         quantity,
-        productDetails.price,
+        priceToUse,
         selectedColor?.name,
         selectedShape?.name,
         selectedSize?.name
@@ -647,6 +785,7 @@ export default function ProductDetailsModal({
                 </div>
               ) : (
                 <img
+                  key={`main-image-${selectedImage}-${currentGallery[selectedImage]}`}
                   src={currentGallery[selectedImage]}
                   alt={productDetails.name}
                   className="w-full h-full object-cover cursor-pointer"
@@ -792,6 +931,7 @@ export default function ProductDetailsModal({
             {isZooming && !selectedVideo && (
               <div className="sticky top-4 w-full aspect-square bg-white rounded-lg shadow-xl border-2 border-gray-300 overflow-hidden">
                 <img
+                  key={`zoom-image-${selectedImage}-${currentGallery[selectedImage]}`}
                   src={currentGallery[selectedImage]}
                   alt={productDetails.name}
                   className="w-full h-full object-cover scale-[2]"
@@ -806,7 +946,7 @@ export default function ProductDetailsModal({
           {/* Product Info - Right Side */}
           <div className="col-span-4 space-y-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800 mb-2">{productDetails.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">{currentProductName}</h1>
               <p className="text-gray-600 text-sm">{productDetails.description}</p>
             </div>
 
@@ -828,7 +968,7 @@ export default function ProductDetailsModal({
 
             {/* Price */}
             <div className="flex items-center gap-3">
-              <span className="text-2xl font-bold" style={{color: '#5D1F1F'}}>{formatPrice(productDetails.price)}</span>
+              <span className="text-2xl font-bold" style={{color: '#5D1F1F'}}>{formatPrice(currentPrice)}</span>
               {productDetails.originalPrice && (
                 <span className="text-lg text-gray-500 line-through">{formatPrice(productDetails.originalPrice)}</span>
               )}
@@ -889,44 +1029,114 @@ export default function ProductDetailsModal({
             {/* Shapes */}
             {productDetails.shapes && productDetails.shapes.length > 0 && (
               <div>
-                <h3 className="font-semibold text-gray-800 mb-2">الشكل:</h3>
-                <select
-                  value={selectedShape?.id || ''}
-                  onChange={(e) => {
-                    const shape = productDetails.shapes?.find(s => s.id === e.target.value);
-                    setSelectedShape(shape || null);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 bg-white"
-                >
-                  <option value="">اختر الشكل</option>
+                <h3 className="font-semibold text-gray-800 mb-2">الشكل المتاح:</h3>
+                <div className="flex gap-2 flex-wrap">
                   {productDetails.shapes?.map((shape) => (
-                    <option key={shape.id} value={shape.id} disabled={!shape.available}>
+                    <button
+                      key={shape.id}
+                      onClick={() => {
+                        if (selectedShape?.id === shape.id) {
+                          setSelectedShape(null);
+                        } else {
+                          setSelectedShape(shape);
+                        }
+                      }}
+                      disabled={!shape.available}
+                      className={`px-3 py-1 border-2 rounded-lg transition-all text-sm ${
+                        selectedShape?.id === shape.id
+                          ? 'border-red-500 bg-red-50 text-red-600 font-semibold'
+                          : shape.available
+                          ? 'border-gray-300 hover:border-red-300 bg-white hover:bg-red-50'
+                          : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                      title={shape.name}
+                    >
                       {shape.name}
-                    </option>
+                      {selectedShape?.id === shape.id && (
+                        <span className="mr-1">
+                          <svg className="w-3 h-3 inline" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                      )}
+                    </button>
                   ))}
-                </select>
+                </div>
+                {selectedShape && (
+                  <p className="text-xs text-gray-600 mt-1">الشكل المحدد: {selectedShape?.name}</p>
+                )}
               </div>
             )}
 
             {/* Sizes */}
             {productDetails.sizes && productDetails.sizes.length > 0 && (
               <div>
-                <h3 className="font-semibold text-gray-800 mb-2">الحجم:</h3>
-                <select
-                  value={selectedSize?.id || ''}
-                  onChange={(e) => {
-                    const size = productDetails.sizes?.find(s => s.id === e.target.value);
-                    setSelectedSize(size || null);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 bg-white"
-                >
-                  <option value="">اختر الحجم</option>
+                <h3 className="font-semibold text-gray-800 mb-2">أحجام المقاسات:</h3>
+                <div className="flex gap-2 flex-wrap">
                   {productDetails.sizes?.map((size) => (
-                    <option key={size.id} value={size.id} disabled={!size.available}>
-                      {size.name}
-                    </option>
+                    <button
+                      key={size.id}
+                      onClick={() => {
+                        if (selectedSize?.id === size.id) {
+                          // إلغاء التحديد - العودة للمنتج الأصلي
+                          setSelectedSize(null);
+                          setCurrentPrice(productDetails.price);
+                          setCurrentProductName(productDetails.name);
+                          setCurrentGallery(productDetails.gallery || []);
+                          setSelectedImage(0);
+                          setSelectedVideo(null);
+                        } else {
+                          // اختيار حجم جديد
+                          setSelectedSize(size);
+
+                          // تغيير السعر
+                          if (size.price) {
+                            setCurrentPrice(size.price);
+                          }
+
+                          // تغيير اسم المنتج
+                          if (size.product_name) {
+                            setCurrentProductName(size.product_name);
+                          }
+
+                          // تغيير الصورة الرئيسية
+                          if (size.image_url) {
+                            const newGallery = [size.image_url, ...productDetails.gallery.filter(img => img !== size.image_url)];
+                            setCurrentGallery(newGallery);
+                            setSelectedImage(0);
+                            setSelectedVideo(null); // إزالة الفيديو المحدد إن وجد
+                          }
+                        }
+                      }}
+                      disabled={!size.available}
+                      className={`px-3 py-1 border-2 rounded-lg transition-all text-sm ${
+                        selectedSize?.id === size.id
+                          ? 'border-red-500 bg-red-50 text-red-600 font-semibold'
+                          : size.available
+                          ? 'border-gray-300 hover:border-red-300 bg-white hover:bg-red-50'
+                          : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                      title={size.type === 'related_product' ? `${size.name} - ${formatPrice(size.price || 0)}` : size.name}
+                    >
+                      <div className="flex flex-col items-center text-center">
+                        <span className="text-xs">{size.name}</span>
+                        {size.type === 'related_product' && size.price && (
+                          <span className="text-xs opacity-75">{formatPrice(size.price)}</span>
+                        )}
+                      </div>
+                      {selectedSize?.id === size.id && (
+                        <span className="mr-1">
+                          <svg className="w-3 h-3 inline" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                      )}
+                    </button>
                   ))}
-                </select>
+                </div>
+                {selectedSize && (
+                  <p className="text-xs text-gray-600 mt-1">الحجم المحدد: {selectedSize?.name}</p>
+                )}
               </div>
             )}
 
@@ -1231,6 +1441,7 @@ export default function ProductDetailsModal({
                     />
                   ) : (
                     <img
+                      key={`modal-image-${selectedImage}-${currentGallery[selectedImage]}`}
                       src={currentGallery[selectedImage]}
                       alt={productDetails.name}
                       className="max-w-full max-h-full object-contain"
