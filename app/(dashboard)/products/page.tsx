@@ -93,6 +93,7 @@ export default function ProductsPage() {
       // Also detect mobile devices
       const isMobileDevice = /android|webos|iphone|ipod|blackberry|iemobile|opera mini/i.test(userAgent) ||
                             (window.innerWidth < 768)
+      // Use optimized view for tablets and mobile devices
       setIsTablet(isTabletDevice || isMobileDevice)
     }
 

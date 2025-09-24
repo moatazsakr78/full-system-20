@@ -32,8 +32,8 @@ import {
   ListBulletIcon,
   EyeIcon,
   XMarkIcon,
-  Bars3Icon,
-  EyeSlashIcon
+  FolderIcon,
+  FolderOpenIcon
 } from '@heroicons/react/24/outline'
 
 // Database category interface
@@ -634,7 +634,7 @@ export default function ProductsTabletView({
               className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors"
             >
               <ArrowPathIcon className="h-4 w-4" />
-              <span className="text-sm">تحديث</span>
+              <span className="text-xs">تحديث</span>
             </button>
 
             <button 
@@ -642,7 +642,7 @@ export default function ProductsTabletView({
               className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors"
             >
               <FolderPlusIcon className="h-4 w-4" />
-              <span className="text-sm">مجموعة جديدة</span>
+              <span className="text-xs">مجموعة جديدة</span>
             </button>
 
             <button 
@@ -655,7 +655,7 @@ export default function ProductsTabletView({
               disabled={!selectedCategory || selectedCategory.name === 'منتجات'}
             >
               <PencilSquareIcon className="h-4 w-4" />
-              <span className="text-sm">تحرير المجموعة</span>
+              <span className="text-xs">تحرير المجموعة</span>
             </button>
 
             <button 
@@ -668,234 +668,237 @@ export default function ProductsTabletView({
               disabled={!selectedCategory || selectedCategory.name === 'منتجات'}
             >
               <TrashIcon className="h-4 w-4" />
-              <span className="text-sm">حذف المجموعة</span>
+              <span className="text-xs">حذف المجموعة</span>
             </button>
 
-            <button 
+            <button
               onClick={toggleProductSidebar}
               className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors"
             >
               <PlusIcon className="h-4 w-4" />
-              <span className="text-sm">منتج جديد</span>
+              <span className="text-xs">منتج جديد</span>
             </button>
 
-            <button 
+            <button
               onClick={() => selectedProduct && handleEditProduct()}
               className={`flex items-center gap-2 px-3 py-2 cursor-pointer whitespace-nowrap rounded transition-colors ${
                 selectedProduct
-                  ? 'text-gray-300 hover:text-white bg-[#2B3544] hover:bg-[#434E61]' 
+                  ? 'text-gray-300 hover:text-white bg-[#2B3544] hover:bg-[#434E61]'
                   : 'text-gray-500 cursor-not-allowed bg-gray-700/50'
               }`}
               disabled={!selectedProduct}
             >
               <PencilSquareIcon className="h-4 w-4" />
-              <span className="text-sm">تحرير المنتج</span>
+              <span className="text-xs">تحرير المنتج</span>
             </button>
 
-            <button 
+            <button
               onClick={handleDeleteProduct}
               className={`flex items-center gap-2 px-3 py-2 cursor-pointer whitespace-nowrap rounded transition-colors ${
                 selectedProduct
-                  ? 'text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/30' 
+                  ? 'text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/30'
                   : 'text-gray-500 cursor-not-allowed bg-gray-700/50'
               }`}
               disabled={!selectedProduct}
             >
               <TrashIcon className="h-4 w-4" />
-              <span className="text-sm">حذف المنتج</span>
+              <span className="text-xs">حذف المنتج</span>
             </button>
 
             <button className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors">
               <PrinterIcon className="h-4 w-4" />
-              <span className="text-sm">طباعة</span>
+              <span className="text-xs">طباعة</span>
             </button>
 
             <button className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors">
               <DocumentArrowDownIcon className="h-4 w-4" />
-              <span className="text-sm">حفظ كـ PDF</span>
+              <span className="text-xs">حفظ كـ PDF</span>
             </button>
 
             <button className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors">
               <TagIcon className="h-4 w-4" />
-              <span className="text-sm">بطاقات الأسعار</span>
+              <span className="text-xs">بطاقات الأسعار</span>
             </button>
 
             <button className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors">
               <ArrowsUpDownIcon className="h-4 w-4" />
-              <span className="text-sm">ترتيب</span>
+              <span className="text-xs">ترتيب</span>
             </button>
 
             <button className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors">
               <ArrowDownTrayIcon className="h-4 w-4" />
-              <span className="text-sm">استيراد</span>
+              <span className="text-xs">استيراد</span>
             </button>
 
             <button className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors">
               <ArrowUpTrayIcon className="h-4 w-4" />
-              <span className="text-sm">تصدير</span>
+              <span className="text-xs">تصدير</span>
             </button>
 
-            <button 
+            <button
               onClick={() => setShowColumnsModal(true)}
               className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors"
             >
               <TableCellsIcon className="h-4 w-4" />
-              <span className="text-sm">الأعمدة</span>
+              <span className="text-xs">الأعمدة</span>
             </button>
 
-            <button 
+            <button
               onClick={() => selectedProduct && setShowColorAssignmentModal(true)}
               className={`flex items-center gap-2 px-3 py-2 cursor-pointer whitespace-nowrap rounded transition-colors ${
                 selectedProduct
-                  ? 'text-gray-300 hover:text-white bg-[#2B3544] hover:bg-[#434E61]' 
+                  ? 'text-gray-300 hover:text-white bg-[#2B3544] hover:bg-[#434E61]'
                   : 'text-gray-500 cursor-not-allowed bg-gray-700/50'
               }`}
               disabled={!selectedProduct}
             >
               <TagIcon className="h-4 w-4" />
-              <span className="text-sm">تحديد اللون</span>
+              <span className="text-xs">تحديد اللون</span>
             </button>
 
-            <button 
+            <button
               onClick={() => selectedProduct && setShowColorChangeModal(true)}
               className={`flex items-center gap-2 px-3 py-2 cursor-pointer whitespace-nowrap rounded transition-colors ${
                 selectedProduct
-                  ? 'text-orange-300 hover:text-orange-100 bg-orange-900/20 hover:bg-orange-900/30' 
+                  ? 'text-orange-300 hover:text-orange-100 bg-orange-900/20 hover:bg-orange-900/30'
                   : 'text-gray-500 cursor-not-allowed bg-gray-700/50'
               }`}
               disabled={!selectedProduct}
             >
               <ArrowPathIcon className="h-4 w-4" />
-              <span className="text-sm">تغيير اللون</span>
+              <span className="text-xs">تغيير اللون</span>
             </button>
 
           </div>
         </div>
 
-        {/* Content Area with Sidebar and Main Content */}
-        <div className="flex-1 flex overflow-hidden">
-          
-          {/* Product Groups Tree Sidebar - Can be hidden/shown */}
-          {!isCategoriesHidden && (
-            <CategoriesTreeView 
-              onCategorySelect={handleCategorySelect}
-              selectedCategoryId={selectedCategory?.id}
-              showActionButtons={true}
-            />
-          )}
+        {/* Mobile/Tablet Optimized Layout */}
+        <div className="flex-1 flex flex-col overflow-hidden">
 
-          {/* Main Content Area */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Full-width Search and Controls Section */}
+          <div className="bg-[#374151] border-b border-gray-600 px-4 py-3 flex-shrink-0">
+            <div className="flex flex-col gap-3">
 
-            {/* Second Toolbar - Search and Controls */}
-            <div className="bg-[#374151] border-b border-gray-600 px-6 py-3 flex-shrink-0">
+              {/* Top Row - Group Filter and Categories Toggle */}
               <div className="flex items-center justify-between">
-                {/* Left Side - Search and Controls */}
-                <div className="flex items-center gap-4">
-                  {/* Group Filter Dropdown with Categories Toggle Button */}
-                  <div className="relative branches-dropdown flex items-center gap-2">
-                    <button 
-                      onClick={() => setShowBranchesDropdown(!showBranchesDropdown)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium transition-colors"
-                    >
-                      <span>{selectedGroup}</span>
-                      <ChevronDownIcon className={`h-4 w-4 transition-transform ${showBranchesDropdown ? 'rotate-180' : ''}`} />
-                    </button>
-                    
-                    {/* Categories Toggle Button - Right next to the dropdown button */}
-                    <button 
-                      onClick={toggleCategoriesVisibility}
-                      className="p-2 text-gray-300 hover:text-white hover:bg-gray-600/30 rounded-md transition-colors"
-                      title={isCategoriesHidden ? 'إظهار الفئات' : 'إخفاء الفئات'}
-                    >
-                      {isCategoriesHidden ? (
-                        <Bars3Icon className="h-5 w-5" />
-                      ) : (
-                        <EyeSlashIcon className="h-5 w-5" />
-                      )}
-                    </button>
-                    
-                    {/* Branches Dropdown */}
-                    {showBranchesDropdown && (
-                      <div className="absolute top-full right-0 mt-2 w-72 bg-[#2B3544] border-2 border-[#4A5568] rounded-xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-sm">
-                        <div className="p-3">
-                          <div className="space-y-2">
-                            {branches.map(branch => (
-                              <label
-                                key={branch.id}
-                                className="flex items-center gap-3 p-3 bg-[#374151] hover:bg-[#434E61] rounded-lg cursor-pointer transition-colors border border-gray-600/30"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={selectedBranches[branch.id] || false}
-                                  onChange={() => handleBranchToggle(branch.id)}
-                                  className="w-5 h-5 text-blue-600 bg-[#2B3544] border-2 border-blue-500 rounded focus:ring-blue-500 focus:ring-2 accent-blue-600"
-                                />
-                                <span className="text-white text-base font-medium flex-1 text-right">
-                                  {branch.name}
-                                </span>
-                                <span className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded border border-blue-600/30">
-                                  {branch.name.includes('مخزن') || branch.name.includes('شاكوس') ? 'مخزن' : 'فرع'}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div className="px-4 py-2 border-t border-[#4A5568] bg-[#374151]">
-                          <div className="text-center">
-                            <span className="text-blue-400 font-medium text-sm">
-                              {Object.values(selectedBranches).filter(Boolean).length} من أصل {branches.length} محدد
-                            </span>
-                          </div>
+                <div className="relative branches-dropdown flex items-center gap-2">
+                  <button
+                    onClick={() => setShowBranchesDropdown(!showBranchesDropdown)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-xs font-medium transition-colors"
+                  >
+                    <span>{selectedGroup}</span>
+                    <ChevronDownIcon className={`h-4 w-4 transition-transform ${showBranchesDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Categories Toggle Button */}
+                  <button
+                    onClick={toggleCategoriesVisibility}
+                    className="p-2 text-gray-300 hover:text-white hover:bg-gray-600/30 rounded-md transition-colors"
+                    title={isCategoriesHidden ? 'إظهار الفئات' : 'إخفاء الفئات'}
+                  >
+                    {isCategoriesHidden ? (
+                      <FolderIcon className="h-5 w-5" />
+                    ) : (
+                      <FolderOpenIcon className="h-5 w-5" />
+                    )}
+                  </button>
+
+                  {/* Branches Dropdown */}
+                  {showBranchesDropdown && (
+                    <div className="absolute top-full right-0 mt-2 w-72 bg-[#2B3544] border-2 border-[#4A5568] rounded-xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-sm">
+                      <div className="p-3">
+                        <div className="space-y-2">
+                          {branches.map(branch => (
+                            <label
+                              key={branch.id}
+                              className="flex items-center gap-3 p-3 bg-[#374151] hover:bg-[#434E61] rounded-lg cursor-pointer transition-colors border border-gray-600/30"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedBranches[branch.id] || false}
+                                onChange={() => handleBranchToggle(branch.id)}
+                                className="w-5 h-5 text-blue-600 bg-[#2B3544] border-2 border-blue-500 rounded focus:ring-blue-500 focus:ring-2 accent-blue-600"
+                              />
+                              <span className="text-white text-base font-medium flex-1 text-right">
+                                {branch.name}
+                              </span>
+                              <span className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded border border-blue-600/30">
+                                {branch.name.includes('مخزن') || branch.name.includes('شاكوس') ? 'مخزن' : 'فرع'}
+                              </span>
+                            </label>
+                          ))}
                         </div>
                       </div>
-                    )}
-                  </div>
 
-                  {/* View Toggle */}
-                  <div className="flex bg-[#2B3544] rounded-md overflow-hidden">
-                    <button 
-                      onClick={() => setViewMode('grid')}
-                      className={`p-2 transition-colors ${
-                        viewMode === 'grid' 
-                          ? 'bg-blue-600 text-white' 
-                          : 'text-gray-400 hover:text-white hover:bg-gray-600'
-                      }`}
-                    >
-                      <Squares2X2Icon className="h-4 w-4" />
-                    </button>
-                    <button 
-                      onClick={() => setViewMode('table')}
-                      className={`p-2 transition-colors ${
-                        viewMode === 'table' 
-                          ? 'bg-blue-600 text-white' 
-                          : 'text-gray-400 hover:text-white hover:bg-gray-600'
-                      }`}
-                    >
-                      <ListBulletIcon className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  {/* Search */}
-                  <div className="relative">
-                    <MagnifyingGlassIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="اسم المنتج..."
-                      className="w-80 pl-4 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#5DADE2] focus:border-transparent text-sm"
-                    />
-                  </div>
+                      <div className="px-4 py-2 border-t border-[#4A5568] bg-[#374151]">
+                        <div className="text-center">
+                          <span className="text-blue-400 font-medium text-sm">
+                            {Object.values(selectedBranches).filter(Boolean).length} من أصل {branches.length} محدد
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Right Side - Additional controls */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-400">عرض {filteredProducts.length} من أصل {products.length} منتج</span>
+                {/* View Toggle */}
+                <div className="flex bg-[#2B3544] rounded-md overflow-hidden">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 transition-colors ${
+                      viewMode === 'grid'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                    }`}
+                  >
+                    <Squares2X2Icon className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`p-2 transition-colors ${
+                      viewMode === 'table'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                    }`}
+                  >
+                    <ListBulletIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Bottom Row - Search and Product Count */}
+              <div className="flex items-center justify-between gap-4">
+                {/* Search - Wider on tablets */}
+                <div className="relative flex-1 max-w-lg">
+                  <MagnifyingGlassIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="اسم المنتج..."
+                    className="w-full pl-4 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#5DADE2] focus:border-transparent text-sm"
+                  />
+                </div>
+
+                {/* Product Count */}
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <span className="text-xs text-gray-400">عرض {filteredProducts.length} من {products.length}</span>
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Content Area - Categories and Products */}
+          <div className="flex-1 flex overflow-hidden">
+
+            {/* Product Groups Tree Sidebar - Positioned at content level */}
+            {!isCategoriesHidden && (
+              <CategoriesTreeView
+                onCategorySelect={handleCategorySelect}
+                selectedCategoryId={selectedCategory?.id}
+                showActionButtons={true}
+              />
+            )}
 
             {/* Products Content Container */}
             <div className="flex-1 overflow-hidden bg-[#2B3544]">
@@ -914,9 +917,9 @@ export default function ProductsTabletView({
                   }}
                 />
               ) : (
-                // Grid View
+                // Grid View - Responsive columns (tablet gets more columns)
                 <div className="h-full overflow-y-auto scrollbar-hide p-4">
-                  <div className="grid grid-cols-6 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4">
                     {filteredProducts.map((product, index) => (
                       <div
                         key={product.id}
@@ -927,14 +930,14 @@ export default function ProductsTabletView({
                             setSelectedProduct(product as Product)
                           }
                         }}
-                        className={`bg-[#374151] rounded-lg p-3 cursor-pointer transition-all duration-200 border-2 relative ${
+                        className={`bg-[#374151] rounded-lg p-3 cursor-pointer transition-all duration-200 border-2 relative group ${
                           selectedProduct?.id === product.id
                             ? 'border-blue-500 bg-[#434E61]'
                             : 'border-transparent hover:border-gray-500 hover:bg-[#434E61]'
                         }`}
                       >
                         {/* Hover Button */}
-                        <div className="absolute top-2 right-2 group/button">
+                        <div className="absolute top-2 right-2 z-10">
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
@@ -943,13 +946,14 @@ export default function ProductsTabletView({
                               setSelectedImage(firstImage)
                               setShowProductModal(true)
                             }}
-                            className="bg-black/70 hover:bg-black/90 text-white p-2 rounded-full opacity-0 group-hover/button:opacity-100 transition-all duration-200 z-10"
+                            className="bg-black/70 hover:bg-black/90 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
                           >
                             <EyeIcon className="h-4 w-4" />
                           </button>
                         </div>
-                        {/* Product Image */}
-                        <div className="w-full h-40 bg-[#2B3544] rounded-md mb-3 flex items-center justify-center overflow-hidden">
+
+                        {/* Product Image - Larger on tablets */}
+                        <div className="w-full h-36 sm:h-44 md:h-48 bg-[#2B3544] rounded-md mb-3 flex items-center justify-center overflow-hidden">
                           {product.main_image_url ? (
                             <img
                               src={product.main_image_url}
@@ -968,7 +972,7 @@ export default function ProductsTabletView({
                         </div>
 
                         {/* Product Name */}
-                        <h3 className="text-white font-medium text-sm text-center mb-2 line-clamp-2">
+                        <h3 className="text-white font-medium text-xs text-center mb-2 line-clamp-2">
                           {product.name}
                         </h3>
 
@@ -985,12 +989,12 @@ export default function ProductsTabletView({
                               </span>
                             </div>
                           )}
-                          
+
                           <div className="flex justify-center mb-2 flex-col items-center">
                             {product.isDiscounted ? (
                               <>
                                 <div className="flex items-center gap-1">
-                                  <span className="text-blue-400 font-medium text-sm">
+                                  <span className="text-blue-400 font-medium text-xs">
                                     {(product.finalPrice || 0).toFixed(2)}
                                   </span>
                                   <span className="bg-red-600 text-white text-xs px-1 py-0.5 rounded">
@@ -1002,29 +1006,30 @@ export default function ProductsTabletView({
                                 </span>
                               </>
                             ) : (
-                              <span className="text-blue-400 font-medium text-sm">
+                              <span className="text-blue-400 font-medium text-xs">
                                 {(product.price || 0).toFixed(2)}
                               </span>
                             )}
                           </div>
-                          
+
                           <div className="flex justify-between items-center">
-                            <span className="text-blue-400 font-medium">
+                            <span className="text-blue-400 font-medium text-xs">
                               {(product.inventoryData && Object.values(product.inventoryData).reduce((sum: number, inv: any) => sum + (inv?.quantity || 0), 0)) || 0}
                             </span>
-                            <span className="text-gray-400">الكمية الإجمالية</span>
+                            <span className="text-gray-400 text-xs">الكمية</span>
                           </div>
-                          
-                          {product.inventoryData && Object.entries(product.inventoryData).map(([locationId, inventory]: [string, any]) => {
+
+                          {/* Show branch details - responsive based on available space */}
+                          {product.inventoryData && Object.entries(product.inventoryData).slice(0, 2).map(([locationId, inventory]: [string, any], branchIndex) => {
                             const branch = branches.find(b => b.id === locationId)
                             const locationName = branch?.name || `موقع ${locationId.slice(0, 8)}`
-                            
+
                             return (
-                              <div key={locationId} className="flex justify-between items-center">
-                                <span className="text-white">
+                              <div key={locationId} className={`flex justify-between items-center ${branchIndex === 1 ? 'md:block sm:hidden' : ''}`}>
+                                <span className="text-white text-xs">
                                   {inventory?.quantity || 0}
                                 </span>
-                                <span className="text-gray-400 truncate">
+                                <span className="text-gray-400 truncate text-xs">
                                   {locationName}
                                 </span>
                               </div>
