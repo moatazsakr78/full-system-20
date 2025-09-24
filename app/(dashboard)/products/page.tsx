@@ -57,7 +57,7 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedGroup, setSelectedGroup] = useState('الفروع والمخازن')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isTablet, setIsTablet] = useState(false)
+  const [isTablet, setIsTablet] = useState(false) // Now includes mobile devices
   const [isCategorySidebarOpen, setIsCategorySidebarOpen] = useState(false)
   const [isProductSidebarOpen, setIsProductSidebarOpen] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
@@ -84,13 +84,16 @@ export default function ProductsPage() {
   const { products, branches, isLoading, error, fetchProducts, createProduct, updateProduct, deleteProduct } = useProducts()
   const { fetchBranchInventory, fetchProductVariants } = useBranches()
 
-  // Device detection for tablet optimization
+  // Device detection for tablet and mobile optimization
   useEffect(() => {
     const checkDevice = () => {
       const userAgent = navigator.userAgent.toLowerCase()
       const isTabletDevice = /tablet|ipad|playbook|silk|android(?!.*mobile)/i.test(userAgent) ||
                             (window.innerWidth >= 768 && window.innerWidth <= 1024)
-      setIsTablet(isTabletDevice)
+      // Also detect mobile devices
+      const isMobileDevice = /android|webos|iphone|ipod|blackberry|iemobile|opera mini/i.test(userAgent) ||
+                            (window.innerWidth < 768)
+      setIsTablet(isTabletDevice || isMobileDevice)
     }
 
     checkDevice()
@@ -647,7 +650,7 @@ export default function ProductsPage() {
     )
   }, [products, searchQuery])
 
-  // Use tablet view if detected as tablet device
+  // Use tablet view if detected as tablet or mobile device
   if (isTablet) {
     return (
       <ProductsTabletView
