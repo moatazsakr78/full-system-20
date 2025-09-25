@@ -43,6 +43,7 @@ export default function MobileHome({
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
   const [websiteProducts, setWebsiteProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false);
   
   // Get user profile to check admin status
   const { isAdmin } = useUserProfile();
@@ -639,33 +640,50 @@ export default function MobileHome({
         }}
       >
 
-        {/* Featured Categories - Now First Section with Horizontal Scroll */}
+        {/* Featured Categories - Collapsible Section */}
         <section id="categories" className="mb-6">
-          <h3 className="text-xl font-bold mb-4 text-black">فئات المنتجات</h3>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {categories.slice(0, 8).map((category) => (
-              <div
-                key={category.id}
-                className="bg-white rounded-lg text-center hover:shadow-lg transition-all duration-200 border border-gray-200 group flex-shrink-0 w-40 overflow-hidden"
-                onClick={() => setSelectedCategory(category.name)}
-                style={{ height: '160px' }} // زيادة الارتفاع للهاتف
-              >
-                <div className="h-full flex flex-col">
-                  {/* الصورة تملأ معظم المكون */}
-                  <div className="flex-1 overflow-hidden">
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  {/* منطقة صغيرة للنص في الأسفل */}
-                  <div className="bg-white p-2 border-t border-gray-100">
-                    <h4 className="font-semibold text-xs text-gray-800 group-hover:text-red-500 transition-colors truncate">{category.name}</h4>
+          <div
+            className="flex items-center justify-between mb-4 cursor-pointer bg-gray-100 p-3 rounded-lg border border-gray-200"
+            onClick={() => setIsCategoriesExpanded(!isCategoriesExpanded)}
+          >
+            <h3 className="text-xl font-bold text-black">فئات المنتجات</h3>
+            <div className={`transform transition-transform duration-300 ${isCategoriesExpanded ? 'rotate-180' : 'rotate-0'}`}>
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          <div className={`transition-all duration-500 ease-in-out overflow-hidden ${
+            isCategoriesExpanded
+              ? 'max-h-96 opacity-100 transform translate-y-0'
+              : 'max-h-0 opacity-0 transform -translate-y-4'
+          }`}>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {categories.slice(0, 8).map((category) => (
+                <div
+                  key={category.id}
+                  className="bg-white rounded-lg text-center hover:shadow-lg transition-all duration-200 border border-gray-200 group flex-shrink-0 w-40 overflow-hidden"
+                  onClick={() => setSelectedCategory(category.name)}
+                  style={{ height: '160px' }} // زيادة الارتفاع للهاتف
+                >
+                  <div className="h-full flex flex-col">
+                    {/* الصورة تملأ معظم المكون */}
+                    <div className="flex-1 overflow-hidden">
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    {/* منطقة صغيرة للنص في الأسفل */}
+                    <div className="bg-white p-2 border-t border-gray-100">
+                      <h4 className="font-semibold text-xs text-gray-800 group-hover:text-red-500 transition-colors truncate">{category.name}</h4>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
 
