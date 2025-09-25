@@ -58,6 +58,7 @@ export default function ProductsPage() {
   const [selectedGroup, setSelectedGroup] = useState('الفروع والمخازن')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isTablet, setIsTablet] = useState(false) // Now includes mobile devices
+  const [isMobile, setIsMobile] = useState(false)
   const [isCategorySidebarOpen, setIsCategorySidebarOpen] = useState(false)
   const [isProductSidebarOpen, setIsProductSidebarOpen] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
@@ -99,6 +100,7 @@ export default function ProductsPage() {
                             (window.innerWidth < 768)
       // Use optimized view for tablets and mobile devices
       setIsTablet(isTabletDevice || isMobileDevice)
+      setIsMobile(window.innerWidth < 768)
     }
 
     checkDevice()
@@ -870,22 +872,22 @@ export default function ProductsPage() {
           <div className="flex-1 flex flex-col overflow-hidden">
 
             {/* Second Toolbar - Search and Controls */}
-            <div className="bg-[#374151] border-b border-gray-600 px-6 py-3 flex-shrink-0">
+            <div className={`bg-[#374151] border-b border-gray-600 ${isMobile ? 'px-3 py-2' : 'px-6 py-3'} flex-shrink-0`}>
               <div className="flex items-center justify-between">
                 {/* Left Side - Search and Controls */}
-                <div className="flex items-center gap-4">
+                <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-4'}`}>
                   {/* Group Filter Dropdown */}
                   <div className="relative branches-dropdown">
-                    <button 
+                    <button
                       onClick={() => setShowBranchesDropdown(!showBranchesDropdown)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium transition-colors"
+                      className={`flex items-center ${isMobile ? 'gap-1 px-2 py-2 text-xs' : 'gap-2 px-4 py-2 text-sm'} bg-blue-600 hover:bg-blue-700 rounded-md text-white font-medium transition-colors ${isMobile ? 'max-w-[120px] min-w-[100px]' : ''}`}
                     >
-                      <span>{selectedGroup}</span>
-                      <ChevronDownIcon className={`h-4 w-4 transition-transform ${showBranchesDropdown ? 'rotate-180' : ''}`} />
+                      <span className={isMobile ? 'truncate' : ''}>{selectedGroup}</span>
+                      <ChevronDownIcon className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} transition-transform flex-shrink-0 ${showBranchesDropdown ? 'rotate-180' : ''}`} />
                     </button>
                     
-                    {/* Branches Dropdown */}
-                    {showBranchesDropdown && (
+                    {/* Branches Dropdown - Desktop */}
+                    {showBranchesDropdown && !isMobile && (
                       <div className="absolute top-full right-0 mt-2 w-72 bg-[#2B3544] border-2 border-[#4A5568] rounded-xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-sm">
                         {/* Branches List - Simple and Clean */}
                         <div className="p-3">
@@ -911,7 +913,7 @@ export default function ProductsPage() {
                             ))}
                           </div>
                         </div>
-                        
+
                         {/* Simple Summary at Bottom */}
                         <div className="px-4 py-2 border-t border-[#4A5568] bg-[#374151]">
                           <div className="text-center">
@@ -921,6 +923,75 @@ export default function ProductsPage() {
                           </div>
                         </div>
                       </div>
+                    )}
+
+                    {/* Mobile Branches Modal */}
+                    {showBranchesDropdown && isMobile && (
+                      <>
+                        {/* Backdrop */}
+                        <div
+                          className="fixed inset-0 bg-black bg-opacity-50 z-[999]"
+                          onClick={() => setShowBranchesDropdown(false)}
+                        />
+
+                        {/* Modal */}
+                        <div className="fixed inset-4 bg-[#2B3544] rounded-2xl z-[1000] flex flex-col max-h-[80vh]">
+                          {/* Header */}
+                          <div className="flex items-center justify-between p-4 border-b border-[#4A5568]">
+                            <h3 className="text-white text-lg font-semibold">اختر الفروع والمخازن</h3>
+                            <button
+                              onClick={() => setShowBranchesDropdown(false)}
+                              className="text-gray-400 hover:text-white p-1"
+                            >
+                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 p-4 overflow-y-auto">
+                            <div className="space-y-3">
+                              {branches.map(branch => (
+                                <label
+                                  key={branch.id}
+                                  className="flex items-center gap-3 p-3 bg-[#374151] hover:bg-[#434E61] rounded-xl cursor-pointer transition-colors border border-gray-600/30"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedBranches[branch.id] || false}
+                                    onChange={() => handleBranchToggle(branch.id)}
+                                    className="w-5 h-5 text-blue-600 bg-[#2B3544] border-2 border-blue-500 rounded focus:ring-blue-500 focus:ring-2 accent-blue-600"
+                                  />
+                                  <div className="flex-1 text-right">
+                                    <span className="text-white text-base font-medium block">
+                                      {branch.name}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded border border-blue-600/30">
+                                    {branch.name.includes('مخزن') || branch.name.includes('شاكوس') ? 'مخزن' : 'فرع'}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Footer */}
+                          <div className="p-4 border-t border-[#4A5568] bg-[#374151] rounded-b-2xl">
+                            <div className="flex items-center justify-between">
+                              <span className="text-blue-400 font-medium">
+                                {Object.values(selectedBranches).filter(Boolean).length} من أصل {branches.length} محدد
+                              </span>
+                              <button
+                                onClick={() => setShowBranchesDropdown(false)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                              >
+                                تطبيق
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </>
                     )}
                   </div>
 
