@@ -117,6 +117,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
   const [warehouses, setWarehouses] = useState<Warehouse[]>([])
   const [locationThresholds, setLocationThresholds] = useState<LocationThreshold[]>([])
   const [loading, setLoading] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
   const { shapes } = useShapes()
   const [productColors, setProductColors] = useState<ProductColor[]>([])
   const [colorName, setColorName] = useState('')
@@ -185,6 +186,20 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
   // State for managing multiple barcodes
   const [productBarcodes, setProductBarcodes] = useState<string[]>([])
   const [editingBarcodeIndex, setEditingBarcodeIndex] = useState<number | null>(null)
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+
+    return () => {
+      window.removeEventListener('resize', checkMobile)
+    }
+  }, [])
 
   // Pre-fill form data when editProduct changes
   useEffect(() => {
@@ -3007,30 +3022,41 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
       )}
 
       {/* Sidebar - starts below header with exact dark theme colors */}
-      <div className={`fixed top-12 right-0 h-[calc(100vh-3rem)] w-[600px] bg-[#3A4553] z-50 transform transition-transform duration-300 ease-in-out ${
+      <div className={`fixed top-12 right-0 h-[calc(100vh-3rem)] ${isMobile ? 'w-full' : 'w-[600px]'} bg-[#3A4553] z-50 transform transition-transform duration-300 ease-in-out ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       } shadow-2xl flex flex-col`}>
         {/* Header - dark gray header matching design */}
-        <div className="bg-[#3A4553] px-4 py-3 flex items-center justify-start border-b border-[#4A5568]">
-          <h2 className="text-white text-lg font-medium flex-1 text-right">
+        <div className={`bg-[#3A4553] ${isMobile ? 'px-3 py-2' : 'px-4 py-3'} flex items-center justify-start border-b border-[#4A5568]`}>
+          <h2 className={`text-white ${isMobile ? 'text-base' : 'text-lg'} font-medium flex-1 text-right`}>
             {isEditMode ? 'تحرير المنتج' : 'منتج جديد'}
           </h2>
           <button
             onClick={onClose}
-            className="text-white hover:text-gray-200 transition-colors ml-4"
+            className={`text-white hover:text-gray-200 transition-colors ${isMobile ? 'ml-2' : 'ml-4'}`}
           >
-            <ArrowRightIcon className="h-5 w-5" />
+            <ArrowRightIcon className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
           </button>
         </div>
 
         {/* Tab Navigation Bar - matching reference design */}
         <div className="bg-[#3A4553] border-b border-[#4A5568]">
-          <div className="flex overflow-x-auto">
+          <div
+            className={`flex overflow-x-auto ${isMobile ? 'scrollbar-hide' : ''}`}
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative px-6 py-3 text-sm font-medium transition-colors ${
+                className={`relative ${
+                  isMobile
+                    ? 'px-3 py-2 text-xs flex-shrink-0 min-w-fit'
+                    : 'px-6 py-3 text-sm'
+                } font-medium transition-colors whitespace-nowrap ${
                   activeTab === tab
                     ? 'text-[#5DADE2]' // Light blue text for selected
                     : 'text-gray-300 hover:text-white'
@@ -3047,17 +3073,17 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
         </div>
 
         {/* Content Area */}
-        <div className="p-6 flex-1 overflow-y-auto scrollbar-hide min-h-0 pb-24">
+        <div className={`${isMobile ? 'p-3' : 'p-6'} flex-1 overflow-y-auto scrollbar-hide min-h-0 pb-24`}>
           {renderTabContent()}
         </div>
 
         {/* Action Buttons - exact design match */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-[#3A4553] border-t border-[#4A5568]">
-          <div className="flex gap-2">
+        <div className={`absolute bottom-0 left-0 right-0 ${isMobile ? 'p-3' : 'p-4'} bg-[#3A4553] border-t border-[#4A5568]`}>
+          <div className={`flex ${isMobile ? 'gap-1' : 'gap-2'}`}>
             {/* Clear Fields Button - matching reference design */}
             <button
               onClick={handleClearFields}
-              className="bg-transparent hover:bg-[#EF4444]/10 text-[#EF4444] px-4 py-2 rounded-md border border-[#EF4444] hover:border-[#DC2626] hover:text-[#DC2626] text-sm font-medium transition-all duration-200"
+              className={`bg-transparent hover:bg-[#EF4444]/10 text-[#EF4444] ${isMobile ? 'px-2 py-1 text-xs' : 'px-4 py-2 text-sm'} rounded-md border border-[#EF4444] hover:border-[#DC2626] hover:text-[#DC2626] font-medium transition-all duration-200`}
             >
               تصفية الخلايا
             </button>
@@ -3065,12 +3091,12 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
             <div className="flex-1"></div>
 
             {/* Cancel and Save buttons - exact styling */}
-            <div className="flex gap-2">
+            <div className={`flex ${isMobile ? 'gap-1' : 'gap-2'}`}>
               <button
                 onClick={handleCancel}
-                className="bg-transparent hover:bg-gray-600/10 text-gray-300 border border-gray-600 hover:border-gray-500 px-4 py-2 text-sm font-medium transition-all duration-200 min-w-[80px] flex items-center gap-2"
+                className={`bg-transparent hover:bg-gray-600/10 text-gray-300 border border-gray-600 hover:border-gray-500 ${isMobile ? 'px-2 py-1 text-xs min-w-[60px]' : 'px-4 py-2 text-sm min-w-[80px]'} font-medium transition-all duration-200 flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
                 إلغاء
@@ -3078,7 +3104,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className={`px-4 py-2 text-sm font-medium transition-all duration-200 min-w-[80px] flex items-center gap-2 ${
+                className={`${isMobile ? 'px-2 py-1 text-xs min-w-[60px]' : 'px-4 py-2 text-sm min-w-[80px]'} font-medium transition-all duration-200 flex items-center ${isMobile ? 'gap-1' : 'gap-2'} ${
                   isSaving
                     ? 'bg-gray-600/50 text-gray-400 border border-gray-600 cursor-not-allowed'
                     : 'bg-transparent hover:bg-gray-600/10 text-gray-300 border border-gray-600 hover:border-gray-500'
@@ -3086,12 +3112,12 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
               >
                 {isSaving ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                    <div className={`animate-spin rounded-full ${isMobile ? 'h-3 w-3' : 'h-4 w-4'} border-b-2 border-gray-400`}></div>
                     {isEditMode ? 'جاري التحديث...' : 'جاري الحفظ...'}
                   </>
                 ) : (
                   <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     {isEditMode ? 'تحديث' : 'حفظ'}
