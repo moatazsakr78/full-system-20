@@ -87,6 +87,7 @@ export default function ProductsTabletView({
   const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
   const [showBranchesDropdown, setShowBranchesDropdown] = useState(false)
   const [selectedBranches, setSelectedBranches] = useState<{[key: string]: boolean}>({})
+  const [tempSelectedBranches, setTempSelectedBranches] = useState<{[key: string]: boolean}>({})
   const [isCategoriesHidden, setIsCategoriesHidden] = useState(true)
 
   // Ref for scrollable toolbar
@@ -104,6 +105,7 @@ export default function ProductsTabletView({
         initialBranches[branch.id] = true
       })
       setSelectedBranches(initialBranches)
+      setTempSelectedBranches(initialBranches)
     }
   }, [branches, selectedBranches])
 
@@ -128,6 +130,26 @@ export default function ProductsTabletView({
       ...prev,
       [branchId]: !prev[branchId]
     }))
+  }
+
+  // معالج للتحديد المؤقت في النافذة
+  const handleTempBranchToggle = (branchId: string) => {
+    setTempSelectedBranches(prev => ({
+      ...prev,
+      [branchId]: !prev[branchId]
+    }))
+  }
+
+  // تطبيق التحديد المؤقت
+  const applyBranchSelection = () => {
+    setSelectedBranches({...tempSelectedBranches})
+    setShowBranchesDropdown(false)
+  }
+
+  // إلغاء التحديد المؤقت
+  const cancelBranchSelection = () => {
+    setTempSelectedBranches({...selectedBranches})
+    setShowBranchesDropdown(false)
   }
 
   // Initialize visible columns state
@@ -843,52 +865,19 @@ export default function ProductsTabletView({
                   )}
                 </button>
 
-              {/* 5. Branches and Warehouses Dropdown */}
+              {/* 5. Branches and Warehouses Button */}
                 <div className="relative branches-dropdown flex-shrink-0">
                   <button
-                    onClick={() => setShowBranchesDropdown(!showBranchesDropdown)}
+                    onClick={() => {
+                      // نسخ التحديد الحالي للحالة المؤقتة عند فتح النافذة
+                      setTempSelectedBranches({...selectedBranches})
+                      setShowBranchesDropdown(!showBranchesDropdown)
+                    }}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-xs font-medium transition-colors whitespace-nowrap"
                   >
                     <span>الفروع والمخازن</span>
                     <ChevronDownIcon className={`h-4 w-4 transition-transform ${showBranchesDropdown ? 'rotate-180' : ''}`} />
                   </button>
-
-                  {/* Branches Dropdown */}
-                  {showBranchesDropdown && (
-                    <div className="absolute top-full right-0 mt-2 w-72 bg-[#2B3544] border-2 border-[#4A5568] rounded-xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-sm">
-                      <div className="p-3">
-                        <div className="space-y-2">
-                          {branches.map(branch => (
-                            <label
-                              key={branch.id}
-                              className="flex items-center gap-3 p-3 bg-[#374151] hover:bg-[#434E61] rounded-lg cursor-pointer transition-colors border border-gray-600/30"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedBranches[branch.id] || false}
-                                onChange={() => handleBranchToggle(branch.id)}
-                                className="w-5 h-5 text-blue-600 bg-[#2B3544] border-2 border-blue-500 rounded focus:ring-blue-500 focus:ring-2 accent-blue-600"
-                              />
-                              <span className="text-white text-base font-medium flex-1 text-right">
-                                {branch.name}
-                              </span>
-                              <span className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded border border-blue-600/30">
-                                {branch.name.includes('مخزن') || branch.name.includes('شاكوس') ? 'مخزن' : 'فرع'}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="px-4 py-2 border-t border-[#4A5568] bg-[#374151]">
-                        <div className="text-center">
-                          <span className="text-blue-400 font-medium text-sm">
-                            {Object.values(selectedBranches).filter(Boolean).length} من أصل {branches.length} محدد
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
             </div>
           </div>
@@ -1290,6 +1279,103 @@ export default function ProductsTabletView({
         columns={getAllColumns}
         onColumnsChange={handleColumnsChange}
       />
+
+      {/* Mobile/Tablet Branches Modal */}
+      {showBranchesDropdown && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-[9999]"
+            onClick={cancelBranchSelection}
+          />
+
+          {/* Modal */}
+          <div className="fixed inset-4 bg-[#2B3544] rounded-2xl z-[99999] flex flex-col max-h-[80vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-[#4A5568]">
+              <h3 className="text-white text-lg font-semibold">اختر الفروع والمخازن</h3>
+              <button
+                onClick={cancelBranchSelection}
+                className="text-gray-400 hover:text-white p-1"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 p-4 overflow-y-auto">
+              <div className="space-y-3">
+                {branches.map(branch => (
+                  <div
+                    key={branch.id}
+                    className="flex items-center gap-3 p-3 bg-[#374151] hover:bg-[#434E61] rounded-xl transition-colors border border-gray-600/30"
+                  >
+                    <div
+                      className="relative"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleTempBranchToggle(branch.id)
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={tempSelectedBranches[branch.id] || false}
+                        onChange={(e) => {
+                          e.stopPropagation()
+                          handleTempBranchToggle(branch.id)
+                        }}
+                        className="w-5 h-5 opacity-0 absolute"
+                      />
+                      <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-colors cursor-pointer ${
+                        tempSelectedBranches[branch.id]
+                          ? 'bg-blue-600 border-blue-600'
+                          : 'bg-transparent border-blue-500'
+                      }`}>
+                        {tempSelectedBranches[branch.id] && (
+                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1 text-right">
+                      <span className="text-white text-base font-medium block">
+                        {branch.name}
+                      </span>
+                    </div>
+                    <span className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded border border-blue-600/30">
+                      {branch.name.includes('مخزن') || branch.name.includes('شاكوس') ? 'مخزن' : 'فرع'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-[#4A5568] bg-[#374151] rounded-b-2xl">
+              <div className="flex items-center justify-between">
+                <span className="text-blue-400 font-medium">
+                  {Object.values(tempSelectedBranches).filter(Boolean).length} من أصل {branches.length} محدد
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={cancelBranchSelection}
+                    className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    onClick={applyBranchSelection}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    تطبيق
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Tablet-specific styles */}
       <style jsx global>{`
