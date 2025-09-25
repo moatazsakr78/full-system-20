@@ -775,116 +775,124 @@ export default function ProductsTabletView({
         {/* Mobile/Tablet Optimized Layout */}
         <div className="flex-1 flex flex-col overflow-hidden">
 
-          {/* Full-width Search and Controls Section */}
+          {/* Horizontal Scrollable Search and Controls Section */}
           <div className="bg-[#374151] border-b border-gray-600 px-4 py-3 flex-shrink-0">
-            <div className="flex flex-col gap-3">
+            {/* Single Row - Horizontal Scrollable */}
+            <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide pb-1" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
 
-              {/* Top Row - Group Filter and Categories Toggle */}
-              <div className="flex items-center justify-between">
-                <div className="relative branches-dropdown flex items-center gap-2">
-                  <button
-                    onClick={() => setShowBranchesDropdown(!showBranchesDropdown)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-xs font-medium transition-colors"
-                  >
-                    <span>{selectedGroup}</span>
-                    <ChevronDownIcon className={`h-4 w-4 transition-transform ${showBranchesDropdown ? 'rotate-180' : ''}`} />
-                  </button>
+              {/* 1. Search Bar */}
+              <div className="relative flex-shrink-0 w-64">
+                <MagnifyingGlassIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="اسم المنتج..."
+                  className="w-full pl-4 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#5DADE2] focus:border-transparent"
+                  style={{ fontSize: '16px' }}
+                  onFocus={(e) => {
+                    // Prevent zoom on iOS Safari
+                    e.target.style.fontSize = '16px';
+                    e.target.style.transformOrigin = 'left top';
+                    e.target.style.zoom = '1';
+                  }}
+                />
+              </div>
 
-                  {/* Categories Toggle Button */}
-                  <button
-                    onClick={toggleCategoriesVisibility}
-                    className="p-2 text-gray-300 hover:text-white hover:bg-gray-600/30 rounded-md transition-colors"
-                    title={isCategoriesHidden ? 'إظهار الفئات' : 'إخفاء الفئات'}
-                  >
-                    {isCategoriesHidden ? (
-                      <FolderIcon className="h-5 w-5" />
-                    ) : (
-                      <FolderOpenIcon className="h-5 w-5" />
-                    )}
-                  </button>
+              {/* 2. Product Count */}
+              <div className="flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+                <span className="text-xs text-gray-400 bg-[#2B3544] px-3 py-2 rounded-md border border-gray-600">
+                  عرض {filteredProducts.length} من {products.length}
+                </span>
+              </div>
 
-                  {/* Branches Dropdown */}
-                  {showBranchesDropdown && (
-                    <div className="absolute top-full right-0 mt-2 w-72 bg-[#2B3544] border-2 border-[#4A5568] rounded-xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-sm">
-                      <div className="p-3">
-                        <div className="space-y-2">
-                          {branches.map(branch => (
-                            <label
-                              key={branch.id}
-                              className="flex items-center gap-3 p-3 bg-[#374151] hover:bg-[#434E61] rounded-lg cursor-pointer transition-colors border border-gray-600/30"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedBranches[branch.id] || false}
-                                onChange={() => handleBranchToggle(branch.id)}
-                                className="w-5 h-5 text-blue-600 bg-[#2B3544] border-2 border-blue-500 rounded focus:ring-blue-500 focus:ring-2 accent-blue-600"
-                              />
-                              <span className="text-white text-base font-medium flex-1 text-right">
-                                {branch.name}
-                              </span>
-                              <span className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded border border-blue-600/30">
-                                {branch.name.includes('مخزن') || branch.name.includes('شاكوس') ? 'مخزن' : 'فرع'}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
+              {/* 3. View Toggle (Images or Tables) */}
+              <div className="flex bg-[#2B3544] rounded-md overflow-hidden flex-shrink-0 border border-gray-600">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 transition-colors ${
+                    viewMode === 'grid'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                  }`}
+                  title="عرض الصور"
+                >
+                  <Squares2X2Icon className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`p-2 transition-colors ${
+                    viewMode === 'table'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                  }`}
+                  title="عرض الجداول"
+                >
+                  <ListBulletIcon className="h-4 w-4" />
+                </button>
+              </div>
 
-                      <div className="px-4 py-2 border-t border-[#4A5568] bg-[#374151]">
-                        <div className="text-center">
-                          <span className="text-blue-400 font-medium text-sm">
-                            {Object.values(selectedBranches).filter(Boolean).length} من أصل {branches.length} محدد
-                          </span>
-                        </div>
+              {/* 4. Categories Toggle Button */}
+              <button
+                onClick={toggleCategoriesVisibility}
+                className="p-2 text-gray-300 hover:text-white hover:bg-gray-600/30 rounded-md transition-colors bg-[#2B3544] border border-gray-600 flex-shrink-0"
+                title={isCategoriesHidden ? 'إظهار المجموعات' : 'إخفاء المجموعات'}
+              >
+                {isCategoriesHidden ? (
+                  <FolderIcon className="h-4 w-4" />
+                ) : (
+                  <FolderOpenIcon className="h-4 w-4" />
+                )}
+              </button>
+
+              {/* 5. Branches and Warehouses Dropdown */}
+              <div className="relative branches-dropdown flex-shrink-0">
+                <button
+                  onClick={() => setShowBranchesDropdown(!showBranchesDropdown)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-xs font-medium transition-colors whitespace-nowrap"
+                >
+                  <span>الفروع والمخازن</span>
+                  <ChevronDownIcon className={`h-4 w-4 transition-transform ${showBranchesDropdown ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Branches Dropdown */}
+                {showBranchesDropdown && (
+                  <div className="absolute top-full right-0 mt-2 w-72 bg-[#2B3544] border-2 border-[#4A5568] rounded-xl shadow-2xl z-[9999] overflow-hidden backdrop-blur-sm">
+                    <div className="p-3">
+                      <div className="space-y-2">
+                        {branches.map(branch => (
+                          <label
+                            key={branch.id}
+                            className="flex items-center gap-3 p-3 bg-[#374151] hover:bg-[#434E61] rounded-lg cursor-pointer transition-colors border border-gray-600/30"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedBranches[branch.id] || false}
+                              onChange={() => handleBranchToggle(branch.id)}
+                              className="w-5 h-5 text-blue-600 bg-[#2B3544] border-2 border-blue-500 rounded focus:ring-blue-500 focus:ring-2 accent-blue-600"
+                            />
+                            <span className="text-white text-base font-medium flex-1 text-right">
+                              {branch.name}
+                            </span>
+                            <span className="text-xs text-blue-300 bg-blue-900/30 px-2 py-1 rounded border border-blue-600/30">
+                              {branch.name.includes('مخزن') || branch.name.includes('شاكوس') ? 'مخزن' : 'فرع'}
+                            </span>
+                          </label>
+                        ))}
                       </div>
                     </div>
-                  )}
-                </div>
 
-                {/* View Toggle */}
-                <div className="flex bg-[#2B3544] rounded-md overflow-hidden">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-2 transition-colors ${
-                      viewMode === 'grid'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-600'
-                    }`}
-                  >
-                    <Squares2X2Icon className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('table')}
-                    className={`p-2 transition-colors ${
-                      viewMode === 'table'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-600'
-                    }`}
-                  >
-                    <ListBulletIcon className="h-4 w-4" />
-                  </button>
-                </div>
+                    <div className="px-4 py-2 border-t border-[#4A5568] bg-[#374151]">
+                      <div className="text-center">
+                        <span className="text-blue-400 font-medium text-sm">
+                          {Object.values(selectedBranches).filter(Boolean).length} من أصل {branches.length} محدد
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Bottom Row - Search and Product Count */}
-              <div className="flex items-center justify-between gap-4">
-                {/* Search - Wider on tablets */}
-                <div className="relative flex-1 max-w-lg">
-                  <MagnifyingGlassIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="اسم المنتج..."
-                    className="w-full pl-4 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#5DADE2] focus:border-transparent text-sm"
-                  />
-                </div>
-
-                {/* Product Count */}
-                <div className="flex items-center gap-2 whitespace-nowrap">
-                  <span className="text-xs text-gray-400">عرض {filteredProducts.length} من {products.length}</span>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -1302,6 +1310,29 @@ export default function ProductsTabletView({
         /* Touch-friendly scrolling for toolbar */
         .toolbar-scroll {
           scroll-behavior: smooth;
+        }
+
+        /* Prevent zoom on mobile devices when focusing inputs */
+        input[type="text"],
+        input[type="search"],
+        textarea,
+        select {
+          font-size: 16px !important;
+          transform-origin: left top;
+          zoom: 1;
+        }
+
+        /* Additional iOS Safari zoom prevention */
+        @media screen and (max-width: 768px) {
+          input {
+            -webkit-text-size-adjust: 100% !important;
+            -webkit-appearance: none;
+          }
+
+          /* Prevent double-tap zoom */
+          * {
+            touch-action: manipulation;
+          }
         }
         
         /* Utility classes for grid view */
