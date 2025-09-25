@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYWxmdWFneXZqanh1ZnRkeHJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQzNjI0NSwiZXhwIjoyMDY2MDEyMjQ1fQ.AceLkpY_ynX6sEm8WF4G8oXP3MdifOzd581LcvL_VbM'
@@ -7,13 +7,24 @@ if (!supabaseUrl || !serviceRoleKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-// Service role client for storage operations
-export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+// Singleton instance for admin client
+let supabaseAdminInstance: SupabaseClient | null = null
+
+// Get singleton admin client instance
+export const getSupabaseAdmin = (): SupabaseClient => {
+  if (!supabaseAdminInstance) {
+    supabaseAdminInstance = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
   }
-})
+  return supabaseAdminInstance
+}
+
+// Legacy export for backwards compatibility
+export const supabaseAdmin = getSupabaseAdmin()
 
 export const uploadCategoryImage = async (file: File): Promise<string> => {
   try {
@@ -23,7 +34,7 @@ export const uploadCategoryImage = async (file: File): Promise<string> => {
     const filePath = `categories/${fileName}`
 
     // Upload file to bucket
-    const { data, error } = await supabaseAdmin.storage
+    const { data, error } = await getSupabaseAdmin().storage
       .from('category-pos-images')
       .upload(filePath, file, {
         cacheControl: '3600',
@@ -35,7 +46,7 @@ export const uploadCategoryImage = async (file: File): Promise<string> => {
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabaseAdmin.storage
+    const { data: { publicUrl } } = getSupabaseAdmin().storage
       .from('category-pos-images')
       .getPublicUrl(filePath)
 
@@ -53,7 +64,7 @@ export const deleteCategoryImage = async (imageUrl: string): Promise<void> => {
     const fileName = urlParts[urlParts.length - 1]
     const filePath = `categories/${fileName}`
 
-    const { error } = await supabaseAdmin.storage
+    const { error } = await getSupabaseAdmin().storage
       .from('category-pos-images')
       .remove([filePath])
 
@@ -76,7 +87,7 @@ export const PRODUCT_STORAGE_BUCKETS = {
 
 // Upload product image to storage bucket
 export const uploadProductImage = async (
-  file: File, 
+  file: File,
   bucket: keyof typeof PRODUCT_STORAGE_BUCKETS,
   path?: string
 ): Promise<{ data: { path: string } | null; error: Error | null }> => {
@@ -85,12 +96,12 @@ export const uploadProductImage = async (
     const fileExt = file.name.split('.').pop() || 'jpg'
     const timestamp = Date.now()
     const uuid = Math.random().toString(36).substring(2, 15)
-    
+
     // Generate versioned filename: timestamp_uuid.extension
     const fileName = `${timestamp}_${uuid}.${fileExt}`
     const filePath = path ? `${path}/${fileName}` : fileName
 
-    const { data, error } = await supabaseAdmin.storage
+    const { data, error } = await getSupabaseAdmin().storage
       .from(PRODUCT_STORAGE_BUCKETS[bucket])
       .upload(filePath, file, {
         cacheControl: '31536000', // 1 year cache (enhanced)
@@ -111,10 +122,10 @@ export const uploadProductImage = async (
 
 // Get public URL for uploaded product image
 export const getProductImageUrl = (bucket: keyof typeof PRODUCT_STORAGE_BUCKETS, path: string): string => {
-  const { data } = supabaseAdmin.storage
+  const { data } = getSupabaseAdmin().storage
     .from(PRODUCT_STORAGE_BUCKETS[bucket])
     .getPublicUrl(path)
-  
+
   return data.publicUrl
 }
 
@@ -124,7 +135,7 @@ export const deleteProductImage = async (
   path: string
 ): Promise<{ error: Error | null }> => {
   try {
-    const { error } = await supabaseAdmin.storage
+    const { error } = await getSupabaseAdmin().storage
       .from(PRODUCT_STORAGE_BUCKETS[bucket])
       .remove([path])
 
@@ -137,18 +148,40 @@ export const deleteProductImage = async (
 
 // ============== VIDEO UPLOAD FUNCTIONS ==============
 
-// Create the product videos bucket if it doesn't exist
+// Create the product videos bucket if it doesn't exist (manual operation only)
 export const createProductVideosBucket = async (): Promise<{ data: any | null; error: Error | null }> => {
   try {
-    const { data, error } = await supabaseAdmin.storage.createBucket('product_videos', {
+    // First check if bucket already exists
+    const { data: buckets, error: listError } = await getSupabaseAdmin().storage.listBuckets()
+
+    if (listError) {
+      console.warn('Could not list buckets:', listError)
+    }
+
+    const bucketExists = buckets?.some(bucket => bucket.name === 'product_videos')
+
+    if (bucketExists) {
+      console.log('Product videos bucket already exists')
+      return { data: null, error: null }
+    }
+
+    const { data, error } = await getSupabaseAdmin().storage.createBucket('product_videos', {
       public: true,
       allowedMimeTypes: ['video/mp4', 'video/webm', 'video/mov', 'video/avi'],
       fileSizeLimit: 104857600, // 100MB limit
     })
 
+    if (error) {
+      console.log('Bucket creation failed or already exists:', error)
+      // Don't throw error if bucket already exists (409 status)
+      if (error.message?.includes('already exists') || error.message?.includes('409')) {
+        return { data: null, error: null }
+      }
+    }
+
     return { data, error }
   } catch (error) {
-    console.error('Error creating bucket:', error)
+    console.log('Bucket creation error (non-critical):', error)
     return { data: null, error: error as Error }
   }
 }
@@ -178,25 +211,8 @@ export const uploadProductVideo = async (
     const fileName = `${timestamp}_${uuid}.${fileExt}`
     const filePath = productId ? `products/${productId}/${fileName}` : `temp/${fileName}`
 
-    // Ensure bucket exists first
-    try {
-      console.log('Checking if product_videos bucket exists...')
-      const { data: buckets } = await supabaseAdmin.storage.listBuckets()
-      const bucketExists = buckets?.some(bucket => bucket.name === 'product_videos')
-
-      if (!bucketExists) {
-        console.log('Creating product_videos bucket...')
-        const result = await createProductVideosBucket()
-        console.log('Bucket creation result:', result)
-      } else {
-        console.log('Bucket already exists')
-      }
-    } catch (bucketError) {
-      console.log('Bucket check/creation failed:', bucketError)
-    }
-
-    // Upload file to bucket
-    const { data, error } = await supabaseAdmin.storage
+    // Upload file to bucket (assume bucket exists)
+    const { data, error } = await getSupabaseAdmin().storage
       .from('product_videos')
       .upload(filePath, file, {
         cacheControl: '31536000', // 1 year cache
@@ -209,7 +225,7 @@ export const uploadProductVideo = async (
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabaseAdmin.storage
+    const { data: { publicUrl } } = getSupabaseAdmin().storage
       .from('product_videos')
       .getPublicUrl(filePath)
 
@@ -239,7 +255,7 @@ export const deleteProductVideo = async (videoUrl: string): Promise<{ error: Err
 
     const filePath = urlParts.slice(bucketIndex + 1).join('/')
 
-    const { error } = await supabaseAdmin.storage
+    const { error } = await getSupabaseAdmin().storage
       .from('product_videos')
       .remove([filePath])
 
@@ -252,7 +268,7 @@ export const deleteProductVideo = async (videoUrl: string): Promise<{ error: Err
 
 // Get public URL for video
 export const getProductVideoUrl = (path: string): string => {
-  const { data } = supabaseAdmin.storage
+  const { data } = getSupabaseAdmin().storage
     .from('product_videos')
     .getPublicUrl(path)
 

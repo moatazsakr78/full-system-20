@@ -38,12 +38,15 @@ export const useProductVideos = () => {
   const [error, setError] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({})
 
-  // Initialize bucket (call this once when the app starts)
+  // Initialize bucket (manual operation only - don't call automatically)
   const initializeBucket = useCallback(async () => {
     try {
-      await createProductVideosBucket()
+      const result = await createProductVideosBucket()
+      console.log('Bucket initialization result:', result)
+      return result
     } catch (error) {
-      console.log('Bucket already exists or error:', error)
+      console.log('Bucket initialization error:', error)
+      return { data: null, error: error as Error }
     }
   }, [])
 

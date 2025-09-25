@@ -1025,10 +1025,7 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
     setPendingVideos([])
   }
 
-  // Initialize video bucket on mount
-  useEffect(() => {
-    initializeBucket()
-  }, [initializeBucket])
+  // Video bucket initialization removed - buckets are pre-created in production
 
   // Cleanup URLs on unmount
   useEffect(() => {
