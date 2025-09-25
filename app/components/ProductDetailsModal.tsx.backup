@@ -717,44 +717,76 @@ export default function ProductDetailsModal({
         }
       `}</style>
 
-      {/* Header with close button */}
-      <header className="border-b border-gray-700 py-0 relative z-40" style={{backgroundColor: '#661a1a'}}>
-        <div className="max-w-[80%] mx-auto px-4 flex items-center justify-between min-h-[80px]">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-3">
-              <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-20 w-20 object-contain" />
-              <h1 className="text-xl font-bold text-white">El Farouk Group</h1>
+      {/* Header with close button - Mobile optimized */}
+      {isMobile ? (
+        <header className="border-b border-gray-700 py-2 relative z-40" style={{backgroundColor: '#661a1a'}}>
+          <div className="px-3 flex items-center justify-between min-h-[60px]">
+            <div className="flex items-center gap-2">
+              <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-12 w-12 object-contain" />
+              <h1 className="text-sm font-bold text-white">El Farouk Group</h1>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCartModal(true)}
+                className="flex items-center gap-1 px-2 py-1 rounded-md transition-colors text-white text-xs"
+                style={{backgroundColor: '#5D1F1F'}}
+              >
+                <span>({cartItems?.length || 0})</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
+                </svg>
+              </button>
+              <button
+                onClick={onClose}
+                className="text-gray-300 hover:text-red-400 transition-colors p-1"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
-          
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={onClose}
-              className="text-gray-300 hover:text-red-400 transition-colors font-medium flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              العودة للمتجر
-            </button>
+        </header>
+      ) : (
+        <header className="border-b border-gray-700 py-0 relative z-40" style={{backgroundColor: '#661a1a'}}>
+          <div className="max-w-[80%] mx-auto px-4 flex items-center justify-between min-h-[80px]">
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-3">
+                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-20 w-20 object-contain" />
+                <h1 className="text-xl font-bold text-white">El Farouk Group</h1>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={onClose}
+                className="text-gray-300 hover:text-red-400 transition-colors font-medium flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                العودة للمتجر
+              </button>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowCartModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-white"
+                style={{backgroundColor: '#5D1F1F'}}
+                onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616'; }}
+                onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F'; }}
+              >
+                <span>السلة ({cartItems?.length || 0})</span>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
+                </svg>
+              </button>
+            </div>
           </div>
-          
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setShowCartModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-white"
-              style={{backgroundColor: '#5D1F1F'}}
-              onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616'; }}
-              onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F'; }}
-            >
-              <span>السلة ({cartItems?.length || 0})</span>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Product Details Content - Mobile optimized */}
       {isMobile ? (
@@ -933,8 +965,8 @@ export default function ProductDetailsModal({
             <span className="text-gray-800 font-medium">{productDetails.name}</span>
           </nav>
 
-        {/* Product Main Section - L-shaped Layout */}
-        <div className="grid grid-cols-12 gap-4 mb-12">
+          {/* Product Main Section - L-shaped Layout */}
+          <div className="grid grid-cols-12 gap-4 mb-12">
           {/* Empty spacer - Left Side */}
           <div className="col-span-1">
           </div>
@@ -1408,15 +1440,15 @@ export default function ProductDetailsModal({
             </div>
           </div>
 
-        </div>
+          </div>
 
 
-        {/* Suggested Products - Only show if there are suggested products */}
-        {suggestedProductsList.length > 0 && (
-          <section>
-            <div className="mx-16">
-              <h3 className="text-2xl font-bold mb-6" style={{color: '#5D1F1F'}}>منتجات مقترحة</h3>
-            </div>
+          {/* Suggested Products - Only show if there are suggested products */}
+          {suggestedProductsList.length > 0 && (
+            <section>
+              <div className="mx-16">
+                <h3 className="text-2xl font-bold mb-6" style={{color: '#5D1F1F'}}>منتجات مقترحة</h3>
+              </div>
             <div className="relative">
               {/* Navigation Arrows - Only show if there are more than 4 products */}
               {suggestedProductsList.length > 4 && (
@@ -1524,6 +1556,7 @@ export default function ProductDetailsModal({
                     </div>
                   ))}
                 </div>
+              </div>
               </div>
             </div>
           </section>
