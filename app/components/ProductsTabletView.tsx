@@ -87,7 +87,7 @@ export default function ProductsTabletView({
   const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
   const [showBranchesDropdown, setShowBranchesDropdown] = useState(false)
   const [selectedBranches, setSelectedBranches] = useState<{[key: string]: boolean}>({})
-  const [isCategoriesHidden, setIsCategoriesHidden] = useState(false)
+  const [isCategoriesHidden, setIsCategoriesHidden] = useState(true)
 
   // Ref for scrollable toolbar
   const toolbarRef = useRef<HTMLDivElement>(null)
