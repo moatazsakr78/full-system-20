@@ -24,7 +24,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ar" dir="rtl">
-      <body className="font-arabic bg-custom-gray text-gray-800">
+      <body className="font-arabic bg-[#1F2937] text-gray-800">
         <SystemSettingsProvider>
           <CurrencyProvider>
             <CartProvider>
