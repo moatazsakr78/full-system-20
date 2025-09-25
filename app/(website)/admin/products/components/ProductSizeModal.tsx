@@ -163,65 +163,65 @@ export default function ProductSizeModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-800">إضافة مجموعة أحجام للمنتج</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 md:p-4" style={{ touchAction: 'none' }}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[95vh] md:h-[90vh] flex flex-col overflow-hidden" style={{ touchAction: 'auto' }}>
+        {/* Header - Mobile optimized */}
+        <div className="flex items-center justify-between p-3 md:p-6 border-b border-gray-200 flex-shrink-0">
+          <h2 className="text-base md:text-xl font-bold text-gray-800">إضافة مجموعة أحجام للمنتج</h2>
           <button
             onClick={onClose}
             disabled={isProcessing || isCreating}
-            className="text-gray-400 hover:text-gray-600 disabled:text-gray-300 text-2xl"
+            className="text-gray-400 hover:text-gray-600 disabled:text-gray-300 text-xl md:text-2xl min-w-[40px] min-h-[40px] flex items-center justify-center"
           >
             ×
           </button>
         </div>
 
-        {/* Error Display */}
+        {/* Error Display - Mobile optimized */}
         {error && (
-          <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mx-3 md:mx-6 mt-2 md:mt-4 p-3 md:p-4 bg-red-50 border border-red-200 rounded-lg flex-shrink-0">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-red-500 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 md:w-5 h-4 md:h-5 text-red-500 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 19c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
-              <p className="text-red-700 text-sm">{error}</p>
+              <p className="text-red-700 text-xs md:text-sm">{error}</p>
             </div>
           </div>
         )}
 
-        {/* Content */}
-        <div className="flex-1 overflow-hidden flex">
-          {/* Left Sidebar - Steps */}
-          <div className="w-1/4 bg-gray-50 border-l border-gray-200 p-4">
-            <h3 className="font-semibold mb-4 text-gray-700">خطوات الإنشاء</h3>
-            <div className="space-y-2">
-              <div className={`p-3 rounded-lg text-sm ${
+        {/* Content - Mobile optimized layout */}
+        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+          {/* Left Sidebar - Steps - Mobile: horizontal, Desktop: vertical */}
+          <div className="md:w-1/4 bg-gray-50 border-b md:border-l md:border-b-0 border-gray-200 p-2 md:p-4 flex-shrink-0">
+            <h3 className="font-semibold mb-2 md:mb-4 text-gray-700 text-sm md:text-base">خطوات الإنشاء</h3>
+            <div className="flex md:flex-col space-x-2 md:space-x-0 md:space-y-2 overflow-x-auto md:overflow-x-visible">
+              <div className={`p-2 md:p-3 rounded-lg text-xs md:text-sm whitespace-nowrap md:whitespace-normal ${
                 step === 'sizeCount' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'
               }`}>
                 1. عدد المقاسات
               </div>
-              <div className={`p-3 rounded-lg text-sm ${
+              <div className={`p-2 md:p-3 rounded-lg text-xs md:text-sm whitespace-nowrap md:whitespace-normal ${
                 step === 'sizeNames' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'
               }`}>
                 2. أسماء المقاسات
               </div>
-              <div className={`p-3 rounded-lg text-sm ${
+              <div className={`p-2 md:p-3 rounded-lg text-xs md:text-sm whitespace-nowrap md:whitespace-normal ${
                 step === 'productSelection' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'
               }`}>
                 3. اختيار المنتجات
               </div>
             </div>
 
-            {/* Size Steps Progress */}
+            {/* Size Steps Progress - Mobile: horizontal scroll */}
             {step === 'productSelection' && sizeSteps.length > 0 && (
-              <div className="mt-6">
-                <h4 className="font-semibold mb-3 text-gray-700">المقاسات:</h4>
-                <div className="space-y-2">
+              <div className="mt-3 md:mt-6">
+                <h4 className="font-semibold mb-2 md:mb-3 text-gray-700 text-sm md:text-base">المقاسات:</h4>
+                <div className="flex md:flex-col space-x-2 md:space-x-0 md:space-y-2 overflow-x-auto md:overflow-x-visible">
                   {sizeSteps.map((sizeStep, index) => (
                     <button
                       key={index}
                       onClick={() => goToStep(index)}
-                      className={`w-full p-2 rounded text-sm text-right ${
+                      className={`p-2 rounded text-xs md:text-sm text-right whitespace-nowrap md:whitespace-normal min-w-[80px] md:min-w-0 md:w-full ${
                         index === currentStepIndex
                           ? 'bg-blue-500 text-white'
                           : sizeStep.productId
@@ -242,42 +242,47 @@ export default function ProductSizeModal({
             )}
           </div>
 
-          {/* Main Content */}
-          <div className="flex-1 p-6">
-            {/* Step 1: Size Count */}
+          {/* Main Content - Mobile optimized scrolling */}
+          <div className="flex-1 p-3 md:p-6 overflow-y-auto scrollbar-hide" style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            WebkitScrollbar: 'none',
+            touchAction: 'pan-y'
+          } as React.CSSProperties}>
+            {/* Step 1: Size Count - Mobile optimized */}
             {step === 'sizeCount' && (
               <div className="max-w-md mx-auto">
-                <h3 className="text-lg font-semibold mb-4">معلومات مجموعة الأحجام</h3>
-                <p className="text-gray-600 mb-6">أدخل معلومات المجموعة وعدد المقاسات المختلفة</p>
+                <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">معلومات مجموعة الأحجام</h3>
+                <p className="text-gray-600 mb-4 md:mb-6 text-xs md:text-sm">أدخل معلومات المجموعة وعدد المقاسات المختلفة</p>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="mb-3 md:mb-4">
+                  <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">
                     اسم مجموعة الأحجام *
                   </label>
                   <input
                     type="text"
                     value={groupName}
                     onChange={(e) => setGroupName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-2 md:px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="مثال: أطباق متنوعة الأحجام"
                   />
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="mb-3 md:mb-4">
+                  <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">
                     وصف المجموعة (اختياري)
                   </label>
                   <textarea
                     value={groupDescription}
                     onChange={(e) => setGroupDescription(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full px-2 md:px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     rows={3}
                     placeholder="وصف مختصر لمجموعة الأحجام"
                   />
                 </div>
 
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="mb-4 md:mb-6">
+                  <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">
                     عدد المقاسات (من 2 إلى 10)
                   </label>
                   <input
@@ -286,7 +291,7 @@ export default function ProductSizeModal({
                     max="10"
                     value={sizeCount || ''}
                     onChange={(e) => setSizeCount(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-2 md:px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="أدخل عدد المقاسات"
                   />
                 </div>
@@ -294,7 +299,7 @@ export default function ProductSizeModal({
                 <button
                   onClick={handleSizeCountSubmit}
                   disabled={!groupName.trim() || !sizeCount || sizeCount < 2 || sizeCount > 10}
-                  className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white px-4 py-2 rounded-md transition-colors"
+                  className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white px-4 py-2 rounded-md transition-colors text-sm"
                 >
                   التالي
                 </button>

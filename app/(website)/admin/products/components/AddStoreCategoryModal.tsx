@@ -261,20 +261,20 @@ export default function AddStoreCategoryModal({
 
   return (
     <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={onClose} />
+      {/* Backdrop - Enhanced for mobile touch blocking */}
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={onClose} style={{ touchAction: 'none' }} />
 
       {/* Modal */}
-      <div className={`fixed top-0 right-0 h-full ${isBrowseMode ? 'w-full' : 'w-[480px]'} bg-[#eaeaea] border-l border-gray-400 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out`}>
+      <div className={`fixed inset-0 ${isBrowseMode ? 'w-full h-full' : 'md:top-0 md:right-0 md:h-full md:w-[480px] w-full h-full'} bg-[#eaeaea] border-l border-gray-400 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col overflow-hidden`} style={{ touchAction: 'auto' }}>
 
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-red-600 bg-[#5d1f1f]">
-          <h2 className="text-lg font-bold text-white">
+        {/* Header - Mobile optimized */}
+        <div className="flex items-center justify-between p-3 md:p-4 border-b border-red-600 bg-[#5d1f1f] flex-shrink-0">
+          <h2 className="text-base md:text-lg font-bold text-white">
             {editingCategory ? 'تعديل فئة المتجر' : 'إضافة فئة جديدة للمتجر'}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 text-gray-200 hover:text-white hover:bg-gray-600 rounded-full transition-colors"
+            className="p-2 text-gray-200 hover:text-white hover:bg-gray-600 rounded-full transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
             disabled={isCreating}
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,8 +283,8 @@ export default function AddStoreCategoryModal({
           </button>
         </div>
 
-        {/* Content */}
-        <div className={`flex flex-col ${isBrowseMode ? 'h-[calc(100vh-60px)]' : 'h-[calc(100vh-140px)]'}`}>
+        {/* Content - Mobile optimized scrolling */}
+        <div className={`flex flex-col flex-1 overflow-hidden ${isBrowseMode ? '' : ''}`}>
 
           {/* Browse Mode - Full Screen Products View */}
           {isBrowseMode ? (
@@ -479,26 +479,26 @@ export default function AddStoreCategoryModal({
             </div>
           ) : (
             <>
-              {/* Form Section */}
-              <div className="p-4 bg-white border-b border-gray-300">
+              {/* Form Section - Mobile optimized */}
+              <div className="p-3 md:p-4 bg-white border-b border-gray-300 flex-shrink-0">
                 {/* Category Name */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="mb-3 md:mb-4">
+                  <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">
                     اسم الفئة (مطلوب) *
                   </label>
                   <input
                     type="text"
                     value={categoryName}
                     onChange={(e) => setCategoryName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-right"
+                    className="w-full px-2 md:px-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-right"
                     placeholder="أدخل اسم الفئة..."
                     disabled={isCreating}
                   />
                 </div>
 
-                {/* Category Image - Drag & Drop */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                {/* Category Image - Drag & Drop - Mobile optimized */}
+                <div className="mb-3 md:mb-4">
+                  <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">
                     صورة الفئة
                   </label>
                   <div className="relative">
@@ -567,16 +567,16 @@ export default function AddStoreCategoryModal({
                 </div>
               </div>
 
-              {/* Products Selection Section - Show for both new and editing categories */}
-              <div className="flex-1 flex flex-col bg-gray-50 min-h-0">
+              {/* Products Selection Section - Mobile optimized scrolling */}
+              <div className="flex-1 flex flex-col bg-gray-50 min-h-0 overflow-hidden">
 
                 {/* Products Header */}
-                <div className="p-4 bg-white border-b border-gray-300 flex-shrink-0">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-gray-800">
+                <div className="p-3 md:p-4 bg-white border-b border-gray-300 flex-shrink-0">
+                  <div className="flex items-center justify-between mb-2 md:mb-3">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-800">
                       اختر المنتجات ({selectedProducts.size} محدد)
                     </h3>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label className="flex items-center gap-1 md:gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={selectAll}
@@ -584,7 +584,7 @@ export default function AddStoreCategoryModal({
                       className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                       disabled={isCreating}
                     />
-                    <span className="text-sm text-gray-600">تحديد الكل</span>
+                    <span className="text-xs md:text-sm text-gray-600">تحديد الكل</span>
                   </label>
                 </div>
 
@@ -594,18 +594,23 @@ export default function AddStoreCategoryModal({
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-right text-sm"
+                    className="w-full px-2 md:px-3 py-2 pr-8 md:pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-right text-xs md:text-sm"
                     placeholder="البحث في المنتجات..."
                     disabled={isCreating}
                   />
-                  <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 w-3 md:w-4 h-3 md:h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
               </div>
 
-              {/* Products List */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {/* Products List - Mobile optimized scrolling */}
+              <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-2 min-h-0 scrollbar-hide" style={{
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                WebkitScrollbar: 'none',
+                touchAction: 'pan-y'
+              } as React.CSSProperties}>
                 {isLoadingCategoryProducts && editingCategory ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
@@ -614,7 +619,7 @@ export default function AddStoreCategoryModal({
                 ) : filteredProducts.map((product) => (
                   <div
                     key={product.id}
-                    className={`flex items-center gap-3 p-3 bg-white rounded-lg border transition-colors cursor-pointer ${
+                    className={`flex items-center gap-2 md:gap-3 p-2 md:p-3 bg-white rounded-lg border transition-colors cursor-pointer ${
                       selectedProducts.has(product.id)
                         ? 'border-red-300 bg-red-50'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -625,36 +630,36 @@ export default function AddStoreCategoryModal({
                       type="checkbox"
                       checked={selectedProducts.has(product.id)}
                       onChange={() => toggleProductSelection(product.id)}
-                      className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                      className="rounded border-gray-300 text-red-600 focus:ring-red-500 w-4 h-4 md:w-5 md:h-5"
                       disabled={isCreating}
                     />
 
                     <img
                       src={product.image || '/placeholder-product.svg'}
                       alt={product.name}
-                      className="w-10 h-10 object-cover rounded-lg bg-gray-100"
+                      className="w-8 h-8 md:w-10 md:h-10 object-cover rounded-lg bg-gray-100"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = '/placeholder-product.svg';
                       }}
                     />
 
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-900 truncate text-sm">{product.name}</h4>
+                      <h4 className="font-medium text-gray-900 truncate text-xs md:text-sm">{product.name}</h4>
                       <p className="text-xs text-gray-500 truncate">{product.category}</p>
                     </div>
 
-                    <div className="text-sm font-medium text-gray-600">
+                    <div className="text-xs md:text-sm font-medium text-gray-600">
                       {product.price} ج.م
                     </div>
                   </div>
                 ))}
 
                 {(!isLoadingCategoryProducts || !editingCategory) && filteredProducts.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="text-center py-6 md:py-8 text-gray-500">
+                    <svg className="mx-auto h-8 md:h-12 w-8 md:w-12 text-gray-400 mb-2 md:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    <p>لا توجد منتجات تطابق البحث</p>
+                    <p className="text-xs md:text-sm">لا توجد منتجات تطابق البحث</p>
                   </div>
                 )}
               </div>
@@ -664,17 +669,17 @@ export default function AddStoreCategoryModal({
 
         </div>
 
-        {/* Footer - Only show when not in browse mode */}
+        {/* Footer - Mobile optimized */}
         {!isBrowseMode && (
-        <div className="p-4 bg-white border-t border-gray-300 flex justify-between items-center">
-          <div className="text-sm text-gray-600">
+        <div className="p-3 md:p-4 bg-white border-t border-gray-300 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 md:gap-0 flex-shrink-0">
+          <div className="text-xs md:text-sm text-gray-600 text-center md:text-left">
             {selectedProducts.size} من {filteredProducts.length}
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col md:flex-row gap-2 md:gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-3 md:px-4 py-2 text-gray-600 hover:text-gray-800 font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
               disabled={isCreating}
             >
               إلغاء
@@ -684,10 +689,10 @@ export default function AddStoreCategoryModal({
             {!isBrowseMode && (
               <button
                 onClick={() => setIsBrowseMode(true)}
-                className="px-4 py-2 text-blue-600 hover:text-blue-800 font-medium border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-2"
+                className="px-3 md:px-4 py-2 text-blue-600 hover:text-blue-800 font-medium border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 text-sm"
                 disabled={isCreating}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 md:w-4 h-3 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 تصفح
@@ -697,7 +702,7 @@ export default function AddStoreCategoryModal({
             <button
               onClick={handleSubmit}
               disabled={isCreating || !categoryName.trim()}
-              className="px-6 py-2 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 md:px-6 py-2 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               style={{
                 backgroundColor: !categoryName.trim() ? '#9CA3AF' : '#5D1F1F'
               }}
@@ -714,12 +719,12 @@ export default function AddStoreCategoryModal({
             >
               {isCreating ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <div className="w-3 md:w-4 h-3 md:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   {editingCategory ? 'جاري الحفظ...' : 'جاري الإنشاء...'}
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 md:w-4 h-3 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={editingCategory ? "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" : "M12 4v16m8-8H4"} />
                   </svg>
                   {editingCategory ? 'حفظ التعديل' : 'إنشاء الفئة'}
