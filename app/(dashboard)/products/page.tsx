@@ -80,6 +80,10 @@ export default function ProductsPage() {
   const [showBranchesDropdown, setShowBranchesDropdown] = useState(false)
   const [selectedBranches, setSelectedBranches] = useState<{[key: string]: boolean}>({})
 
+  // Scroll state for hiding/showing toolbar
+  const [isToolbarHidden, setIsToolbarHidden] = useState(false)
+  const [lastScrollY, setLastScrollY] = useState(0)
+
   // Get products and branches data
   const { products, branches, isLoading, error, fetchProducts, createProduct, updateProduct, deleteProduct } = useProducts()
   const { fetchBranchInventory, fetchProductVariants } = useBranches()
@@ -152,6 +156,33 @@ export default function ProductsPage() {
     
     setVisibleColumns(initialVisible)
   }, [branches])
+
+  // Handle scroll to hide/show toolbar like in the image
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      const threshold = 10 // Minimum scroll to trigger hide/show
+
+      if (Math.abs(currentScrollY - lastScrollY) < threshold) return
+
+      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        // Scrolling down and past threshold - hide toolbar
+        if (!isToolbarHidden) {
+          setIsToolbarHidden(true)
+        }
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up - show toolbar
+        if (isToolbarHidden) {
+          setIsToolbarHidden(false)
+        }
+      }
+
+      setLastScrollY(currentScrollY)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [lastScrollY, isToolbarHidden])
 
   // OPTIMIZED: Generate dynamic table columns with advanced memoization
   const dynamicTableColumns = useMemo(() => {
@@ -677,8 +708,10 @@ export default function ProductsPage() {
       {/* Main Content Container */}
       <div className="h-full pt-12 overflow-hidden flex flex-col">
         
-        {/* Top Action Buttons Toolbar - Full Width */}
-        <div className="bg-[#374151] border-b border-gray-600 px-4 py-2 w-full">
+        {/* Top Action Buttons Toolbar - Full Width with hide/show animation */}
+        <div className={`bg-[#374151] border-b border-gray-600 px-4 py-2 w-full transition-all duration-300 ease-in-out ${
+          isToolbarHidden ? 'transform -translate-y-full opacity-0' : 'transform translate-y-0 opacity-100'
+        }`}>
           <div className="flex items-center justify-start gap-1">
             <button 
               onClick={handleRefresh}
@@ -979,7 +1012,7 @@ export default function ProductsPage() {
                             alt={product.name}
                             priority={index < 6} // Prioritize first 6 products
                           />
-                          
+
                           {/* Hover Button - positioned above image */}
                           <div className="absolute top-2 right-2 z-50">
                             <button
@@ -1018,7 +1051,7 @@ export default function ProductsPage() {
                               </span>
                             </div>
                           )}
-                          
+
                           {/* Selling Price with Discount */}
                           <div className="flex justify-center mb-2 flex-col items-center">
                             {product.isDiscounted ? (
@@ -1041,7 +1074,7 @@ export default function ProductsPage() {
                               </span>
                             )}
                           </div>
-                          
+
                           {/* Total Quantity */}
                           <div className="flex justify-between items-center">
                             <span className="text-blue-400 font-medium">
@@ -1049,13 +1082,13 @@ export default function ProductsPage() {
                             </span>
                             <span className="text-gray-400">الكمية الإجمالية</span>
                           </div>
-                          
+
                           {/* Branch/Warehouse Quantities */}
                           {product.inventoryData && Object.entries(product.inventoryData).map(([locationId, inventory]: [string, any]) => {
                             // Find the branch name for this location
                             const branch = branches.find(b => b.id === locationId)
                             const locationName = branch?.name || `موقع ${locationId.slice(0, 8)}`
-                            
+
                             return (
                               <div key={locationId} className="flex justify-between items-center">
                                 <span className="text-white">
@@ -1071,6 +1104,13 @@ export default function ProductsPage() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Spacer div to compensate for hidden toolbar */}
+                  <div
+                    className={`transition-all duration-300 ease-in-out ${
+                      isToolbarHidden ? 'h-20' : 'h-0'
+                    }`}
+                  />
                 </div>
               )}
             </div>

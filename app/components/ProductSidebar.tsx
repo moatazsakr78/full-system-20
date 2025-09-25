@@ -3061,9 +3061,9 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
             >
               تصفية الخلايا
             </button>
-            
+
             <div className="flex-1"></div>
-            
+
             {/* Cancel and Save buttons - exact styling */}
             <div className="flex gap-2">
               <button
@@ -3100,6 +3100,9 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
               </button>
             </div>
           </div>
+
+          {/* Empty spacer area with same height as the tab navigation section */}
+          <div className="h-14 bg-[#3A4553]"></div>
         </div>
       </div>
     </>

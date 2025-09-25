@@ -34,13 +34,10 @@ export default function ProductSizeModal({
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
 
-  // Drag state for modal sliding
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragY, setDragY] = useState(0);
-  const [startY, setStartY] = useState(0);
-  const [modalOffset, setModalOffset] = useState(0);
-  const [isTabsCollapsed, setIsTabsCollapsed] = useState(false);
-  const modalRef = useRef<HTMLDivElement>(null);
+  // Scroll state for hiding tabs section based on content scroll
+  const [isTabsHidden, setIsTabsHidden] = useState(false);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Reset modal state when opened/closed
   useEffect(() => {
@@ -53,110 +50,34 @@ export default function ProductSizeModal({
       setIsProcessing(false);
       setGroupName('');
       setGroupDescription('');
-      setIsTabsCollapsed(false);
-      setModalOffset(0);
-      setDragY(0);
+      setIsTabsHidden(false);
+      setLastScrollY(0);
     }
   }, [isOpen]);
 
-  // Handle touch drag for modal sliding
-  const handleTouchStart = (e: React.TouchEvent) => {
-    // Prevent dragging when interacting with form elements
-    const target = e.target as Element;
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.tagName === 'BUTTON') {
-      return;
+  // Handle scroll to hide/show tabs section like in the main page
+  const handleScroll = () => {
+    if (!scrollRef.current) return;
+
+    const currentScrollY = scrollRef.current.scrollTop;
+    const threshold = 10; // Minimum scroll to trigger hide/show
+
+    if (Math.abs(currentScrollY - lastScrollY) < threshold) return;
+
+    if (currentScrollY > lastScrollY && currentScrollY > 50) {
+      // Scrolling down and past threshold - hide tabs
+      if (!isTabsHidden) {
+        setIsTabsHidden(true);
+      }
+    } else if (currentScrollY < lastScrollY) {
+      // Scrolling up - show tabs
+      if (isTabsHidden) {
+        setIsTabsHidden(false);
+      }
     }
 
-    setIsDragging(true);
-    setStartY(e.touches[0].clientY);
+    setLastScrollY(currentScrollY);
   };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-
-    const currentY = e.touches[0].clientY;
-    const deltaY = startY - currentY; // Positive when dragging up
-
-    setDragY(deltaY);
-
-    const newOffset = Math.max(0, Math.min(deltaY, 120));
-    setModalOffset(newOffset);
-
-    if (newOffset > 60 && !isTabsCollapsed) {
-      setIsTabsCollapsed(true);
-    } else if (newOffset <= 60 && isTabsCollapsed) {
-      setIsTabsCollapsed(false);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-
-    if (modalOffset > 60) {
-      setModalOffset(120);
-      setIsTabsCollapsed(true);
-    } else {
-      setModalOffset(0);
-      setIsTabsCollapsed(false);
-    }
-
-    setDragY(0);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    const target = e.target as Element;
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.tagName === 'BUTTON') {
-      return;
-    }
-
-    setIsDragging(true);
-    setStartY(e.clientY);
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging) return;
-
-    const deltaY = startY - e.clientY;
-    setDragY(deltaY);
-
-    const newOffset = Math.max(0, Math.min(deltaY, 120));
-    setModalOffset(newOffset);
-
-    if (newOffset > 60 && !isTabsCollapsed) {
-      setIsTabsCollapsed(true);
-    } else if (newOffset <= 60 && isTabsCollapsed) {
-      setIsTabsCollapsed(false);
-    }
-  };
-
-  const handleMouseUp = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-
-    if (modalOffset > 60) {
-      setModalOffset(120);
-      setIsTabsCollapsed(true);
-    } else {
-      setModalOffset(0);
-      setIsTabsCollapsed(false);
-    }
-
-    setDragY(0);
-  };
-
-  // Mouse event listeners
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging, startY, modalOffset, isTabsCollapsed]);
 
   // Handle size count submission
   const handleSizeCountSubmit = () => {
@@ -275,22 +196,9 @@ export default function ProductSizeModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 md:p-4" style={{ touchAction: 'none' }}>
       <div
-        ref={modalRef}
-        className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[95vh] md:h-[90vh] flex flex-col overflow-hidden transition-transform duration-300 ease-out"
-        style={{
-          touchAction: 'auto',
-          transform: `translateY(-${modalOffset}px)`,
-          ...(isDragging && { transition: 'none' })
-        }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onMouseDown={handleMouseDown}
+        className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[95vh] md:h-[90vh] flex flex-col overflow-hidden"
+        style={{ touchAction: 'auto' }}
       >
-        {/* Drag Handle - Mobile only */}
-        <div className="md:hidden bg-gray-100 flex justify-center py-2 flex-shrink-0 rounded-t-lg">
-          <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
-        </div>
 
         {/* Header - Mobile optimized */}
         <div className="flex items-center justify-between p-3 md:p-6 border-b border-gray-200 flex-shrink-0">
@@ -371,10 +279,10 @@ export default function ProductSizeModal({
 
           {/* Main Content - Mobile optimized scrolling */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Tabs Section - Can be hidden on drag */}
+            {/* Tabs Section - Hidden on scroll down */}
             <div
-              className={`bg-white border-b border-gray-300 flex-shrink-0 transition-all duration-300 ${
-                isTabsCollapsed ? 'transform -translate-y-full opacity-0 h-0 overflow-hidden' : 'transform translate-y-0 opacity-100'
+              className={`bg-white border-b border-gray-300 flex-shrink-0 transition-all duration-300 ease-in-out ${
+                isTabsHidden ? 'transform -translate-y-full opacity-0 h-0 overflow-hidden' : 'transform translate-y-0 opacity-100'
               }`}
             >
               <div className="flex items-center justify-between p-3 md:p-4 pb-0">
@@ -393,8 +301,10 @@ export default function ProductSizeModal({
               </div>
             </div>
 
-            {/* Scrollable Content Area */}
+            {/* Scrollable Content Area with tabs hide/show */}
             <div
+              ref={scrollRef}
+              onScroll={handleScroll}
               className="flex-1 p-3 md:p-6 overflow-y-auto scrollbar-hide"
               style={{
                 scrollbarWidth: 'none',
