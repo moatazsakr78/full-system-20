@@ -3101,8 +3101,8 @@ export default function ProductSidebar({ isOpen, onClose, onProductCreated, crea
             </div>
           </div>
 
-          {/* Empty spacer area with same height as the tab navigation section */}
-          <div className="h-14 bg-[#3A4553]"></div>
+          {/* Empty spacer area with same height as the tab navigation section - only on mobile/tablet */}
+          <div className="h-14 bg-[#3A4553] md:hidden"></div>
         </div>
       </div>
     </>
