@@ -8,12 +8,13 @@ import { CartProvider } from '@/lib/contexts/CartContext'
 export const metadata: Metadata = {
   title: 'نظام نقاط البيع',
   description: 'نظام إدارة نقاط البيع المتكامل',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({
