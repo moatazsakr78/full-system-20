@@ -52,6 +52,14 @@ export default function AddStoreCategoryModal({
   // Browse mode state
   const [isBrowseMode, setIsBrowseMode] = useState(false);
 
+  // Drag state for modal sliding
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const [startY, setStartY] = useState(0);
+  const [modalOffset, setModalOffset] = useState(0);
+  const [isTabsCollapsed, setIsTabsCollapsed] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+
   // Load category products for editing
   const loadCategoryProducts = async (categoryId: string) => {
     try {
@@ -97,10 +105,115 @@ export default function AddStoreCategoryModal({
         setCategoryProducts([]);
       }
 
-      // Reset browse mode
+      // Reset browse mode and drag state
       setIsBrowseMode(false);
+      setIsTabsCollapsed(false);
+      setModalOffset(0);
+      setDragY(0);
     }
   }, [isOpen, editingCategory]);
+
+  // Handle touch drag for modal sliding
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isBrowseMode) return;
+
+    // Prevent dragging when interacting with form elements
+    const target = e.target as Element;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.tagName === 'BUTTON') {
+      return;
+    }
+
+    setIsDragging(true);
+    setStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || isBrowseMode) return;
+
+    const currentY = e.touches[0].clientY;
+    const deltaY = startY - currentY; // Positive when dragging up
+
+    setDragY(deltaY);
+
+    // Calculate offset (positive means moving up)
+    const newOffset = Math.max(0, Math.min(deltaY, 120)); // Max 120px up
+    setModalOffset(newOffset);
+
+    // Collapse tabs when dragged more than 60px up
+    if (newOffset > 60 && !isTabsCollapsed) {
+      setIsTabsCollapsed(true);
+    } else if (newOffset <= 60 && isTabsCollapsed) {
+      setIsTabsCollapsed(false);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging || isBrowseMode) return;
+    setIsDragging(false);
+
+    // Snap behavior
+    if (modalOffset > 60) {
+      // Snap to collapsed state
+      setModalOffset(120);
+      setIsTabsCollapsed(true);
+    } else {
+      // Snap back to original position
+      setModalOffset(0);
+      setIsTabsCollapsed(false);
+    }
+
+    setDragY(0);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (isBrowseMode) return;
+    setIsDragging(true);
+    setStartY(e.clientY);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging || isBrowseMode) return;
+
+    const deltaY = startY - e.clientY; // Positive when dragging up
+    setDragY(deltaY);
+
+    const newOffset = Math.max(0, Math.min(deltaY, 120));
+    setModalOffset(newOffset);
+
+    if (newOffset > 60 && !isTabsCollapsed) {
+      setIsTabsCollapsed(true);
+    } else if (newOffset <= 60 && isTabsCollapsed) {
+      setIsTabsCollapsed(false);
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (!isDragging || isBrowseMode) return;
+    setIsDragging(false);
+
+    if (modalOffset > 60) {
+      setModalOffset(120);
+      setIsTabsCollapsed(true);
+    } else {
+      setModalOffset(0);
+      setIsTabsCollapsed(false);
+    }
+
+    setDragY(0);
+  };
+
+  // Mouse event listeners
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, startY, modalOffset, isTabsCollapsed]);
 
   // Filter products based on search
   const filteredProducts = products.filter(product =>
@@ -264,8 +377,25 @@ export default function AddStoreCategoryModal({
       {/* Backdrop - Enhanced for mobile touch blocking */}
       <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={onClose} style={{ touchAction: 'none' }} />
 
-      {/* Modal */}
-      <div className={`fixed inset-0 ${isBrowseMode ? 'w-full h-full' : 'md:top-0 md:right-0 md:h-full md:w-[480px] w-full h-full'} bg-[#eaeaea] border-l border-gray-400 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col overflow-hidden`} style={{ touchAction: 'auto' }}>
+      {/* Modal - Draggable */}
+      <div
+        ref={modalRef}
+        className={`fixed ${isBrowseMode ? 'inset-0 w-full h-full' : 'md:top-0 md:right-0 md:h-full md:w-[480px] w-full h-full inset-0'} bg-[#eaeaea] border-l border-gray-400 shadow-2xl z-50 flex flex-col overflow-hidden transition-transform duration-300 ease-out`}
+        style={{
+          touchAction: 'auto',
+          transform: `translateY(-${modalOffset}px)`,
+          ...(isDragging && { transition: 'none' })
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+      >
+
+        {/* Drag Handle - Mobile only */}
+        <div className="md:hidden bg-[#5d1f1f] flex justify-center py-2 flex-shrink-0">
+          <div className="w-10 h-1 bg-white/30 rounded-full"></div>
+        </div>
 
         {/* Header - Mobile optimized */}
         <div className="flex items-center justify-between p-3 md:p-4 border-b border-red-600 bg-[#5d1f1f] flex-shrink-0">
@@ -479,8 +609,30 @@ export default function AddStoreCategoryModal({
             </div>
           ) : (
             <>
+              {/* Tabs Section - Can be hidden on drag */}
+              <div
+                className={`bg-white border-b border-gray-300 flex-shrink-0 transition-all duration-300 ${
+                  isTabsCollapsed ? 'transform -translate-y-full opacity-0 h-0 overflow-hidden' : 'transform translate-y-0 opacity-100'
+                }`}
+              >
+                <div className="flex items-center justify-between p-3 md:p-4 pb-0">
+                  <h3 className="text-base md:text-lg font-semibold text-gray-800">
+                    {editingCategory ? 'تعديل الفئة' : 'مجموعة جديدة'}
+                  </h3>
+                </div>
+                <div className="px-3 md:px-4">
+                  <div className="flex space-x-6">
+                    <div className="pb-3 border-b-2 border-blue-500">
+                      <span className="text-sm md:text-base text-blue-600 font-medium">تفاصيل المجموعة</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Form Section - Mobile optimized */}
-              <div className="p-3 md:p-4 bg-white border-b border-gray-300 flex-shrink-0">
+              <div
+                className="p-3 md:p-4 bg-white border-b border-gray-300 flex-shrink-0"
+              >
                 {/* Category Name */}
                 <div className="mb-3 md:mb-4">
                   <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1 md:mb-2">
@@ -605,12 +757,15 @@ export default function AddStoreCategoryModal({
               </div>
 
               {/* Products List - Mobile optimized scrolling */}
-              <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-2 min-h-0 scrollbar-hide" style={{
-                scrollbarWidth: 'none',
-                msOverflowStyle: 'none',
-                WebkitScrollbar: 'none',
-                touchAction: 'pan-y'
-              } as React.CSSProperties}>
+              <div
+                className="flex-1 overflow-y-auto p-3 md:p-4 space-y-2 min-h-0 scrollbar-hide"
+                style={{
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                  WebkitScrollbar: 'none',
+                  touchAction: 'pan-y'
+                } as React.CSSProperties}
+              >
                 {isLoadingCategoryProducts && editingCategory ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
@@ -669,9 +824,14 @@ export default function AddStoreCategoryModal({
 
         </div>
 
-        {/* Footer - Mobile optimized */}
+        {/* Footer - Mobile optimized - Moves up when tabs are collapsed */}
         {!isBrowseMode && (
-        <div className="p-3 md:p-4 bg-white border-t border-gray-300 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 md:gap-0 flex-shrink-0">
+        <div
+          className={`p-3 md:p-4 bg-white border-t border-gray-300 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 md:gap-0 flex-shrink-0 transition-all duration-300`}
+          style={{
+            transform: isTabsCollapsed ? 'translateY(-120px)' : 'translateY(0px)'
+          }}
+        >
           <div className="text-xs md:text-sm text-gray-600 text-center md:text-left">
             {selectedProducts.size} من {filteredProducts.length}
           </div>
