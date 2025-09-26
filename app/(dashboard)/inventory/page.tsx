@@ -894,79 +894,78 @@ export default function InventoryPage() {
       <div className="h-full pt-12 overflow-hidden flex flex-col">
         
         {/* Top Action Buttons Toolbar - Full Width */}
-        <div className="bg-[#374151] border-b border-gray-600 px-4 py-2 w-full">
-          <div className="flex items-center justify-start gap-1">
-            <button 
+        <div className="bg-[#374151] border-b border-gray-600 px-2 py-2 w-full">
+          <div className="flex items-center justify-start gap-1 overflow-x-auto scrollbar-hide">
+            <button
               onClick={handleRefresh}
-              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
             >
-              <ArrowPathIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">تحديث</span>
+              <ArrowPathIcon className="h-4 w-4" />
+              <span className="text-xs">تحديث</span>
             </button>
 
-            <button 
+            <button
               onClick={toggleAddBranchModal}
-              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
             >
-              <BuildingStorefrontIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">إضافة فرع</span>
+              <BuildingStorefrontIcon className="h-4 w-4" />
+              <span className="text-xs">إضافة فرع</span>
             </button>
 
-            <button 
+            <button
               onClick={toggleAddStorageModal}
-              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
             >
-              <BuildingOffice2Icon className="h-5 w-5 mb-1" />
-              <span className="text-sm">إضافة مخزن</span>
+              <BuildingOffice2Icon className="h-4 w-4" />
+              <span className="text-xs">إضافة مخزن</span>
             </button>
 
-            <button 
+            <button
               onClick={toggleManagementModal}
-              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
             >
-              <CogIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">إدارة</span>
+              <CogIcon className="h-4 w-4" />
+              <span className="text-xs">إدارة</span>
             </button>
 
-            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
-              <DocumentArrowDownIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">حفظ كـ PDF</span>
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors">
+              <DocumentArrowDownIcon className="h-4 w-4" />
+              <span className="text-xs">حفظ كـ PDF</span>
             </button>
 
-            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
-              <DocumentTextIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">اكسل</span>
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors">
+              <DocumentTextIcon className="h-4 w-4" />
+              <span className="text-xs">اكسل</span>
             </button>
 
-            <button 
+            <button
               onClick={() => handleQuantityAction('add')}
-              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
             >
-              <ClipboardDocumentListIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">إضافة</span>
+              <ClipboardDocumentListIcon className="h-4 w-4" />
+              <span className="text-xs">إضافة</span>
             </button>
 
-            <button 
+            <button
               onClick={() => handleQuantityAction('edit')}
-              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
             >
-              <ClipboardDocumentListIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">تعديل</span>
+              <ClipboardDocumentListIcon className="h-4 w-4" />
+              <span className="text-xs">تعديل</span>
             </button>
 
-            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
-              <ChartBarIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">تقرير الجرد</span>
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors">
+              <ChartBarIcon className="h-4 w-4" />
+              <span className="text-xs">تقرير الجرد</span>
             </button>
 
-            <button 
+            <button
               onClick={() => setShowColumnsModal(true)}
-              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
             >
-              <TableCellsIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">الأعمدة</span>
+              <TableCellsIcon className="h-4 w-4" />
+              <span className="text-xs">الأعمدة</span>
             </button>
-            
           </div>
         </div>
 

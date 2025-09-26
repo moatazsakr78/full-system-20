@@ -530,134 +530,188 @@ export default function CustomersPage() {
       <div className="h-full pt-12 overflow-hidden flex flex-col">
         
         {/* Top Action Buttons Toolbar - Full Width */}
-        <div className="bg-[#374151] border-b border-gray-600 px-4 py-2 w-full">
-          <div className="flex items-center justify-start gap-1">
-            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
-              <ArrowPathIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">تحديث</span>
+        <div className="bg-[#374151] border-b border-gray-600 px-2 py-2 w-full">
+          <div className="flex items-center justify-start gap-1 overflow-x-auto scrollbar-hide">
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors">
+              <ArrowPathIcon className="h-4 w-4" />
+              <span className="text-xs">تحديث</span>
             </button>
 
-            <button 
+            <button
               onClick={toggleGroupSidebar}
-              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
             >
-              <FolderPlusIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">مجموعة جديدة</span>
+              <FolderPlusIcon className="h-4 w-4" />
+              <span className="text-xs">مجموعة جديدة</span>
             </button>
 
-            <button 
+            <button
               onClick={() => selectedCustomerGroup && handleEditGroup(selectedCustomerGroup)}
-              className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] ${
+              className={`flex items-center gap-2 px-3 py-2 border border-gray-600 rounded cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors ${
                 selectedCustomerGroup && !selectedCustomerGroup.isDefault
-                  ? 'text-gray-300 hover:text-white' 
-                  : 'text-gray-500 cursor-not-allowed'
+                  ? 'bg-[#2B3544] text-gray-300 hover:text-white hover:bg-[#374151]'
+                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
               }`}
               disabled={!selectedCustomerGroup || selectedCustomerGroup.isDefault}
             >
-              <PencilSquareIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">تحرير المجموعة</span>
+              <PencilSquareIcon className="h-4 w-4" />
+              <span className="text-xs">تحرير المجموعة</span>
             </button>
 
-            <button 
+            <button
               onClick={handleDeleteGroup}
-              className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] ${
+              className={`flex items-center gap-2 px-3 py-2 border border-gray-600 rounded cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors ${
                 selectedCustomerGroup && !selectedCustomerGroup.isDefault
-                  ? 'text-red-400 hover:text-red-300' 
-                  : 'text-gray-500 cursor-not-allowed'
+                  ? 'bg-[#2B3544] text-red-400 hover:text-red-300 hover:bg-[#374151]'
+                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
               }`}
               disabled={!selectedCustomerGroup || selectedCustomerGroup.isDefault}
             >
-              <TrashIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">حذف المجموعة</span>
+              <TrashIcon className="h-4 w-4" />
+              <span className="text-xs">حذف المجموعة</span>
             </button>
 
-            <button 
+            <button
               onClick={toggleAddCustomerModal}
-              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
             >
-              <UserPlusIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">إضافة عميل</span>
+              <UserPlusIcon className="h-4 w-4" />
+              <span className="text-xs">إضافة عميل</span>
             </button>
 
-            <button 
+            <button
               onClick={() => selectedCustomer && openEditCustomerModal(selectedCustomer)}
-              className={`flex flex-col items-center p-2 min-w-[80px] transition-colors ${
-                selectedCustomer 
-                  ? 'text-gray-300 hover:text-white cursor-pointer' 
-                  : 'text-gray-500 cursor-not-allowed'
+              className={`flex items-center gap-2 px-3 py-2 border border-gray-600 rounded transition-colors whitespace-nowrap flex-shrink-0 ${
+                selectedCustomer
+                  ? 'bg-[#2B3544] text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer'
+                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
               }`}
               disabled={!selectedCustomer}
             >
-              <PencilSquareIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">تحرير العميل</span>
+              <PencilSquareIcon className="h-4 w-4" />
+              <span className="text-xs">تحرير العميل</span>
             </button>
 
-            <button 
+            <button
               onClick={handleDeleteCustomer}
-              className={`flex flex-col items-center p-2 min-w-[80px] transition-colors ${
-                !selectedCustomer 
-                  ? 'text-gray-500 cursor-not-allowed'
+              className={`flex items-center gap-2 px-3 py-2 border border-gray-600 rounded transition-colors whitespace-nowrap flex-shrink-0 ${
+                !selectedCustomer
+                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                   : selectedCustomer && isDefaultCustomer(selectedCustomer.id)
-                  ? 'text-gray-500 cursor-not-allowed'
+                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                   : isDeleting
-                  ? 'text-gray-500 cursor-not-allowed'
-                  : 'text-red-400 hover:text-red-300 cursor-pointer'
+                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  : 'bg-[#2B3544] text-red-400 hover:text-red-300 hover:bg-[#374151] cursor-pointer'
               }`}
               disabled={!selectedCustomer || (selectedCustomer && isDefaultCustomer(selectedCustomer.id)) || isDeleting}
               title={
-                !selectedCustomer 
+                !selectedCustomer
                   ? 'اختر عميل للحذف'
-                  : selectedCustomer && isDefaultCustomer(selectedCustomer.id) 
-                  ? 'لا يمكن حذف العميل الافتراضي' 
+                  : selectedCustomer && isDefaultCustomer(selectedCustomer.id)
+                  ? 'لا يمكن حذف العميل الافتراضي'
                   : isDeleting
                   ? 'جاري الحذف...'
                   : 'حذف العميل'
               }
             >
-              <TrashIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">{isDeleting ? 'جاري الحذف...' : 'حذف العميل'}</span>
+              <TrashIcon className="h-4 w-4" />
+              <span className="text-xs">{isDeleting ? 'جاري الحذف...' : 'حذف العميل'}</span>
             </button>
 
-            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
-              <PrinterIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">طباعة</span>
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors">
+              <PrinterIcon className="h-4 w-4" />
+              <span className="text-xs">طباعة</span>
             </button>
 
-            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
-              <DocumentArrowDownIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">حفظ كـ PDF</span>
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors">
+              <DocumentArrowDownIcon className="h-4 w-4" />
+              <span className="text-xs">حفظ كـ PDF</span>
             </button>
 
-            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
-              <ArrowDownTrayIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">استيراد</span>
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors">
+              <ArrowDownTrayIcon className="h-4 w-4" />
+              <span className="text-xs">استيراد</span>
             </button>
 
-            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
-              <ArrowUpTrayIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">تصدير</span>
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors">
+              <ArrowUpTrayIcon className="h-4 w-4" />
+              <span className="text-xs">تصدير</span>
             </button>
 
-            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
-              <ArrowsUpDownIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">ترتيب</span>
+            <button className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors">
+              <ArrowsUpDownIcon className="h-4 w-4" />
+              <span className="text-xs">ترتيب</span>
             </button>
 
             {viewMode === 'table' && (
               <button
                 onClick={() => setShowColumnsModal(true)}
-                className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+                className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
               >
-                <TableCellsIcon className="h-5 w-5 mb-1" />
-                <span className="text-sm">الأعمدة</span>
+                <TableCellsIcon className="h-4 w-4" />
+                <span className="text-xs">الأعمدة</span>
               </button>
             )}
           </div>
         </div>
 
+        {/* Second Toolbar - Search and Controls - Full Width */}
+        <div className="bg-[#374151] border-b border-gray-600 px-2 py-3 w-full flex-shrink-0">
+          <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide">
+            {/* Group Filter Dropdown */}
+            <div className="relative flex-shrink-0">
+              <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium transition-colors whitespace-nowrap">
+                <span>فئة العملاء</span>
+                <ChevronDownIcon className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* View Toggle */}
+            <div className="flex bg-[#2B3544] rounded-md overflow-hidden flex-shrink-0">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                }`}
+              >
+                <Squares2X2Icon className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`p-2 transition-colors ${
+                  viewMode === 'table'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                }`}
+              >
+                <ListBulletIcon className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="relative flex-shrink-0">
+              <MagnifyingGlassIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="اسم العميل..."
+                className="w-80 pl-4 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+
+            {/* Customer Count Display */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-sm text-gray-400 whitespace-nowrap">عرض {filteredCustomers.length} من أصل {customers.length} عميل</span>
+            </div>
+          </div>
+        </div>
+
         {/* Content Area with Sidebar and Main Content */}
         <div className="flex-1 flex overflow-hidden">
-          
+
           {/* Customer Groups Tree Sidebar */}
           <div className="w-64 bg-[#374151] border-l border-gray-700 flex flex-col">
             {/* Tree View */}
@@ -676,9 +730,9 @@ export default function CustomersPage() {
                 </div>
               ) : (
                 groups.map((group) => (
-                  <TreeView 
-                    key={group.id} 
-                    node={group} 
+                  <TreeView
+                    key={group.id}
+                    node={group}
                     onToggle={toggleGroup}
                     onSelect={handleCustomerGroupSelect}
                     selectedGroupId={selectedCustomerGroup?.id}
@@ -690,64 +744,6 @@ export default function CustomersPage() {
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
-
-            {/* Second Toolbar - Search and Controls */}
-            <div className="bg-[#374151] border-b border-gray-600 px-6 py-3 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                {/* Left Side - Search and Controls */}
-                <div className="flex items-center gap-4">
-
-                  {/* Group Filter Dropdown */}
-                  <div className="relative">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium transition-colors">
-                      <span>فئة العملاء</span>
-                      <ChevronDownIcon className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  {/* View Toggle */}
-                  <div className="flex bg-[#2B3544] rounded-md overflow-hidden">
-                    <button
-                      onClick={() => setViewMode('grid')}
-                      className={`p-2 transition-colors ${
-                        viewMode === 'grid'
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-600'
-                      }`}
-                    >
-                      <Squares2X2Icon className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode('table')}
-                      className={`p-2 transition-colors ${
-                        viewMode === 'table'
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-600'
-                      }`}
-                    >
-                      <ListBulletIcon className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  {/* Search */}
-                  <div className="relative">
-                    <MagnifyingGlassIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="اسم العميل..."
-                      className="w-80 pl-4 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    />
-                  </div>
-                </div>
-
-                {/* Right Side - Additional controls can be added here */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-400">عرض {filteredCustomers.length} من أصل {customers.length} عميل</span>
-                </div>
-              </div>
-            </div>
 
             {/* Customers Content Container */}
             <div className="flex-1 overflow-hidden bg-[#2B3544]">
