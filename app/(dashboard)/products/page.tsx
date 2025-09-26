@@ -1637,7 +1637,7 @@ export default function ProductsPage() {
           />
 
           {/* Modal */}
-          <div className="fixed inset-4 bg-[#2B3544] rounded-2xl z-[99999] flex flex-col max-h-[80vh]">
+          <div className="branches-dropdown fixed inset-4 bg-[#2B3544] rounded-2xl z-[99999] flex flex-col max-h-[80vh]">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-[#4A5568]">
               <h3 className="text-white text-lg font-semibold">اختر الفروع والمخازن</h3>

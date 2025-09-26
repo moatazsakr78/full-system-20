@@ -28,7 +28,9 @@ import {
   EyeIcon,
   XMarkIcon,
   Bars3Icon,
-  EyeSlashIcon
+  EyeSlashIcon,
+  FolderIcon,
+  FolderOpenIcon
 } from '@heroicons/react/24/outline'
 
 // Database category interface
@@ -80,13 +82,23 @@ export default function InventoryTabletView({
   const [isEditingWarehouse, setIsEditingWarehouse] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid')
   const [showProductModal, setShowProductModal] = useState(false)
   const [modalProduct, setModalProduct] = useState<any>(null)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [showColumnsModal, setShowColumnsModal] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
-  const [isCategoriesHidden, setIsCategoriesHidden] = useState(false)
+  const [isCategoriesHidden, setIsCategoriesHidden] = useState(true)
+
+  // Audit status filters
+  const [auditStatusFilters, setAuditStatusFilters] = useState({
+    fully_audited: true, // تام الجرد
+    ready: true, // استعد
+    not_audited: true // غير مجرود
+  })
+
+  // Audit branches dropdown
+  const [showAuditBranchesDropdown, setShowAuditBranchesDropdown] = useState(false)
 
   // Ref for scrollable toolbar
   const toolbarRef = useRef<HTMLDivElement>(null)
@@ -159,13 +171,16 @@ export default function InventoryTabletView({
       if (!target.closest('.branches-dropdown')) {
         setShowBranchesDropdown(false)
       }
+      if (!target.closest('.audit-branches-dropdown')) {
+        setShowAuditBranchesDropdown(false)
+      }
     }
 
-    if (showBranchesDropdown) {
+    if (showBranchesDropdown || showAuditBranchesDropdown) {
       document.addEventListener('click', handleClickOutside)
       return () => document.removeEventListener('click', handleClickOutside)
     }
-  }, [showBranchesDropdown])
+  }, [showBranchesDropdown, showAuditBranchesDropdown])
 
   // OPTIMIZED: Memoized function to calculate total quantity
   const calculateTotalQuantity = useCallback((item: any) => {
@@ -570,7 +585,7 @@ export default function InventoryTabletView({
         
         {/* Top Action Buttons Toolbar - Tablet Optimized with horizontal scrolling (EXACT COPY FROM PRODUCTS) */}
         <div className="bg-[#374151] border-b border-gray-600 px-2 py-2 w-full">
-          <div 
+          <div
             ref={toolbarRef}
             className="flex items-center gap-1 overflow-x-auto scrollbar-hide"
             style={{
@@ -579,74 +594,298 @@ export default function InventoryTabletView({
               WebkitOverflowScrolling: 'touch'
             }}
           >
-            <button 
+            <button
               onClick={handleRefresh}
               className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors"
             >
               <ArrowPathIcon className="h-4 w-4" />
-              <span className="text-sm">تحديث</span>
+              <span className="text-xs">تحديث</span>
             </button>
 
-            <button 
+            <button
               onClick={() => setIsAddBranchModalOpen(true)}
               className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors"
             >
               <BuildingStorefrontIcon className="h-4 w-4" />
-              <span className="text-sm">إضافة فرع</span>
+              <span className="text-xs">إضافة فرع</span>
             </button>
 
-            <button 
+            <button
               onClick={() => setIsAddStorageModalOpen(true)}
               className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors"
             >
               <BuildingOffice2Icon className="h-4 w-4" />
-              <span className="text-sm">إضافة مخزن</span>
+              <span className="text-xs">إضافة مخزن</span>
             </button>
 
-            <button 
+            <button
               onClick={() => setIsManagementModalOpen(true)}
               className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors"
             >
               <CogIcon className="h-4 w-4" />
-              <span className="text-sm">إدارة</span>
+              <span className="text-xs">إدارة</span>
             </button>
 
             <button className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors">
               <DocumentArrowDownIcon className="h-4 w-4" />
-              <span className="text-sm">تصدير PDF</span>
+              <span className="text-xs">حفظ كـ PDF</span>
             </button>
 
             <button className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors">
               <DocumentTextIcon className="h-4 w-4" />
-              <span className="text-sm">تصدير اكسل</span>
+              <span className="text-xs">تصدير اكسل</span>
             </button>
 
             <button className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors">
               <ClipboardDocumentListIcon className="h-4 w-4" />
-              <span className="text-sm">جرد سريع</span>
+              <span className="text-xs">جرد سريع</span>
             </button>
 
             <button className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors">
               <ChartBarIcon className="h-4 w-4" />
-              <span className="text-sm">تقرير</span>
+              <span className="text-xs">تقرير</span>
             </button>
 
-            <button 
+            <button
               onClick={() => setShowColumnsModal(true)}
               className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors"
             >
               <TableCellsIcon className="h-4 w-4" />
-              <span className="text-sm">إدارة الأعمدة</span>
+              <span className="text-xs">الأعمدة</span>
+            </button>
+
+            {/* إضافة أزرار إضافية خاصة بالمخزون */}
+            <button className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors">
+              <ClipboardDocumentListIcon className="h-4 w-4" />
+              <span className="text-xs">إضافة كمية</span>
+            </button>
+
+            <button className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white cursor-pointer whitespace-nowrap bg-[#2B3544] hover:bg-[#434E61] rounded transition-colors">
+              <ClipboardDocumentListIcon className="h-4 w-4" />
+              <span className="text-xs">تعديل كمية</span>
             </button>
           </div>
         </div>
 
-        {/* Content Area with Sidebar and Main Content */}
+        {/* Search and Controls Section - Full Width Above Everything */}
+        <div className="bg-[#374151] border-b border-gray-600 px-4 py-3 flex-shrink-0">
+          {/* Single Horizontal Row - Search Bar, Product Count, View Toggle, Categories Toggle, Branches Dropdown */}
+          <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide" style={{scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch'}}>
+
+            {/* 1. Search Bar */}
+            <div className="relative flex-shrink-0 w-64">
+              <MagnifyingGlassIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="اسم المنتج..."
+                className="w-full pl-4 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#5DADE2] focus:border-transparent"
+                style={{ fontSize: '16px' }}
+                onFocus={(e) => {
+                  // Prevent zoom on iOS Safari
+                  e.target.style.fontSize = '16px';
+                  e.target.style.transformOrigin = 'left top';
+                  e.target.style.zoom = '1';
+                }}
+              />
+            </div>
+
+            {/* 2. Product Count (Plain Text) */}
+            <span className="text-xs text-gray-400 whitespace-nowrap">
+              عرض {filteredProducts.length} من {products.length}
+            </span>
+
+            {/* 3. View Toggle (Images or Tables) */}
+            <div className="flex bg-[#2B3544] rounded-md overflow-hidden flex-shrink-0 border border-gray-600">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                }`}
+                title="عرض الصور"
+              >
+                <Squares2X2Icon className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`p-2 transition-colors ${
+                  viewMode === 'table'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                }`}
+                title="عرض الجداول"
+              >
+                <ListBulletIcon className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* 4. Categories Toggle Button */}
+            <button
+              onClick={toggleCategoriesVisibility}
+              className="p-2 text-gray-300 hover:text-white hover:bg-gray-600/30 rounded-md transition-colors bg-[#2B3544] border border-gray-600 flex-shrink-0"
+              title={isCategoriesHidden ? 'إظهار المجموعات' : 'إخفاء المجموعات'}
+            >
+              {isCategoriesHidden ? (
+                <FolderIcon className="h-4 w-4" />
+              ) : (
+                <FolderOpenIcon className="h-4 w-4" />
+              )}
+            </button>
+
+            {/* 5. Branches and Warehouses Button */}
+            <div className="relative branches-dropdown flex-shrink-0">
+              <button
+                onClick={() => setShowBranchesDropdown(!showBranchesDropdown)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-xs font-medium transition-colors whitespace-nowrap"
+              >
+                <span>الفروع والمخازن</span>
+                <ChevronDownIcon className={`h-4 w-4 transition-transform ${showBranchesDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Branches Dropdown */}
+              {showBranchesDropdown && (
+                <div className="absolute top-full right-0 mt-2 w-64 bg-[#2B3544] border-2 border-[#4A5568] rounded-xl shadow-2xl z-[9999] overflow-hidden">
+                  <div className="p-2">
+                    <div className="space-y-1">
+                      {branches.map(branch => (
+                        <label
+                          key={branch.id}
+                          className="flex items-center gap-2 p-2 bg-[#374151] hover:bg-[#434E61] rounded-lg cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedBranches[branch.id] || false}
+                            onChange={() => handleBranchToggle(branch.id)}
+                            className="w-4 h-4 text-blue-600 bg-[#2B3544] border-2 border-blue-500 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-white text-sm flex-1 text-right">
+                            {branch.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 6. Stock Status Filter Buttons */}
+            <button
+              onClick={() => handleStockStatusToggle('good')}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                stockStatusFilters.good
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'bg-gray-600 text-gray-400 opacity-50'
+              }`}
+            >
+              جيد
+            </button>
+            <button
+              onClick={() => handleStockStatusToggle('low')}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                stockStatusFilters.low
+                  ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                  : 'bg-gray-600 text-gray-400 opacity-50'
+              }`}
+            >
+              منخفض
+            </button>
+            <button
+              onClick={() => handleStockStatusToggle('zero')}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                stockStatusFilters.zero
+                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                  : 'bg-gray-600 text-gray-400 opacity-50'
+              }`}
+            >
+              صفر
+            </button>
+
+            {/* 7. Audit Branches Dropdown */}
+            <div className="relative audit-branches-dropdown flex-shrink-0">
+              <button
+                onClick={() => setShowAuditBranchesDropdown(!showAuditBranchesDropdown)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-xs font-medium transition-colors whitespace-nowrap"
+              >
+                <span>فروع الجرد</span>
+                <ChevronDownIcon className={`h-4 w-4 transition-transform ${showAuditBranchesDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Audit Branches Dropdown Menu */}
+              {showAuditBranchesDropdown && (
+                <div className="absolute top-full right-0 mt-2 w-64 bg-[#2B3544] border-2 border-[#4A5568] rounded-xl shadow-2xl z-[9999] overflow-hidden">
+                  <div className="p-2">
+                    <div className="space-y-1">
+                      {branches.map(branch => (
+                        <div
+                          key={branch.id}
+                          className="flex items-center justify-between p-2 bg-[#374151] hover:bg-[#434E61] rounded-lg transition-colors"
+                        >
+                          <span className="text-white text-sm">
+                            {branch.name}
+                          </span>
+                          <div className="flex gap-2">
+                            <button className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded">
+                              تام
+                            </button>
+                            <button className="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 text-white text-xs rounded">
+                              استعد
+                            </button>
+                            <button className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded">
+                              غير مجرود
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 8. Audit Status Filter Buttons */}
+            <button
+              onClick={() => setAuditStatusFilters(prev => ({ ...prev, fully_audited: !prev.fully_audited }))}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                auditStatusFilters.fully_audited
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'bg-gray-600 text-gray-400 opacity-50'
+              }`}
+            >
+              تام الجرد
+            </button>
+            <button
+              onClick={() => setAuditStatusFilters(prev => ({ ...prev, ready: !prev.ready }))}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                auditStatusFilters.ready
+                  ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                  : 'bg-gray-600 text-gray-400 opacity-50'
+              }`}
+            >
+              استعد
+            </button>
+            <button
+              onClick={() => setAuditStatusFilters(prev => ({ ...prev, not_audited: !prev.not_audited }))}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                auditStatusFilters.not_audited
+                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                  : 'bg-gray-600 text-gray-400 opacity-50'
+              }`}
+            >
+              غير موجود
+            </button>
+          </div>
+        </div>
+
+        {/* Content Area with Sidebar and Main Content - Below Search Bar */}
         <div className="flex-1 flex overflow-hidden">
-          
-          {/* Categories Tree Sidebar */}
+
+          {/* Categories Tree Sidebar - Starts at content level */}
           {!isCategoriesHidden && (
-            <CategoriesTreeView 
+            <CategoriesTreeView
               onCategorySelect={handleCategorySelect}
               selectedCategoryId={selectedCategory?.id}
               showActionButtons={false}
@@ -655,139 +894,6 @@ export default function InventoryTabletView({
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
-
-            {/* Second Toolbar - Search and Controls (EXACT COPY FROM PRODUCTS) */}
-            <div className="bg-[#374151] border-b border-gray-600 px-6 py-3 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                {/* Left Side - Search and Controls */}
-                <div className="flex items-center gap-4">
-                  {/* Group Filter Dropdown with Categories Toggle Button */}
-                  <div className="relative branches-dropdown flex items-center gap-2">
-                    <button 
-                      onClick={() => setShowBranchesDropdown(!showBranchesDropdown)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium transition-colors"
-                    >
-                      <span>{selectedGroup}</span>
-                      <ChevronDownIcon className={`h-4 w-4 transition-transform ${showBranchesDropdown ? 'rotate-180' : ''}`} />
-                    </button>
-                    
-                    {/* Categories Toggle Button - Right next to the dropdown button */}
-                    <button 
-                      onClick={toggleCategoriesVisibility}
-                      className="p-2 text-gray-300 hover:text-white hover:bg-gray-600/30 rounded-md transition-colors"
-                      title={isCategoriesHidden ? 'إظهار الفئات' : 'إخفاء الفئات'}
-                    >
-                      {isCategoriesHidden ? (
-                        <Bars3Icon className="h-5 w-5" />
-                      ) : (
-                        <EyeSlashIcon className="h-5 w-5" />
-                      )}
-                    </button>
-                    
-                    {/* Branches Dropdown */}
-                    {showBranchesDropdown && (
-                      <div className="absolute top-full right-0 mt-2 w-64 bg-[#2B3544] border-2 border-[#4A5568] rounded-xl shadow-2xl z-[9999] overflow-hidden">
-                        <div className="p-2">
-                          <div className="space-y-1">
-                            {branches.map(branch => (
-                              <label
-                                key={branch.id}
-                                className="flex items-center gap-2 p-2 bg-[#374151] hover:bg-[#434E61] rounded-lg cursor-pointer transition-colors"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={selectedBranches[branch.id] || false}
-                                  onChange={() => handleBranchToggle(branch.id)}
-                                  className="w-4 h-4 text-blue-600 bg-[#2B3544] border-2 border-blue-500 rounded focus:ring-blue-500"
-                                />
-                                <span className="text-white text-sm flex-1 text-right">
-                                  {branch.name}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Search Bar */}
-                  <div className="relative">
-                    <MagnifyingGlassIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="اسم المنتج..."
-                      className="w-80 pl-4 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    />
-                  </div>
-
-                  {/* View Toggle */}
-                  <div className="flex bg-blue-600 rounded-md overflow-hidden">
-                    <button 
-                      onClick={() => setViewMode('table')}
-                      className={`p-2 transition-colors ${
-                        viewMode === 'table' 
-                          ? 'bg-blue-700 text-white' 
-                          : 'text-blue-200 hover:text-white hover:bg-blue-700'
-                      }`}
-                    >
-                      <ListBulletIcon className="h-4 w-4" />
-                    </button>
-                    <button 
-                      onClick={() => setViewMode('grid')}
-                      className={`p-2 transition-colors ${
-                        viewMode === 'grid' 
-                          ? 'bg-blue-700 text-white' 
-                          : 'text-blue-200 hover:text-white hover:bg-blue-700'
-                      }`}
-                    >
-                      <Squares2X2Icon className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Right Side - Status Filter Buttons */}
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => handleStockStatusToggle('good')}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                      stockStatusFilters.good 
-                        ? 'bg-green-600 hover:bg-green-700 text-white' 
-                        : 'bg-gray-600 text-gray-400 opacity-50'
-                    }`}
-                  >
-                    جيد
-                  </button>
-                  <button 
-                    onClick={() => handleStockStatusToggle('low')}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                      stockStatusFilters.low 
-                        ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-                        : 'bg-gray-600 text-gray-400 opacity-50'
-                    }`}
-                  >
-                    منخفض
-                  </button>
-                  <button 
-                    onClick={() => handleStockStatusToggle('zero')}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                      stockStatusFilters.zero 
-                        ? 'bg-red-600 hover:bg-red-700 text-white' 
-                        : 'bg-gray-600 text-gray-400 opacity-50'
-                    }`}
-                  >
-                    صفر
-                  </button>
-                </div>
-              </div>
-
-              {/* Bottom Row - Product Count */}
-              <div className="mt-2 flex justify-between items-center text-sm text-gray-400">
-                <span>عرض {filteredProducts.length} من أصل {products.length} منتج</span>
-              </div>
-            </div>
 
             {/* Products Content Container */}
             <div className="flex-1 overflow-hidden bg-[#2B3544]">
@@ -814,9 +920,9 @@ export default function InventoryTabletView({
                   }}
                 />
               ) : (
-                // Grid View - Tablet Optimized (3 columns)
+                // Grid View - Tablet Optimized (2 columns like products page)
                 <div className="h-full overflow-y-auto scrollbar-hide p-3">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     {filteredProducts.map((product, index) => (
                       <div
                         key={product.id}

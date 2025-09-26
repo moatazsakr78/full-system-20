@@ -1290,7 +1290,7 @@ export default function ProductsTabletView({
           />
 
           {/* Modal */}
-          <div className="fixed inset-4 bg-[#2B3544] rounded-2xl z-[99999] flex flex-col max-h-[80vh]">
+          <div className="branches-dropdown fixed inset-4 bg-[#2B3544] rounded-2xl z-[99999] flex flex-col max-h-[80vh]">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-[#4A5568]">
               <h3 className="text-white text-lg font-semibold">اختر الفروع والمخازن</h3>
@@ -1310,13 +1310,7 @@ export default function ProductsTabletView({
                     key={branch.id}
                     className="flex items-center gap-3 p-3 bg-[#374151] hover:bg-[#434E61] rounded-xl transition-colors border border-gray-600/30"
                   >
-                    <div
-                      className="relative"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleTempBranchToggle(branch.id)
-                      }}
-                    >
+                    <div className="relative">
                       <input
                         type="checkbox"
                         checked={tempSelectedBranches[branch.id] || false}
@@ -1326,11 +1320,17 @@ export default function ProductsTabletView({
                         }}
                         className="w-5 h-5 opacity-0 absolute"
                       />
-                      <div className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-colors cursor-pointer ${
-                        tempSelectedBranches[branch.id]
-                          ? 'bg-blue-600 border-blue-600'
-                          : 'bg-transparent border-blue-500'
-                      }`}>
+                      <div
+                        className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-colors cursor-pointer ${
+                          tempSelectedBranches[branch.id]
+                            ? 'bg-blue-600 border-blue-600'
+                            : 'bg-transparent border-blue-500'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleTempBranchToggle(branch.id)
+                        }}
+                      >
                         {tempSelectedBranches[branch.id] && (
                           <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />

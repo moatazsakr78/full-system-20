@@ -73,6 +73,7 @@ export default function InventoryPage() {
   const [showColumnsModal, setShowColumnsModal] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
   const [isTablet, setIsTablet] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   
   // Quantity adjustment modal states
   const [showQuantityModal, setShowQuantityModal] = useState(false)
@@ -110,12 +111,21 @@ export default function InventoryPage() {
   // Get products and branches data using the same hook as products page
   const { products, setProducts, branches, isLoading, error, fetchProducts } = useProducts()
 
-  // Device detection for tablet optimization
+  // Device detection for mobile and tablet optimization
   useEffect(() => {
     const checkDevice = () => {
       const userAgent = navigator.userAgent.toLowerCase()
+      const windowWidth = window.innerWidth
+
+      // Check for mobile devices (phones)
+      const isMobileDevice = /mobile|android(?=.*mobile)|iphone|ipod|blackberry|opera mini/i.test(userAgent) ||
+                            windowWidth < 768
+
+      // Check for tablet devices
       const isTabletDevice = /tablet|ipad|playbook|silk|android(?!.*mobile)/i.test(userAgent) ||
-                            (window.innerWidth >= 768 && window.innerWidth <= 1024)
+                            (windowWidth >= 768 && windowWidth <= 1024)
+
+      setIsMobile(isMobileDevice)
       setIsTablet(isTabletDevice)
     }
 
@@ -856,8 +866,8 @@ export default function InventoryPage() {
     }))
   }, [])
 
-  // Use tablet view if detected as tablet device
-  if (isTablet) {
+  // Use tablet view if detected as tablet or mobile device
+  if (isTablet || isMobile) {
     return (
       <InventoryTabletView
         searchQuery={searchQuery}
