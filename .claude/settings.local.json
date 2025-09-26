@@ -279,7 +279,8 @@
       "Bash(findstr:*)",
       "Bash(start http://localhost:3002/product/3f2d97c6-c4b7-491d-8ee3-55f03dbf13c9)",
       "Bash(start http://localhost:3002/product/7f8d2e3f-e3c1-4ba9-9b01-f0b3b994aa4c)",
-      "Bash(start http://localhost:3002/product/2ee8d1c5-e054-48f8-8e25-4b7c7875961a)"
+      "Bash(start http://localhost:3002/product/2ee8d1c5-e054-48f8-8e25-4b7c7875961a)",
+      "Bash(start http://localhost:3000/customers)"
     ],
     "deny": [],
     "additionalDirectories": [

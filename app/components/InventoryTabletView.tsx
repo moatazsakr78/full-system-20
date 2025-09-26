@@ -668,9 +668,9 @@ export default function InventoryTabletView({
         </div>
 
         {/* Search and Controls Section - Full Width Above Everything */}
-        <div className="bg-[#374151] border-b border-gray-600 px-4 py-3 flex-shrink-0">
+        <div className="bg-[#374151] border-b border-gray-600 px-4 py-2 flex-shrink-0">
           {/* Single Horizontal Row - Search Bar, Product Count, View Toggle, Categories Toggle, Branches Dropdown */}
-          <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide" style={{scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch'}}>
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide" style={{scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch'}}>
 
             {/* 1. Search Bar */}
             <div className="relative flex-shrink-0 w-64">
@@ -697,41 +697,41 @@ export default function InventoryTabletView({
             </span>
 
             {/* 3. View Toggle (Images or Tables) */}
-            <div className="flex bg-[#2B3544] rounded-md overflow-hidden flex-shrink-0 border border-gray-600">
+            <div className="flex bg-[#2B3544] rounded overflow-hidden flex-shrink-0 border border-gray-600">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 transition-colors ${
+                className={`p-1.5 transition-colors ${
                   viewMode === 'grid'
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-400 hover:text-white hover:bg-gray-600'
                 }`}
                 title="عرض الصور"
               >
-                <Squares2X2Icon className="h-4 w-4" />
+                <Squares2X2Icon className="h-3 w-3" />
               </button>
               <button
                 onClick={() => setViewMode('table')}
-                className={`p-2 transition-colors ${
+                className={`p-1.5 transition-colors ${
                   viewMode === 'table'
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-400 hover:text-white hover:bg-gray-600'
                 }`}
                 title="عرض الجداول"
               >
-                <ListBulletIcon className="h-4 w-4" />
+                <ListBulletIcon className="h-3 w-3" />
               </button>
             </div>
 
             {/* 4. Categories Toggle Button */}
             <button
               onClick={toggleCategoriesVisibility}
-              className="p-2 text-gray-300 hover:text-white hover:bg-gray-600/30 rounded-md transition-colors bg-[#2B3544] border border-gray-600 flex-shrink-0"
+              className="p-1.5 text-gray-300 hover:text-white hover:bg-gray-600/30 rounded transition-colors bg-[#2B3544] border border-gray-600 flex-shrink-0"
               title={isCategoriesHidden ? 'إظهار المجموعات' : 'إخفاء المجموعات'}
             >
               {isCategoriesHidden ? (
-                <FolderIcon className="h-4 w-4" />
+                <FolderIcon className="h-3 w-3" />
               ) : (
-                <FolderOpenIcon className="h-4 w-4" />
+                <FolderOpenIcon className="h-3 w-3" />
               )}
             </button>
 
@@ -739,10 +739,10 @@ export default function InventoryTabletView({
             <div className="relative branches-dropdown flex-shrink-0">
               <button
                 onClick={() => setShowBranchesDropdown(!showBranchesDropdown)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-xs font-medium transition-colors whitespace-nowrap"
+                className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-white text-xs font-medium transition-colors whitespace-nowrap"
               >
                 <span>الفروع والمخازن</span>
-                <ChevronDownIcon className={`h-4 w-4 transition-transform ${showBranchesDropdown ? 'rotate-180' : ''}`} />
+                <ChevronDownIcon className={`h-3 w-3 transition-transform ${showBranchesDropdown ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Branches Dropdown */}
@@ -775,7 +775,7 @@ export default function InventoryTabletView({
             {/* 6. Stock Status Filter Buttons */}
             <button
               onClick={() => handleStockStatusToggle('good')}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+              className={`px-2 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                 stockStatusFilters.good
                   ? 'bg-green-600 hover:bg-green-700 text-white'
                   : 'bg-gray-600 text-gray-400 opacity-50'
@@ -785,7 +785,7 @@ export default function InventoryTabletView({
             </button>
             <button
               onClick={() => handleStockStatusToggle('low')}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+              className={`px-2 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                 stockStatusFilters.low
                   ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
                   : 'bg-gray-600 text-gray-400 opacity-50'
@@ -795,7 +795,7 @@ export default function InventoryTabletView({
             </button>
             <button
               onClick={() => handleStockStatusToggle('zero')}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+              className={`px-2 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                 stockStatusFilters.zero
                   ? 'bg-red-600 hover:bg-red-700 text-white'
                   : 'bg-gray-600 text-gray-400 opacity-50'
@@ -808,10 +808,10 @@ export default function InventoryTabletView({
             <div className="relative audit-branches-dropdown flex-shrink-0">
               <button
                 onClick={() => setShowAuditBranchesDropdown(!showAuditBranchesDropdown)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-xs font-medium transition-colors whitespace-nowrap"
+                className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-white text-xs font-medium transition-colors whitespace-nowrap"
               >
                 <span>فروع الجرد</span>
-                <ChevronDownIcon className={`h-4 w-4 transition-transform ${showAuditBranchesDropdown ? 'rotate-180' : ''}`} />
+                <ChevronDownIcon className={`h-3 w-3 transition-transform ${showAuditBranchesDropdown ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Audit Branches Dropdown Menu */}
@@ -849,7 +849,7 @@ export default function InventoryTabletView({
             {/* 8. Audit Status Filter Buttons */}
             <button
               onClick={() => setAuditStatusFilters(prev => ({ ...prev, fully_audited: !prev.fully_audited }))}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+              className={`px-2 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                 auditStatusFilters.fully_audited
                   ? 'bg-green-600 hover:bg-green-700 text-white'
                   : 'bg-gray-600 text-gray-400 opacity-50'
@@ -859,7 +859,7 @@ export default function InventoryTabletView({
             </button>
             <button
               onClick={() => setAuditStatusFilters(prev => ({ ...prev, ready: !prev.ready }))}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+              className={`px-2 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                 auditStatusFilters.ready
                   ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
                   : 'bg-gray-600 text-gray-400 opacity-50'
@@ -869,7 +869,7 @@ export default function InventoryTabletView({
             </button>
             <button
               onClick={() => setAuditStatusFilters(prev => ({ ...prev, not_audited: !prev.not_audited }))}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+              className={`px-2 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                 auditStatusFilters.not_audited
                   ? 'bg-red-600 hover:bg-red-700 text-white'
                   : 'bg-gray-600 text-gray-400 opacity-50'

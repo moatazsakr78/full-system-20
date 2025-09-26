@@ -12,6 +12,7 @@ import CustomerDetailsModal from '../../components/CustomerDetailsModal'
 import ColumnsControlModal from '../../components/ColumnsControlModal'
 import { useCustomerGroups, CustomerGroup } from '../../lib/hooks/useCustomerGroups'
 import { useCustomers, Customer, DEFAULT_CUSTOMER_ID } from '../../lib/hooks/useCustomers'
+import CustomersGridView from '../../components/CustomersGridView'
 import {
   ArrowPathIcon,
   FolderPlusIcon,
@@ -243,6 +244,7 @@ export default function CustomersPage() {
   const [showColumnsModal, setShowColumnsModal] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
   const [isDeleting, setIsDeleting] = useState(false)
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid')
   
   // Use the real-time hooks for customer groups and customers
   const { groups, isLoading: groupsLoading, error: groupsError, toggleGroup } = useCustomerGroups()
@@ -641,13 +643,15 @@ export default function CustomersPage() {
               <span className="text-sm">ترتيب</span>
             </button>
 
-            <button 
-              onClick={() => setShowColumnsModal(true)}
-              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
-            >
-              <TableCellsIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">الأعمدة</span>
-            </button>
+            {viewMode === 'table' && (
+              <button
+                onClick={() => setShowColumnsModal(true)}
+                className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+              >
+                <TableCellsIcon className="h-5 w-5 mb-1" />
+                <span className="text-sm">الأعمدة</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -703,10 +707,24 @@ export default function CustomersPage() {
 
                   {/* View Toggle */}
                   <div className="flex bg-[#2B3544] rounded-md overflow-hidden">
-                    <button className="p-2 bg-blue-600 text-white">
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className={`p-2 transition-colors ${
+                        viewMode === 'grid'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                      }`}
+                    >
                       <Squares2X2Icon className="h-4 w-4" />
                     </button>
-                    <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-600 transition-colors">
+                    <button
+                      onClick={() => setViewMode('table')}
+                      className={`p-2 transition-colors ${
+                        viewMode === 'table'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                      }`}
+                    >
                       <ListBulletIcon className="h-4 w-4" />
                     </button>
                   </div>
@@ -731,7 +749,7 @@ export default function CustomersPage() {
               </div>
             </div>
 
-            {/* Customers Table Container */}
+            {/* Customers Content Container */}
             <div className="flex-1 overflow-hidden bg-[#2B3544]">
               {customersLoading ? (
                 <div className="flex items-center justify-center h-full">
@@ -740,6 +758,23 @@ export default function CustomersPage() {
               ) : customersError ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-red-400">{customersError}</div>
+                </div>
+              ) : viewMode === 'grid' ? (
+                <div className="h-full overflow-y-auto scrollbar-hide">
+                  <CustomersGridView
+                    customers={filteredCustomers}
+                    selectedCustomer={selectedCustomer}
+                    onCustomerClick={(customer) => {
+                      // Toggle selection: if already selected, deselect it
+                      if (selectedCustomer?.id === customer.id) {
+                        setSelectedCustomer(null)
+                      } else {
+                        setSelectedCustomer(customer)
+                      }
+                    }}
+                    onCustomerDoubleClick={openCustomerDetails}
+                    isDefaultCustomer={isDefaultCustomer}
+                  />
                 </div>
               ) : (
                 <ResizableTable
