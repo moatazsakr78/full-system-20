@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Customer } from '../lib/hooks/useCustomers'
+import { Supplier } from '../lib/hooks/useSuppliers'
 import { ranks } from '@/app/lib/data/ranks'
 import { supabase } from '../lib/supabase/client'
 import Image from 'next/image'
@@ -12,24 +12,26 @@ import {
   MapPinIcon,
   CalendarIcon,
   StarIcon,
-  TrophyIcon
+  TrophyIcon,
+  BuildingOfficeIcon,
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline'
 
-interface CustomersGridViewProps {
-  customers: Customer[]
-  selectedCustomer: Customer | null
-  onCustomerClick: (customer: Customer) => void
-  onCustomerDoubleClick: (customer: Customer) => void
-  isDefaultCustomer: (customerId: string) => boolean
+interface SuppliersGridViewProps {
+  suppliers: Supplier[]
+  selectedSupplier: Supplier | null
+  onSupplierClick: (supplier: Supplier) => void
+  onSupplierDoubleClick: (supplier: Supplier) => void
+  isDefaultSupplier: (supplierId: string) => boolean
 }
 
-export default function CustomersGridView({
-  customers,
-  selectedCustomer,
-  onCustomerClick,
-  onCustomerDoubleClick,
-  isDefaultCustomer
-}: CustomersGridViewProps) {
+export default function SuppliersGridView({
+  suppliers,
+  selectedSupplier,
+  onSupplierClick,
+  onSupplierDoubleClick,
+  isDefaultSupplier
+}: SuppliersGridViewProps) {
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-'
@@ -42,47 +44,28 @@ export default function CustomersGridView({
     return ranks.find(r => r.id === rankId)
   }
 
-  // دالة للحصول على صورة العميل من user_profiles
-  const [userAvatars, setUserAvatars] = useState<{[key: string]: string}>({})
+  // دالة لتوليد صور Gravatar الحقيقية باستخدام MD5 الحقيقي
+  const getGravatarUrl = (email: string | null, size: number = 80) => {
+    if (!email) return null;
 
-  // جلب avatars للمستخدمين الذين لديهم user_id
-  useEffect(() => {
-    const fetchUserAvatars = async () => {
-      const customerUserIds = customers
-        .filter(customer => customer.user_id)
-        .map(customer => customer.user_id!)
+    // تنظيف البريد الإلكتروني
+    const cleanEmail = email.toLowerCase().trim();
 
-      if (customerUserIds.length > 0) {
-        const { data } = await supabase
-          .from('user_profiles')
-          .select('id, avatar_url')
-          .in('id', customerUserIds)
+    // توليد MD5 hash حقيقي للبريد الإلكتروني
+    const emailHash = MD5(cleanEmail).toString();
 
-        if (data) {
-          const avatarMap = data.reduce((acc, user) => {
-            if (user.avatar_url) {
-              acc[user.id] = user.avatar_url
-            }
-            return acc
-          }, {} as {[key: string]: string})
+    // إرجاع رابط Gravatar الحقيقي مع fallback للصور التلقائية
+    return `https://www.gravatar.com/avatar/${emailHash}?s=${size}&d=identicon&r=pg`;
+  }
 
-          setUserAvatars(avatarMap)
-        }
-      }
+  // دالة للحصول على صورة المورد
+  const getSupplierAvatarUrl = (supplier: Supplier) => {
+    // إذا كان لديه بريد إلكتروني، استخدم Gravatar
+    if (supplier.email) {
+      return getGravatarUrl(supplier.email, 80);
     }
 
-    if (customers.length > 0) {
-      fetchUserAvatars()
-    }
-  }, [customers])
-
-  const getCustomerAvatarUrl = (customer: Customer) => {
-    // إذا كان لديه user_id، ابحث عن avatar_url في userAvatars
-    if (customer.user_id && userAvatars[customer.user_id]) {
-      return userAvatars[customer.user_id];
-    }
-
-    // إذا لم يكن لديه user_id أو avatar_url، ارجع null للاعتماد على الأحرف الأولى
+    // إذا لم يكن لديه بريد، ارجع null للاعتماد على الأحرف الأولى
     return null;
   }
 
@@ -110,20 +93,25 @@ export default function CustomersGridView({
     }
   }
 
+  const formatCurrency = (amount: number | null) => {
+    if (!amount) return '0'
+    return amount.toLocaleString('ar-SA')
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4 p-4">
-      {customers.map((customer) => {
-        const isSelected = selectedCustomer?.id === customer.id
-        const isDefault = isDefaultCustomer(customer.id)
-        const rankInfo = getRankInfo(customer.rank)
-        const avatarUrl = getCustomerAvatarUrl(customer)
-        const initialsAvatar = getInitialsAvatar(customer.name)
+      {suppliers.map((supplier) => {
+        const isSelected = selectedSupplier?.id === supplier.id
+        const isDefault = isDefaultSupplier(supplier.id)
+        const rankInfo = getRankInfo(supplier.rank)
+        const avatarUrl = getSupplierAvatarUrl(supplier)
+        const initialsAvatar = getInitialsAvatar(supplier.name)
 
         return (
           <div
-            key={customer.id}
-            onClick={() => onCustomerClick(customer)}
-            onDoubleClick={() => onCustomerDoubleClick(customer)}
+            key={supplier.id}
+            onClick={() => onSupplierClick(supplier)}
+            onDoubleClick={() => onSupplierDoubleClick(supplier)}
             className={`
               relative bg-[#374151] rounded-lg border-2 cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:shadow-lg
               ${isSelected
@@ -142,7 +130,7 @@ export default function CustomersGridView({
                       {avatarUrl ? (
                         <img
                           src={avatarUrl}
-                          alt={customer.name}
+                          alt={supplier.name}
                           className="w-full h-full object-cover rounded-full"
                           onError={(e) => {
                             // إذا فشل تحميل الصورة، اعرض الأحرف الأولى
@@ -169,16 +157,16 @@ export default function CustomersGridView({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="text-white font-semibold text-lg truncate">
-                        {customer.name}
+                        {supplier.name}
                       </h3>
                       {isDefault && (
                         <StarIcon className="h-5 w-5 text-yellow-400 flex-shrink-0" />
                       )}
                     </div>
 
-                    {/* Category */}
+                    {/* Company Name */}
                     <p className="text-gray-300 text-sm truncate">
-                      {customer.category || 'غير محدد'}
+                      {supplier.company_name || supplier.category || 'غير محدد'}
                     </p>
                   </div>
                 </div>
@@ -205,52 +193,62 @@ export default function CustomersGridView({
             {/* Content */}
             <div className="p-4 space-y-3">
               {/* Email - أضف البريد الإلكتروني إذا وجد */}
-              {customer.email && (
+              {supplier.email && (
                 <div className="flex items-center gap-2">
                   <svg className="h-4 w-4 text-cyan-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                   </svg>
                   <span className="text-gray-300 text-sm truncate">
-                    {customer.email}
+                    {supplier.email}
                   </span>
                 </div>
               )}
 
-              {/* Loyalty Points */}
+              {/* Account Balance */}
               <div className="flex items-center gap-2">
-                <TrophyIcon className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                <span className="text-sm text-gray-300">النقاط:</span>
+                <CurrencyDollarIcon className="h-4 w-4 text-green-400 flex-shrink-0" />
+                <span className="text-sm text-gray-300">الرصيد:</span>
                 <span className="text-white font-medium">
-                  {(customer.loyalty_points || 0).toLocaleString()}
+                  {formatCurrency(supplier.account_balance)} ر.س
                 </span>
               </div>
 
               {/* Phone */}
-              {customer.phone && (
+              {supplier.phone && (
                 <div className="flex items-center gap-2">
-                  <PhoneIcon className="h-4 w-4 text-green-400 flex-shrink-0" />
+                  <PhoneIcon className="h-4 w-4 text-blue-400 flex-shrink-0" />
                   <span className="text-gray-300 text-sm font-mono truncate">
-                    {customer.phone}
+                    {supplier.phone}
+                  </span>
+                </div>
+              )}
+
+              {/* Contact Person */}
+              {supplier.contact_person && (
+                <div className="flex items-center gap-2">
+                  <UserCircleIcon className="h-4 w-4 text-purple-400 flex-shrink-0" />
+                  <span className="text-gray-300 text-sm truncate">
+                    {supplier.contact_person}
                   </span>
                 </div>
               )}
 
               {/* City */}
-              {customer.city && (
+              {supplier.city && (
                 <div className="flex items-center gap-2">
                   <MapPinIcon className="h-4 w-4 text-red-400 flex-shrink-0" />
                   <span className="text-gray-300 text-sm truncate">
-                    {customer.city}
+                    {supplier.city}
                   </span>
                 </div>
               )}
 
               {/* Created Date */}
               <div className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4 text-purple-400 flex-shrink-0" />
+                <CalendarIcon className="h-4 w-4 text-orange-400 flex-shrink-0" />
                 <span className="text-sm text-gray-300">منذ:</span>
                 <span className="text-gray-400 text-sm">
-                  {formatDate(customer.created_at)}
+                  {formatDate(supplier.created_at)}
                 </span>
               </div>
             </div>

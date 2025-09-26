@@ -10,6 +10,7 @@ import EditSupplierModal from '../../components/EditSupplierModal'
 import SupplierGroupSidebar from '../../components/SupplierGroupSidebar'
 import SupplierDetailsModal from '../../components/SupplierDetailsModal'
 import ColumnsControlModal from '../../components/ColumnsControlModal'
+import SuppliersGridView from '../../components/SuppliersGridView'
 import { useSupplierGroups, SupplierGroup } from '../../lib/hooks/useSupplierGroups'
 import { useSuppliers, Supplier, DEFAULT_SUPPLIER_ID } from '../../lib/hooks/useSuppliers'
 import {
@@ -241,6 +242,7 @@ export default function SuppliersPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid')
   const [showColumnsModal, setShowColumnsModal] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
   
@@ -640,13 +642,15 @@ export default function SuppliersPage() {
               <span className="text-sm">ترتيب</span>
             </button>
 
-            <button 
-              onClick={() => setShowColumnsModal(true)}
-              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
-            >
-              <TableCellsIcon className="h-5 w-5 mb-1" />
-              <span className="text-sm">الأعمدة</span>
-            </button>
+            {viewMode === 'table' && (
+              <button
+                onClick={() => setShowColumnsModal(true)}
+                className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
+              >
+                <TableCellsIcon className="h-5 w-5 mb-1" />
+                <span className="text-sm">الأعمدة</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -701,10 +705,24 @@ export default function SuppliersPage() {
 
                   {/* View Toggle */}
                   <div className="flex bg-[#2B3544] rounded-md overflow-hidden">
-                    <button className="p-2 bg-blue-600 text-white">
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className={`p-2 transition-colors ${
+                        viewMode === 'grid'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                      }`}
+                    >
                       <Squares2X2Icon className="h-4 w-4" />
                     </button>
-                    <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-600 transition-colors">
+                    <button
+                      onClick={() => setViewMode('table')}
+                      className={`p-2 transition-colors ${
+                        viewMode === 'table'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                      }`}
+                    >
                       <ListBulletIcon className="h-4 w-4" />
                     </button>
                   </div>
@@ -729,7 +747,7 @@ export default function SuppliersPage() {
               </div>
             </div>
 
-            {/* Suppliers Table Container */}
+            {/* Suppliers Content Container */}
             <div className="flex-1 overflow-hidden bg-[#2B3544]">
               {suppliersLoading ? (
                 <div className="flex items-center justify-center h-full">
@@ -738,6 +756,23 @@ export default function SuppliersPage() {
               ) : suppliersError ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-red-400">{suppliersError}</div>
+                </div>
+              ) : viewMode === 'grid' ? (
+                <div className="h-full overflow-y-auto scrollbar-hide">
+                  <SuppliersGridView
+                    suppliers={filteredSuppliers}
+                    selectedSupplier={selectedSupplier}
+                    onSupplierClick={(supplier) => {
+                      // Toggle selection: if already selected, deselect it
+                      if (selectedSupplier?.id === supplier.id) {
+                        setSelectedSupplier(null)
+                      } else {
+                        setSelectedSupplier(supplier)
+                      }
+                    }}
+                    onSupplierDoubleClick={openSupplierDetails}
+                    isDefaultSupplier={isDefaultSupplier}
+                  />
                 </div>
               ) : (
                 <ResizableTable
