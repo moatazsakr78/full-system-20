@@ -1919,7 +1919,20 @@ function POSPageContent() {
                 />
               </div>
 
-              {/* 2. Product Count */}
+              {/* 2. Cart Toggle Button */}
+              <button
+                onClick={() => setIsCartOpen(!isCartOpen)}
+                className="p-2 text-gray-300 hover:text-white hover:bg-gray-600/30 rounded-md transition-colors bg-[#2B3544] border border-gray-600 flex-shrink-0"
+                title={isCartOpen ? "إخفاء السلة" : "إظهار السلة"}
+              >
+                {isCartOpen ? (
+                  <ShoppingBagIcon className="h-4 w-4" />
+                ) : (
+                  <ShoppingCartIcon className="h-4 w-4" />
+                )}
+              </button>
+
+              {/* 3. Product Count */}
               <span className="text-xs text-gray-400 whitespace-nowrap">
                 عرض {filteredProducts.length} من {products.length}
               </span>
@@ -1950,20 +1963,7 @@ function POSPageContent() {
                 </button>
               </div>
 
-              {/* 4. Cart Toggle Button */}
-              <button
-                onClick={() => setIsCartOpen(!isCartOpen)}
-                className="p-2 text-gray-300 hover:text-white hover:bg-gray-600/30 rounded-md transition-colors bg-[#2B3544] border border-gray-600 flex-shrink-0"
-                title={isCartOpen ? "إخفاء السلة" : "إظهار السلة"}
-              >
-                {isCartOpen ? (
-                  <ShoppingBagIcon className="h-4 w-4" />
-                ) : (
-                  <ShoppingCartIcon className="h-4 w-4" />
-                )}
-              </button>
-
-              {/* 5. Customer Info */}
+              {/* 4. Customer Info */}
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-xs text-gray-400">العميل:</span>
                 <span className="text-xs text-white bg-[#2B3544] px-2 py-1 rounded border border-gray-600">
@@ -1971,7 +1971,7 @@ function POSPageContent() {
                 </span>
               </div>
 
-              {/* 6. Branch Info */}
+              {/* 5. Branch Info */}
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-xs text-gray-400">الفرع:</span>
                 <span className="text-xs text-white bg-[#2B3544] px-2 py-1 rounded border border-gray-600">
@@ -1979,7 +1979,7 @@ function POSPageContent() {
                 </span>
               </div>
 
-              {/* 7. Record Info */}
+              {/* 6. Record Info */}
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-xs text-gray-400">السجل:</span>
                 <span className="text-xs text-white bg-[#2B3544] px-2 py-1 rounded border border-gray-600">
@@ -1987,7 +1987,7 @@ function POSPageContent() {
                 </span>
               </div>
 
-              {/* 8. Clear All Button */}
+              {/* 7. Clear All Button */}
               {(selections.customer ||
                 selections.branch ||
                 selections.record) && (
@@ -2034,7 +2034,7 @@ function POSPageContent() {
               // Grid View
               <div className="h-full overflow-y-auto scrollbar-hide p-4">
                 <div
-                  className={`grid gap-4 ${isCartOpen ? "grid-cols-1" : "grid-cols-2"} md:grid-cols-6`}
+                  className="grid gap-4 grid-cols-2 md:grid-cols-6"
                 >
                   {filteredProducts.map((product, index) => (
                     <div
@@ -2164,16 +2164,17 @@ function POSPageContent() {
           </div>
         </div>
 
-        {/* Shopping Cart Panel - Responsive and Conditional (Mobile: conditional, Desktop: always shown) */}
-        <div className={`${isCartOpen ? "flex" : "hidden md:flex"}`}>
+        {/* Shopping Cart Panel - Desktop: Sidebar, Mobile: Shows below search toolbar */}
+        <div className={`${isCartOpen ? "flex" : "hidden"} md:flex`}>
           <div
             className="
+            fixed top-[170px] left-0 right-0 bottom-0 z-40 md:relative md:inset-auto md:z-auto md:top-auto
             w-full md:w-80
             bg-[#374151]
             border-l-2 md:border-r-2 border-t-2 md:border-t-0 md:border-l-0
             border-gray-500
             flex flex-col
-            h-64 md:h-screen
+            h-[calc(100vh-170px)] md:h-screen
             flex-shrink-0
           "
           >
@@ -2197,6 +2198,16 @@ function POSPageContent() {
                   <div className="p-4 border-b border-gray-600 flex-shrink-0">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
+                        {/* Close button for mobile */}
+                        <button
+                          onClick={() => setIsCartOpen(false)}
+                          className="md:hidden text-gray-400 hover:text-white mr-2"
+                          title="إغلاق السلة"
+                        >
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                         <span className="text-white font-medium">السلة</span>
                         <span className="bg-blue-600 px-2 py-1 rounded text-xs text-white">
                           {cartItems.length}
