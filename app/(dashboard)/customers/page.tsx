@@ -31,6 +31,7 @@ import {
   ListBulletIcon,
   MinusIcon,
   FolderIcon,
+  FolderOpenIcon,
   UserPlusIcon
 } from '@heroicons/react/24/outline'
 import { ranks } from '@/app/lib/data/ranks'
@@ -245,6 +246,7 @@ export default function CustomersPage() {
   const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
   const [isDeleting, setIsDeleting] = useState(false)
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid')
+  const [isGroupsHidden, setIsGroupsHidden] = useState(false)
   
   // Use the real-time hooks for customer groups and customers
   const { groups, isLoading: groupsLoading, error: groupsError, toggleGroup } = useCustomerGroups()
@@ -370,6 +372,10 @@ export default function CustomersPage() {
     setSelectedCustomerGroup(group)
     // إلغاء تحديد العميل عند تغيير المجموعة
     setSelectedCustomer(null)
+  }
+
+  const toggleGroupsVisibility = () => {
+    setIsGroupsHidden(!isGroupsHidden)
   }
 
   const handleDeleteGroup = async () => {
@@ -658,15 +664,37 @@ export default function CustomersPage() {
         {/* Second Toolbar - Search and Controls - Full Width */}
         <div className="bg-[#374151] border-b border-gray-600 px-2 py-3 w-full flex-shrink-0">
           <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide">
-            {/* Group Filter Dropdown */}
+            {/* Search - First - Reduced width for mobile */}
             <div className="relative flex-shrink-0">
-              <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm font-medium transition-colors whitespace-nowrap">
-                <span>فئة العملاء</span>
-                <ChevronDownIcon className="h-4 w-4" />
-              </button>
+              <MagnifyingGlassIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="اسم العميل..."
+                className="w-48 sm:w-60 md:w-80 pl-4 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
             </div>
 
-            {/* View Toggle */}
+            {/* Groups Toggle Button - Second */}
+            <button
+              onClick={toggleGroupsVisibility}
+              className="p-2 text-gray-300 hover:text-white hover:bg-gray-600/30 rounded-md transition-colors bg-[#2B3544] border border-gray-600 flex-shrink-0"
+              title={isGroupsHidden ? 'إظهار المجموعات' : 'إخفاء المجموعات'}
+            >
+              {isGroupsHidden ? (
+                <FolderIcon className="h-4 w-4" />
+              ) : (
+                <FolderOpenIcon className="h-4 w-4" />
+              )}
+            </button>
+
+            {/* Customer Count Display - Third */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-sm text-gray-400 whitespace-nowrap">{filteredCustomers.length} من {customers.length} عميل</span>
+            </div>
+
+            {/* View Toggle - Fourth */}
             <div className="flex bg-[#2B3544] rounded-md overflow-hidden flex-shrink-0">
               <button
                 onClick={() => setViewMode('grid')}
@@ -689,58 +717,43 @@ export default function CustomersPage() {
                 <ListBulletIcon className="h-4 w-4" />
               </button>
             </div>
-
-            {/* Search */}
-            <div className="relative flex-shrink-0">
-              <MagnifyingGlassIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="اسم العميل..."
-                className="w-80 pl-4 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              />
-            </div>
-
-            {/* Customer Count Display */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-sm text-gray-400 whitespace-nowrap">عرض {filteredCustomers.length} من أصل {customers.length} عميل</span>
-            </div>
           </div>
         </div>
 
         {/* Content Area with Sidebar and Main Content */}
         <div className="flex-1 flex overflow-hidden">
 
-          {/* Customer Groups Tree Sidebar */}
-          <div className="w-64 bg-[#374151] border-l border-gray-700 flex flex-col">
-            {/* Tree View */}
-            <div className="flex-1 overflow-y-auto scrollbar-hide py-2">
-              {groupsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-gray-400">جاري التحميل...</div>
-                </div>
-              ) : groupsError ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-red-400 text-sm">{groupsError}</div>
-                </div>
-              ) : groups.length === 0 ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-gray-400 text-sm">لا توجد مجموعات</div>
-                </div>
-              ) : (
-                groups.map((group) => (
-                  <TreeView
-                    key={group.id}
-                    node={group}
-                    onToggle={toggleGroup}
-                    onSelect={handleCustomerGroupSelect}
-                    selectedGroupId={selectedCustomerGroup?.id}
-                  />
-                ))
-              )}
+          {/* Customer Groups Tree Sidebar - Conditional */}
+          {!isGroupsHidden && (
+            <div className="w-64 bg-[#374151] border-l border-gray-700 flex flex-col">
+              {/* Tree View */}
+              <div className="flex-1 overflow-y-auto scrollbar-hide py-2">
+                {groupsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-gray-400">جاري التحميل...</div>
+                  </div>
+                ) : groupsError ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-red-400 text-sm">{groupsError}</div>
+                  </div>
+                ) : groups.length === 0 ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-gray-400 text-sm">لا توجد مجموعات</div>
+                  </div>
+                ) : (
+                  groups.map((group) => (
+                    <TreeView
+                      key={group.id}
+                      node={group}
+                      onToggle={toggleGroup}
+                      onSelect={handleCustomerGroupSelect}
+                      selectedGroupId={selectedCustomerGroup?.id}
+                    />
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
