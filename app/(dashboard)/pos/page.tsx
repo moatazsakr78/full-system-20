@@ -2243,9 +2243,6 @@ function POSPageContent() {
                                     : `تأكيد الطلب (${cartItems.length})`}
                       </button>
                     </div>
-
-                    {/* Additional bottom spacing for mobile */}
-                    <div className="h-12"></div>
                   </div>
                 </div>
               </div>
