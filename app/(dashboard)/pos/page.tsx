@@ -2005,7 +2005,7 @@ function POSPageContent() {
             </div>
           </div>
 
-          {/* Products Content Container - Fixed height and width with contained scrolling */}
+          {/* Products Content Container - Smart sizing for both layout and scroll */}
           <div className="flex-1 relative overflow-hidden">
             {/* Show cart on mobile when isCartOpen is true */}
             {isCartOpen && (
@@ -2251,164 +2251,157 @@ function POSPageContent() {
               </div>
             )}
 
-            {/* Show products when cart is closed OR always on desktop */}
-            <div className={`${isCartOpen ? "hidden md:block" : "block"}`}>
-              <>
-                {isLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-white">جاري التحميل...</div>
-                  </div>
-                ) : error ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-red-400">خطأ: {error}</div>
-                  </div>
-                ) : viewMode === "table" ? (
-              <ResizableTable
-                className="h-full w-full"
-                columns={visibleTableColumns}
-                data={filteredProducts}
-                selectedRowId={selectedProduct?.id || null}
-                onRowClick={(product, index) => {
-                  // Toggle selection: if already selected, deselect it
-                  if (selectedProduct?.id === product.id) {
-                    setSelectedProduct(null);
-                  } else {
-                    setSelectedProduct(product as Product);
-                  }
-                }}
-              />
-            ) : (
-              // Grid View
-              <div className="h-full overflow-y-auto scrollbar-hide p-4">
-                <div
-                  className="grid gap-4 grid-cols-2 md:grid-cols-6"
-                >
-                  {filteredProducts.map((product, index) => (
-                    <div
-                      key={product.id}
-                      onClick={() => {
-                        // Toggle selection first
-                        if (selectedProduct?.id === product.id) {
-                          setSelectedProduct(null);
-                        } else {
-                          setSelectedProduct(product);
-                        }
-                        // Then handle the cart functionality
-                        handleProductClick(product);
-                      }}
-                      className={`bg-[#374151] rounded-lg p-3 cursor-pointer transition-all duration-200 border-2 relative group ${
-                        selectedProduct?.id === product.id
-                          ? "border-blue-500 bg-[#434E61]"
-                          : "border-transparent hover:border-gray-500 hover:bg-[#434E61]"
-                      }`}
-                    >
-                      {/* Product Image - OPTIMIZED */}
-                      <div className="mb-3 relative">
-                        <ProductGridImage
-                          src={product.main_image_url}
-                          alt={product.name}
-                          priority={index < 6} // Prioritize first 6 products
-                        />
+            {/* Products Display Container - Perfect balance: size and scroll */}
+            <div className={`${isCartOpen ? "hidden md:block" : "block"} absolute inset-0 flex flex-col`}>
+              {/* Loading State */}
+              {isLoading && (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-white">جاري التحميل...</div>
+                </div>
+              )}
 
-                        {/* Hover Button - positioned above image */}
-                        <div className="absolute top-2 right-2 z-50">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
+              {/* Error State */}
+              {error && (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-red-400">خطأ: {error}</div>
+                </div>
+              )}
 
-                              // DEBUG: Verify images are loaded correctly
-                              if (
-                                product.allImages &&
-                                product.allImages.length > 1
-                              ) {
-                                console.log(
-                                  "✅ Product images loaded:",
-                                  product.name,
-                                  `(${product.allImages.length} images)`,
-                                );
-                              }
+              {/* Products Content */}
+              {!isLoading && !error && (
+                <>
+                  {viewMode === "table" ? (
+                    /* Table View */
+                    <div className="flex-1 min-h-0">
+                      <ResizableTable
+                        className="h-full w-full"
+                        columns={visibleTableColumns}
+                        data={filteredProducts}
+                        selectedRowId={selectedProduct?.id || null}
+                        onRowClick={(product, index) => {
+                          if (selectedProduct?.id === product.id) {
+                            setSelectedProduct(null);
+                          } else {
+                            setSelectedProduct(product as Product);
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    /* Grid View - Perfect scroll solution */
+                    <div className="flex-1 overflow-hidden">
+                      <div className="h-full overflow-y-auto scrollbar-hide p-4">
+                        <div className="grid gap-4 grid-cols-2 md:grid-cols-6">
+                          {filteredProducts.map((product, index) => (
+                            <div
+                              key={product.id}
+                              onClick={() => {
+                                if (selectedProduct?.id === product.id) {
+                                  setSelectedProduct(null);
+                                } else {
+                                  setSelectedProduct(product);
+                                }
+                                handleProductClick(product);
+                              }}
+                              className={`bg-[#374151] rounded-lg p-3 cursor-pointer transition-all duration-200 border-2 relative group ${
+                                selectedProduct?.id === product.id
+                                  ? "border-blue-500 bg-[#434E61]"
+                                  : "border-transparent hover:border-gray-500 hover:bg-[#434E61]"
+                              }`}
+                            >
+                              {/* Product Image */}
+                              <div className="mb-3 relative">
+                                <ProductGridImage
+                                  src={product.main_image_url}
+                                  alt={product.name}
+                                  priority={index < 6}
+                                />
 
-                              setModalProduct(product);
-                              // Set first available image as selected
-                              const firstImage =
-                                product.allImages?.[0] ||
-                                product.main_image_url ||
-                                null;
-                              setSelectedImage(firstImage);
-                              setShowProductModal(true);
-                            }}
-                            className="bg-black/50 hover:bg-black/90 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
-                            style={{ zIndex: 9999 }}
-                          >
-                            <EyeIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
+                                {/* View Details Button */}
+                                <div className="absolute top-2 right-2 z-50">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setModalProduct(product);
+                                      const firstImage =
+                                        product.allImages?.[0] ||
+                                        product.main_image_url ||
+                                        null;
+                                      setSelectedImage(firstImage);
+                                      setShowProductModal(true);
+                                    }}
+                                    className="bg-black/50 hover:bg-black/90 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
+                                  >
+                                    <EyeIcon className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </div>
 
-                      {/* Product Name */}
-                      <h3 className="text-white font-medium text-sm text-center mb-2 line-clamp-2">
-                        {product.name}
-                      </h3>
+                              {/* Product Name */}
+                              <h3 className="text-white font-medium text-sm text-center mb-2 line-clamp-2">
+                                {product.name}
+                              </h3>
 
-                      {/* Product Details */}
-                      <div className="space-y-1 text-xs">
-                        {/* Selling Price */}
-                        <div className="flex justify-center mb-2">
-                          <span className="text-blue-400 font-medium text-sm">
-                            {(product.price || 0).toFixed(2)}
-                          </span>
-                        </div>
-
-                        {/* Total Quantity */}
-                        <div className="flex justify-between items-center">
-                          <span className="text-blue-400 font-medium">
-                            {(product.inventoryData &&
-                              Object.values(product.inventoryData).reduce(
-                                (sum: number, inv: any) =>
-                                  sum + (inv?.quantity || 0),
-                                0,
-                              )) ||
-                              0}
-                          </span>
-                          <span className="text-gray-400">
-                            الكمية الإجمالية
-                          </span>
-                        </div>
-
-                        {/* Branch/Warehouse Quantities */}
-                        {product.inventoryData &&
-                          Object.entries(product.inventoryData).map(
-                            ([locationId, inventory]: [string, any]) => {
-                              // Find the branch name for this location
-                              const branch = branches.find(
-                                (b) => b.id === locationId,
-                              );
-                              const locationName =
-                                branch?.name ||
-                                `موقع ${locationId.slice(0, 8)}`;
-
-                              return (
-                                <div
-                                  key={locationId}
-                                  className="flex justify-between items-center"
-                                >
-                                  <span className="text-white">
-                                    {inventory?.quantity || 0}
-                                  </span>
-                                  <span className="text-gray-400 truncate">
-                                    {locationName}
+                              {/* Product Details */}
+                              <div className="space-y-1 text-xs">
+                                {/* Price */}
+                                <div className="flex justify-center mb-2">
+                                  <span className="text-blue-400 font-medium text-sm">
+                                    {(product.price || 0).toFixed(2)}
                                   </span>
                                 </div>
-                              );
-                            },
-                          )}
+
+                                {/* Total Quantity */}
+                                <div className="flex justify-between items-center">
+                                  <span className="text-blue-400 font-medium">
+                                    {(product.inventoryData &&
+                                      Object.values(product.inventoryData).reduce(
+                                        (sum: number, inv: any) =>
+                                          sum + (inv?.quantity || 0),
+                                        0,
+                                      )) ||
+                                      0}
+                                  </span>
+                                  <span className="text-gray-400">
+                                    الكمية الإجمالية
+                                  </span>
+                                </div>
+
+                                {/* Branch Quantities */}
+                                {product.inventoryData &&
+                                  Object.entries(product.inventoryData).map(
+                                    ([locationId, inventory]: [string, any]) => {
+                                      const branch = branches.find(
+                                        (b) => b.id === locationId,
+                                      );
+                                      const locationName =
+                                        branch?.name ||
+                                        `موقع ${locationId.slice(0, 8)}`;
+
+                                      return (
+                                        <div
+                                          key={locationId}
+                                          className="flex justify-between items-center"
+                                        >
+                                          <span className="text-white">
+                                            {inventory?.quantity || 0}
+                                          </span>
+                                          <span className="text-gray-400 truncate">
+                                            {locationName}
+                                          </span>
+                                        </div>
+                                      );
+                                    },
+                                  )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-              </>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
