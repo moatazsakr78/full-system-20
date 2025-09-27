@@ -111,7 +111,7 @@ export default function CustomersGridView({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4 p-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 p-4">
       {customers.map((customer) => {
         const isSelected = selectedCustomer?.id === customer.id
         const isDefault = isDefaultCustomer(customer.id)
@@ -134,83 +134,81 @@ export default function CustomersGridView({
           >
             {/* Header */}
             <div className="p-4 border-b border-gray-600">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  {/* Avatar */}
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-blue-600 border-2 border-gray-600">
-                      {avatarUrl ? (
-                        <img
-                          src={avatarUrl}
-                          alt={customer.name}
-                          className="w-full h-full object-cover rounded-full"
-                          onError={(e) => {
-                            // إذا فشل تحميل الصورة، اعرض الأحرف الأولى
-                            e.currentTarget.style.display = 'none';
-                            const parentDiv = e.currentTarget.parentNode as HTMLElement;
-                            if (parentDiv) {
-                              parentDiv.innerHTML = `<span class="text-white text-sm font-medium">${initialsAvatar.initials}</span>`;
-                              parentDiv.style.backgroundColor = initialsAvatar.backgroundColor;
-                            }
-                          }}
-                        />
-                      ) : (
-                        <div
-                          className="w-full h-full rounded-full flex items-center justify-center text-white font-bold text-lg"
-                          style={{ backgroundColor: initialsAvatar.backgroundColor }}
-                        >
-                          {initialsAvatar.initials}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Name and Default Badge */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-white font-semibold text-lg truncate">
-                        {customer.name}
-                      </h3>
-                      {isDefault && (
-                        <StarIcon className="h-5 w-5 text-yellow-400 flex-shrink-0" />
-                      )}
-                    </div>
-
-                    {/* Category */}
-                    <p className="text-gray-300 text-sm truncate">
-                      {customer.category || 'غير محدد'}
-                    </p>
+              <div className="flex flex-col items-center text-center">
+                {/* Avatar */}
+                <div className="flex-shrink-0 mb-3">
+                  <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-blue-600 border-2 border-gray-600">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={customer.name}
+                        className="w-full h-full object-cover rounded-full"
+                        onError={(e) => {
+                          // إذا فشل تحميل الصورة، اعرض الأحرف الأولى
+                          e.currentTarget.style.display = 'none';
+                          const parentDiv = e.currentTarget.parentNode as HTMLElement;
+                          if (parentDiv) {
+                            parentDiv.innerHTML = `<span class="text-white text-lg font-medium">${initialsAvatar.initials}</span>`;
+                            parentDiv.style.backgroundColor = initialsAvatar.backgroundColor;
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-full rounded-full flex items-center justify-center text-white font-bold text-xl"
+                        style={{ backgroundColor: initialsAvatar.backgroundColor }}
+                      >
+                        {initialsAvatar.initials}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Rank Badge */}
-                {rankInfo && (
-                  <div className="flex items-center gap-1 bg-gray-700 px-2 py-1 rounded-full flex-shrink-0">
-                    <div className="w-4 h-4 relative">
-                      <Image
-                        src={rankInfo.icon}
-                        alt={rankInfo.name}
-                        fill
-                        className="object-contain"
-                      />
-                    </div>
-                    <span className="text-xs text-white font-medium">
-                      {rankInfo.name}
-                    </span>
+                {/* Name and Default Badge */}
+                <div className="w-full">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <h3 className="text-white font-medium text-sm leading-tight">
+                      {customer.name}
+                    </h3>
+                    {isDefault && (
+                      <StarIcon className="h-4 w-4 text-yellow-400 flex-shrink-0" />
+                    )}
                   </div>
-                )}
+
+                  {/* Category */}
+                  <p className="text-gray-400 text-xs">
+                    {customer.category || 'غير محدد'}
+                  </p>
+
+                  {/* Rank Badge */}
+                  {rankInfo && (
+                    <div className="flex items-center justify-center gap-1 bg-gray-700 px-2 py-1 rounded-full mt-2 mx-auto w-fit">
+                      <div className="w-3 h-3 relative">
+                        <Image
+                          src={rankInfo.icon}
+                          alt={rankInfo.name}
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                      <span className="text-xs text-white font-medium">
+                        {rankInfo.name}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Content */}
-            <div className="p-4 space-y-3">
+            <div className="p-3 space-y-2">
               {/* Email - أضف البريد الإلكتروني إذا وجد */}
               {customer.email && (
                 <div className="flex items-center gap-2">
-                  <svg className="h-4 w-4 text-cyan-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-3 w-3 text-cyan-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                   </svg>
-                  <span className="text-gray-300 text-sm truncate">
+                  <span className="text-gray-300 text-xs truncate">
                     {customer.email}
                   </span>
                 </div>
@@ -218,9 +216,9 @@ export default function CustomersGridView({
 
               {/* Loyalty Points */}
               <div className="flex items-center gap-2">
-                <TrophyIcon className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                <span className="text-sm text-gray-300">النقاط:</span>
-                <span className="text-white font-medium">
+                <TrophyIcon className="h-3 w-3 text-blue-400 flex-shrink-0" />
+                <span className="text-xs text-gray-300">النقاط:</span>
+                <span className="text-white font-medium text-xs">
                   {(customer.loyalty_points || 0).toLocaleString()}
                 </span>
               </div>
@@ -228,8 +226,8 @@ export default function CustomersGridView({
               {/* Phone */}
               {customer.phone && (
                 <div className="flex items-center gap-2">
-                  <PhoneIcon className="h-4 w-4 text-green-400 flex-shrink-0" />
-                  <span className="text-gray-300 text-sm font-mono truncate">
+                  <PhoneIcon className="h-3 w-3 text-green-400 flex-shrink-0" />
+                  <span className="text-gray-300 text-xs font-mono truncate">
                     {customer.phone}
                   </span>
                 </div>
@@ -238,8 +236,8 @@ export default function CustomersGridView({
               {/* City */}
               {customer.city && (
                 <div className="flex items-center gap-2">
-                  <MapPinIcon className="h-4 w-4 text-red-400 flex-shrink-0" />
-                  <span className="text-gray-300 text-sm truncate">
+                  <MapPinIcon className="h-3 w-3 text-red-400 flex-shrink-0" />
+                  <span className="text-gray-300 text-xs truncate">
                     {customer.city}
                   </span>
                 </div>
@@ -247,9 +245,9 @@ export default function CustomersGridView({
 
               {/* Created Date */}
               <div className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4 text-purple-400 flex-shrink-0" />
-                <span className="text-sm text-gray-300">منذ:</span>
-                <span className="text-gray-400 text-sm">
+                <CalendarIcon className="h-3 w-3 text-purple-400 flex-shrink-0" />
+                <span className="text-xs text-gray-300">منذ:</span>
+                <span className="text-gray-400 text-xs">
                   {formatDate(customer.created_at)}
                 </span>
               </div>

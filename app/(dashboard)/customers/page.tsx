@@ -246,7 +246,7 @@ export default function CustomersPage() {
   const [visibleColumns, setVisibleColumns] = useState<{[key: string]: boolean}>({})
   const [isDeleting, setIsDeleting] = useState(false)
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid')
-  const [isGroupsHidden, setIsGroupsHidden] = useState(false)
+  const [isGroupsHidden, setIsGroupsHidden] = useState(true)
   
   // Use the real-time hooks for customer groups and customers
   const { groups, isLoading: groupsLoading, error: groupsError, toggleGroup } = useCustomerGroups()
@@ -664,7 +664,7 @@ export default function CustomersPage() {
         {/* Second Toolbar - Search and Controls - Full Width */}
         <div className="bg-[#374151] border-b border-gray-600 px-2 py-3 w-full flex-shrink-0">
           <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide">
-            {/* Search - First - Reduced width for mobile */}
+            {/* Search - First - Increased width slightly */}
             <div className="relative flex-shrink-0">
               <MagnifyingGlassIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
@@ -672,11 +672,16 @@ export default function CustomersPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="اسم العميل..."
-                className="w-48 sm:w-60 md:w-80 pl-4 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-56 sm:w-64 md:w-80 pl-4 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
 
-            {/* Groups Toggle Button - Second */}
+            {/* Customer Count Display - Second */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-sm text-gray-400 whitespace-nowrap">{filteredCustomers.length} من {customers.length} عميل</span>
+            </div>
+
+            {/* Groups Toggle Button - Third */}
             <button
               onClick={toggleGroupsVisibility}
               className="p-2 text-gray-300 hover:text-white hover:bg-gray-600/30 rounded-md transition-colors bg-[#2B3544] border border-gray-600 flex-shrink-0"
@@ -688,11 +693,6 @@ export default function CustomersPage() {
                 <FolderOpenIcon className="h-4 w-4" />
               )}
             </button>
-
-            {/* Customer Count Display - Third */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-sm text-gray-400 whitespace-nowrap">{filteredCustomers.length} من {customers.length} عميل</span>
-            </div>
 
             {/* View Toggle - Fourth */}
             <div className="flex bg-[#2B3544] rounded-md overflow-hidden flex-shrink-0">
