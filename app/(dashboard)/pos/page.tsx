@@ -2176,6 +2176,7 @@ function POSPageContent() {
             flex flex-col
             h-[calc(100vh-170px)] md:h-screen
             flex-shrink-0
+            pb-0 md:pb-0
           "
           >
             {/* Cart Items Area - Full Height */}
@@ -2380,38 +2381,35 @@ function POSPageContent() {
 
             {/* Cart Footer */}
             <div className="p-4 border-t border-gray-600 bg-[#2B3544] flex-shrink-0">
-              <div className="space-y-3 mb-4">
-                {/* Show total only in non-transfer modes */}
-                {!isTransferMode && (
-                  <div className="flex justify-between font-semibold text-lg">
-                    <span className="text-white">الإجمالي:</span>
-                    <span className="text-green-400 font-bold">
-                      {formatPrice(cartTotal, "system")}
-                    </span>
-                  </div>
-                )}
+              {/* Single row layout for total and button */}
+              <div className="flex items-center justify-between gap-3">
+                {/* Total/Transfer info section */}
+                <div className="flex-shrink-0">
+                  {!isTransferMode ? (
+                    <div className="text-right">
+                      <div className="text-white text-sm font-medium">الإجمالي:</div>
+                      <div className="text-green-400 font-bold text-lg">
+                        {formatPrice(cartTotal, "system")}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-right">
+                      <div className="text-orange-400 text-sm font-medium">وضع النقل</div>
+                      <div className="text-white font-bold text-lg">
+                        {cartItems.reduce((sum, item) => sum + item.quantity, 0)} قطعة
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-                {/* Transfer mode info */}
-                {isTransferMode && (
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-orange-400 font-medium">
-                      وضع النقل
-                    </span>
-                    <span className="text-white font-bold">
-                      {cartItems.reduce((sum, item) => sum + item.quantity, 0)}{" "}
-                      قطعة
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <button
+                {/* Button section */}
+                <button
                 disabled={
                   cartItems.length === 0 ||
                   !hasAllRequiredSelections() ||
                   isProcessingInvoice
                 }
-                className={`w-full py-3 rounded-lg font-semibold transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed text-white ${
+                className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed text-white ${
                   isTransferMode
                     ? "bg-orange-600 hover:bg-orange-700"
                     : isReturnMode
@@ -2438,7 +2436,11 @@ function POSPageContent() {
                             ? `تأكيد الشراء (${cartItems.length})`
                             : `تأكيد الطلب (${cartItems.length})`}
               </button>
+              </div>
             </div>
+
+            {/* Additional bottom spacing for mobile */}
+            <div className="block md:hidden bg-[#2B3544] h-12"></div>
           </div>
         </div>
       </div>
