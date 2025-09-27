@@ -2149,7 +2149,7 @@ function POSPageContent() {
                                         type="number"
                                         min="0"
                                         step="0.01"
-                                        value={(item.totalPrice / item.quantity).toFixed(2)}
+                                        value={((item.totalPrice || (item.price * item.quantity) || 0) / item.quantity).toFixed(2)}
                                         onChange={(e) => {
                                           const newPrice = parseFloat(e.target.value) || 0;
                                           setCartItems((prev) =>
@@ -2175,7 +2175,7 @@ function POSPageContent() {
                               {/* Total Price */}
                               <div className="text-right">
                                 <span className="text-green-400 font-bold text-sm">
-                                  {formatPrice(item.totalPrice, "system")}
+                                  {formatPrice(item.totalPrice || (item.price * item.quantity) || 0, "system")}
                                 </span>
                               </div>
                             </div>
@@ -2248,8 +2248,8 @@ function POSPageContent() {
               </div>
             )}
 
-            {/* Products Display Container - Perfect balance: size and scroll */}
-            <div className={`${isCartOpen ? "hidden md:block" : "block"} absolute inset-0 flex flex-col`}>
+            {/* Products Display Container - Responsive: absolute for mobile, normal for desktop */}
+            <div className={`${isCartOpen ? "hidden md:block" : "block"} md:h-full md:flex md:flex-col absolute inset-0 md:relative md:inset-auto flex flex-col`}>
               {/* Loading State */}
               {isLoading && (
                 <div className="flex items-center justify-center h-full">
@@ -2285,7 +2285,7 @@ function POSPageContent() {
                       />
                     </div>
                   ) : (
-                    /* Grid View - Perfect scroll solution */
+                    /* Grid View - Responsive scroll solution */
                     <div className="flex-1 overflow-hidden">
                       <div className="h-full overflow-y-auto scrollbar-hide p-4">
                         <div className="grid gap-4 grid-cols-2 md:grid-cols-6">

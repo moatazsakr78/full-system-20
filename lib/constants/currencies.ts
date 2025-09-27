@@ -62,10 +62,12 @@ export const getCurrencySymbol = (currency: Currency): string => {
   return currency;
 };
 
-export const formatPrice = (amount: number, currency: Currency | string): string => {
+export const formatPrice = (amount: number | null | undefined, currency: Currency | string): string => {
   // Convert currency code to Arabic name if needed
   const displayCurrency = CURRENCY_CODE_MAP[currency] || currency;
-  return `${amount.toFixed(2)} ${displayCurrency}`;
+  // Handle null/undefined amounts
+  const safeAmount = Number(amount) || 0;
+  return `${safeAmount.toFixed(2)} ${displayCurrency}`;
 };
 
 export const isValidCurrency = (currency: string): boolean => {
