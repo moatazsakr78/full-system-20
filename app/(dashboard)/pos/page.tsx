@@ -2007,15 +2007,262 @@ function POSPageContent() {
 
           {/* Products Content Container - Fixed height and width with contained scrolling */}
           <div className="flex-1 relative overflow-hidden">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-white">جاري التحميل...</div>
+            {/* Show cart on mobile when isCartOpen is true */}
+            {isCartOpen && (
+              <div className="block md:hidden h-full">
+                {/* Mobile Cart View */}
+                <div className="h-full bg-[#374151] border-t-2 border-gray-500 flex flex-col">
+                  {/* Cart Items Area - Full Height */}
+                  <div className="flex-1 border-t-2 border-gray-500 overflow-hidden">
+                    {cartItems.length === 0 ? (
+                      <div className="flex flex-col justify-center items-center h-full p-8">
+                        <ShoppingCartIcon className="h-24 w-24 text-gray-500 mb-8" />
+                        <p className="text-gray-400 text-sm text-center mb-4">
+                          اضغط على المنتجات لإضافتها للسلة
+                        </p>
+                        <div className="text-center">
+                          <span className="bg-gray-600 px-3 py-1 rounded text-sm text-gray-300">
+                            0 منتج
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-full flex flex-col">
+                        {/* Cart Header */}
+                        <div className="p-4 border-b border-gray-600 flex-shrink-0">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              {/* Close button for mobile */}
+                              <button
+                                onClick={() => setIsCartOpen(false)}
+                                className="text-gray-400 hover:text-white mr-2"
+                                title="إغلاق السلة"
+                              >
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                              <span className="text-white font-medium">السلة</span>
+                              <span className="bg-blue-600 px-2 py-1 rounded text-xs text-white">
+                                {cartItems.length}
+                              </span>
+                            </div>
+                            {cartItems.length > 0 && (
+                              <button
+                                onClick={() => setCartItems([])}
+                                className="text-red-400 hover:text-red-300 text-sm"
+                                title="مسح السلة"
+                              >
+                                مسح الكل
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Cart Items */}
+                        <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-3 min-h-0">
+                          {cartItems.map((item) => (
+                            <div
+                              key={item.id}
+                              className="bg-[#2B3544] rounded-lg p-3 border border-gray-600"
+                            >
+                              <div className="flex gap-3 mb-2">
+                                {/* Product Image */}
+                                <div className="w-12 h-12 bg-[#374151] rounded-lg overflow-hidden flex-shrink-0">
+                                  <ProductThumbnail
+                                    src={item.product.main_image_url}
+                                    alt={item.product.name}
+                                  />
+                                </div>
+
+                                {/* Product Info */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex justify-between items-start mb-1">
+                                    <h4 className="font-medium text-white text-sm truncate">
+                                      {item.product.name}
+                                    </h4>
+                                    <button
+                                      onClick={() => {
+                                        setCartItems((prev) =>
+                                          prev.filter((cartItem) => cartItem.id !== item.id),
+                                        );
+                                      }}
+                                      className="text-red-400 hover:text-red-300 p-1 ml-2 flex-shrink-0"
+                                      title="إزالة من السلة"
+                                    >
+                                      <XMarkIcon className="h-4 w-4" />
+                                    </button>
+                                  </div>
+
+                                  {/* Quantity and Price Controls */}
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-gray-400 text-xs">الكمية:</span>
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        value={item.quantity}
+                                        onChange={(e) => {
+                                          const newQuantity = parseInt(e.target.value) || 1;
+                                          setCartItems((prev) =>
+                                            prev.map((cartItem) => {
+                                              if (cartItem.id === item.id) {
+                                                const pricePerUnit =
+                                                  newQuantity / cartItem.quantity;
+
+                                                // Handle selected colors proportionally
+                                                let newSelectedColors = null;
+                                                if (cartItem.selectedColors) {
+                                                  newSelectedColors = Object.fromEntries(
+                                                    Object.entries(
+                                                      cartItem.selectedColors,
+                                                    ).map(([color, count]) => [
+                                                      color,
+                                                      Math.round(
+                                                        (count as number) *
+                                                          pricePerUnit,
+                                                      ),
+                                                    ]),
+                                                  );
+                                                }
+
+                                                return {
+                                                  ...cartItem,
+                                                  quantity: newQuantity,
+                                                  selectedColors: newSelectedColors,
+                                                  totalPrice: cartItem.isCustomPrice
+                                                    ? cartItem.totalPrice
+                                                    : cartItem.price * newQuantity,
+                                                };
+                                              }
+                                              return cartItem;
+                                            }),
+                                          );
+                                        }}
+                                        className="w-16 px-2 py-1 bg-[#374151] border border-gray-600 rounded text-white text-xs text-center"
+                                      />
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-gray-400 text-xs">السعر:</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={(item.totalPrice / item.quantity).toFixed(2)}
+                                        onChange={(e) => {
+                                          const newPrice = parseFloat(e.target.value) || 0;
+                                          setCartItems((prev) =>
+                                            prev.map((cartItem) =>
+                                              cartItem.id === item.id
+                                                ? {
+                                                    ...cartItem,
+                                                    isCustomPrice: true,
+                                                    totalPrice:
+                                                      cartItem.quantity * newPrice,
+                                                  }
+                                                : cartItem,
+                                            ),
+                                          );
+                                        }}
+                                        className="w-20 px-2 py-1 bg-[#374151] border border-gray-600 rounded text-white text-xs text-center"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Total Price */}
+                              <div className="text-right">
+                                <span className="text-green-400 font-bold text-sm">
+                                  {formatPrice(item.totalPrice, "system")}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cart Footer */}
+                  <div className="p-4 border-t border-gray-600 bg-[#2B3544] flex-shrink-0">
+                    {/* Single row layout for total and button */}
+                    <div className="flex items-center justify-between gap-3">
+                      {/* Total/Transfer info section */}
+                      <div className="flex-shrink-0">
+                        {!isTransferMode ? (
+                          <div className="text-right">
+                            <div className="text-white text-sm font-medium">الإجمالي:</div>
+                            <div className="text-green-400 font-bold text-lg">
+                              {formatPrice(cartTotal, "system")}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-right">
+                            <div className="text-orange-400 text-sm font-medium">وضع النقل</div>
+                            <div className="text-white font-bold text-lg">
+                              {cartItems.reduce((sum, item) => sum + item.quantity, 0)} قطعة
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Button section */}
+                      <button
+                        disabled={
+                          cartItems.length === 0 ||
+                          !hasAllRequiredSelections() ||
+                          isProcessingInvoice
+                        }
+                        className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed text-white ${
+                          isTransferMode
+                            ? "bg-orange-600 hover:bg-orange-700"
+                            : isReturnMode
+                              ? "bg-red-600 hover:bg-red-700"
+                              : isPurchaseMode
+                                ? "bg-purple-600 hover:bg-purple-700"
+                                : "bg-blue-600 hover:bg-blue-700"
+                        }`}
+                        onClick={handleCreateInvoice}
+                      >
+                        {isProcessingInvoice
+                          ? "جاري المعالجة..."
+                          : cartItems.length === 0
+                            ? "السلة فارغة"
+                            : !hasAllRequiredSelections()
+                              ? "يجب إكمال التحديدات"
+                              : isTransferMode
+                                ? `تأكيد النقل (${cartItems.length})`
+                                : isReturnMode
+                                  ? isPurchaseMode
+                                    ? `مرتجع شراء (${cartItems.length})`
+                                    : `مرتجع بيع (${cartItems.length})`
+                                  : isPurchaseMode
+                                    ? `تأكيد الشراء (${cartItems.length})`
+                                    : `تأكيد الطلب (${cartItems.length})`}
+                      </button>
+                    </div>
+
+                    {/* Additional bottom spacing for mobile */}
+                    <div className="h-12"></div>
+                  </div>
+                </div>
               </div>
-            ) : error ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-red-400">خطأ: {error}</div>
-              </div>
-            ) : viewMode === "table" ? (
+            )}
+
+            {/* Show products when cart is closed OR always on desktop */}
+            <div className={`${isCartOpen ? "hidden md:block" : "block"}`}>
+              <>
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-white">جاري التحميل...</div>
+                  </div>
+                ) : error ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-red-400">خطأ: {error}</div>
+                  </div>
+                ) : viewMode === "table" ? (
               <ResizableTable
                 className="h-full w-full"
                 columns={visibleTableColumns}
@@ -2161,23 +2408,14 @@ function POSPageContent() {
                 </div>
               </div>
             )}
+              </>
+            </div>
           </div>
         </div>
 
         {/* Shopping Cart Panel - Desktop: Sidebar, Mobile: Shows below search toolbar */}
-        <div className={`${isCartOpen ? "flex" : "hidden"} md:flex`}>
-          <div
-            className="
-            fixed top-[170px] left-0 right-0 bottom-0 z-40 md:relative md:inset-auto md:z-auto md:top-auto
-            w-full md:w-80
-            bg-[#374151]
-            border-l-2 md:border-r-2 border-t-2 md:border-t-0 md:border-l-0
-            border-gray-500
-            flex flex-col
-            h-[calc(100vh-170px)] md:h-screen
-            flex-shrink-0
-            pb-0 md:pb-0
-          "
+        <div className="hidden md:flex">
+          <div className="w-80 bg-[#374151] border-l-2 border-gray-500 flex flex-col h-screen flex-shrink-0"
           >
             {/* Cart Items Area - Full Height */}
             <div className="flex-1 border-t-2 border-gray-500 overflow-hidden">
@@ -2199,16 +2437,6 @@ function POSPageContent() {
                   <div className="p-4 border-b border-gray-600 flex-shrink-0">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                        {/* Close button for mobile */}
-                        <button
-                          onClick={() => setIsCartOpen(false)}
-                          className="md:hidden text-gray-400 hover:text-white mr-2"
-                          title="إغلاق السلة"
-                        >
-                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
                         <span className="text-white font-medium">السلة</span>
                         <span className="bg-blue-600 px-2 py-1 rounded text-xs text-white">
                           {cartItems.length}
@@ -2439,8 +2667,6 @@ function POSPageContent() {
               </div>
             </div>
 
-            {/* Additional bottom spacing for mobile */}
-            <div className="block md:hidden bg-[#2B3544] h-12"></div>
           </div>
         </div>
       </div>
