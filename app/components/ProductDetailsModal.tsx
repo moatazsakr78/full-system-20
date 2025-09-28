@@ -721,24 +721,8 @@ export default function ProductDetailsModal({
   }
 
   return (
-    <div className="fixed inset-0 w-screen h-screen bg-[#c0c0c0] z-[99999] flex flex-col overflow-hidden text-gray-800" style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      width: '100vw',
-      height: '100vh',
-      maxHeight: '100vh',
-      backgroundColor: '#c0c0c0',
-      zIndex: 99999,
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
-      fontFamily: "'Cairo', Arial, sans-serif"
-    }} dir="rtl">
-      {/* Hide scrollbar but keep functionality */}
-      <style jsx global>{`
+    <>
+      <style jsx>{`
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
@@ -746,20 +730,27 @@ export default function ProductDetailsModal({
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
-        .mobile-modal {
-          max-width: 480px;
-          margin: 0 auto;
-          background-color: #c0c0c0;
-        }
-        .mobile-tabs-container {
-          overflow-x: auto;
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        .mobile-tabs-container::-webkit-scrollbar {
-          display: none;
-        }
       `}</style>
+      <div
+        className="fixed inset-0 w-screen h-screen bg-white z-[99999] flex flex-col overflow-hidden"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          maxHeight: '100vh',
+          backgroundColor: 'white',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          fontFamily: "'Cairo', Arial, sans-serif"
+        }}
+        dir="rtl"
+      >
 
       {/* Responsive Header */}
       <header className="border-b border-gray-600 py-0 flex-shrink-0" style={{backgroundColor: '#661a1a'}}>
@@ -1008,7 +999,7 @@ export default function ProductDetailsModal({
           </div>
         </main>
       ) : (
-        <main className="flex-1 overflow-y-auto bg-[#c0c0c0] px-4 py-8 scrollbar-hide">
+        <main className="flex-1 overflow-y-auto bg-[#C0C0C0] px-4 py-8 scrollbar-hide">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6">
             <button onClick={onClose} className="transition-colors hover:text-[#5D1F1F]">الرئيسية</button>
@@ -1755,6 +1746,7 @@ export default function ProductDetailsModal({
         isOpen={showCartModal}
         onClose={() => setShowCartModal(false)}
       />
-    </div>
+      </div>
+    </>
   );
 }
