@@ -73,7 +73,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
     }
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Prevent body scroll when modal is open
+  // Prevent body scroll when modal is open and change theme color
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -82,6 +82,15 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
       document.body.style.height = '100%';
       document.body.style.top = '0';
       document.body.style.left = '0';
+
+      // Change theme color for cart modal
+      let themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
+      if (!themeColorMeta) {
+        themeColorMeta = document.createElement('meta');
+        themeColorMeta.name = 'theme-color';
+        document.head.appendChild(themeColorMeta);
+      }
+      themeColorMeta.content = '#C0C0C0'; // Gray color to match cart background
     } else {
       document.body.style.overflow = '';
       document.body.style.position = '';
@@ -89,6 +98,12 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
       document.body.style.height = '';
       document.body.style.top = '';
       document.body.style.left = '';
+
+      // Restore original theme color
+      const themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
+      if (themeColorMeta) {
+        themeColorMeta.content = '#3B82F6'; // Original blue color
+      }
     }
   }, [isOpen]);
 
