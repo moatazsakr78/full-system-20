@@ -467,8 +467,10 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
   
   if (isLoading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{backgroundColor: '#C0C0C0'}}>
-        <div className="text-gray-600">جاري التحميل...</div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#C0C0C0]">
+        <div className="bg-white rounded-lg p-6 shadow-md">
+          <div className="text-gray-600">جاري التحميل...</div>
+        </div>
       </div>
     );
   }
@@ -484,13 +486,13 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
           display: none;
         }
       `}</style>
-      <div className="fixed inset-0 z-50 font-['Cairo',Arial,sans-serif]" dir="rtl" style={{backgroundColor: '#C0C0C0'}}>
+      <div className="fixed inset-0 z-50 font-['Cairo',Arial,sans-serif] bg-white" dir="rtl">
         {/* Responsive Header */}
         <header className="border-b border-gray-600 py-0 sticky top-0 z-10" style={{backgroundColor: '#661a1a'}}>
           {/* Desktop/Tablet Header */}
           <div className="hidden md:block">
             <div className="px-8 flex items-center justify-between" style={{minHeight: '80px'}}>
-              <button 
+              <button
                 onClick={onClose}
                 className="text-white hover:text-red-300 transition-colors p-3 text-lg flex items-center"
               >
@@ -499,16 +501,16 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                 </svg>
                 <span>العودة للمتجر</span>
               </button>
-              
+
               <div className="text-white text-2xl font-bold">
                 ملخص الطلب
               </div>
 
               <div className="flex items-center gap-3">
                 <div className="h-14 w-14 rounded-lg flex items-center justify-center">
-                  <img 
-                    src="/assets/logo/El Farouk Group2.png" 
-                    alt="El Farouk Group Logo" 
+                  <img
+                    src="/assets/logo/El Farouk Group2.png"
+                    alt="El Farouk Group Logo"
                     className="h-full w-full object-contain rounded-lg"
                   />
                 </div>
@@ -523,7 +525,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
           {/* Mobile Header */}
           <div className="md:hidden">
             <div className="px-3 flex items-center justify-between min-h-[60px]">
-              <button 
+              <button
                 onClick={onClose}
                 className="text-white hover:text-red-300 transition-colors p-2"
               >
@@ -531,12 +533,12 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              
+
               <div className="flex items-center gap-2">
                 <div className="h-10 w-10 rounded-lg flex items-center justify-center">
-                  <img 
-                    src="/assets/logo/El Farouk Group2.png" 
-                    alt="El Farouk Group Logo" 
+                  <img
+                    src="/assets/logo/El Farouk Group2.png"
+                    alt="El Farouk Group Logo"
                     className="h-full w-full object-contain rounded-lg"
                   />
                 </div>
@@ -554,7 +556,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
         </header>
 
         {/* Responsive Content Container */}
-        <div className="md:px-16 md:py-4 px-3 py-4 h-[calc(100vh-60px)] md:h-[calc(100vh-80px)] overflow-y-auto scrollbar-hide">
+        <div className="md:px-16 md:py-4 px-3 py-4 h-[calc(100vh-60px)] md:h-[calc(100vh-80px)] overflow-y-auto scrollbar-hide bg-[#C0C0C0]">
           {cartItems.length === 0 ? (
             // Empty cart message
             <div className="text-center py-12">
