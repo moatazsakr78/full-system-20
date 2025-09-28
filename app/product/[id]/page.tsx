@@ -916,9 +916,9 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           </div>
 
           {/* Main Display Area */}
-          <div className="md:col-span-7 col-span-1">
+          <div className="md:col-span-7 col-span-1 md:px-0 px-4">
             <div
-              className={`relative w-full md:aspect-square aspect-[4/3] md:h-auto h-[400px] bg-white rounded-lg overflow-hidden shadow-lg ${selectedVideo ? 'cursor-pointer' : 'cursor-zoom-in'}`}
+              className={`relative w-full md:aspect-square aspect-square bg-white rounded-lg overflow-hidden shadow-lg ${selectedVideo ? 'cursor-pointer' : 'cursor-zoom-in'}`}
               onMouseEnter={() => !selectedVideo && setIsZooming(true)}
               onMouseLeave={() => !selectedVideo && setIsZooming(false)}
               onMouseMove={(e) => {
@@ -977,8 +977,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
             </div>
 
             {/* Mobile Thumbnails - Only shown on mobile */}
-            <div className="md:hidden mt-4">
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+            <div className="md:hidden mt-4 px-4">
+              <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
                 {/* Image Thumbnails */}
                 {currentGallery.map((image, index) => (
                   <button
@@ -987,9 +987,9 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                       setSelectedImage(index);
                       setSelectedVideo(null);
                     }}
-                    className={`flex-shrink-0 w-16 h-16 rounded border-2 overflow-hidden transition-all duration-200 ${
+                    className={`flex-shrink-0 w-20 h-20 rounded-lg border-2 overflow-hidden transition-all duration-200 ${
                       selectedImage === index && !selectedVideo
-                        ? 'border-red-500 ring-1 ring-red-500'
+                        ? 'border-red-500 ring-2 ring-red-500'
                         : 'border-gray-300'
                     }`}
                   >
@@ -1009,9 +1009,9 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                       setSelectedVideo(video.video_url);
                       setSelectedImage(-1);
                     }}
-                    className={`relative flex-shrink-0 w-16 h-16 rounded border-2 overflow-hidden transition-all duration-200 ${
+                    className={`relative flex-shrink-0 w-20 h-20 rounded-lg border-2 overflow-hidden transition-all duration-200 ${
                       selectedVideo === video.video_url
-                        ? 'border-red-500 ring-1 ring-red-500'
+                        ? 'border-red-500 ring-2 ring-red-500'
                         : 'border-gray-300'
                     }`}
                   >
@@ -1023,7 +1023,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                     />
                     {/* Video Play Icon Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M8 5v14l11-7z"/>
                       </svg>
                     </div>
