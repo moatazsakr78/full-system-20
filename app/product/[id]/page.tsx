@@ -918,7 +918,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           {/* Main Display Area */}
           <div className="col-span-7">
             <div
-              className={`relative w-full aspect-square bg-white rounded-lg overflow-hidden shadow-lg ${selectedVideo ? 'cursor-pointer' : 'cursor-zoom-in'}`}
+              className={`relative w-full h-[600px] bg-white rounded-lg overflow-hidden shadow-lg ${selectedVideo ? 'cursor-pointer' : 'cursor-zoom-in'}`}
               onMouseEnter={() => !selectedVideo && setIsZooming(true)}
               onMouseLeave={() => !selectedVideo && setIsZooming(false)}
               onMouseMove={(e) => {
