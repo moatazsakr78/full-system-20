@@ -256,6 +256,35 @@ export default function ProductDetailsModal({
     return () => window.removeEventListener('resize', checkDevice);
   }, []);
 
+  // Prevent body scroll when modal is open (especially for mobile)
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      document.body.style.top = '0';
+      document.body.style.left = '0';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+    }
+
+    return () => {
+      // Cleanup on unmount
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+    };
+  }, [isOpen]);
+
   // Fetch product data
   useEffect(() => {
     if (!isOpen || !productId) return;
@@ -692,7 +721,22 @@ export default function ProductDetailsModal({
   }
 
   return (
-    <div className={`fixed inset-0 z-50 text-gray-800 ${isMobile ? 'overflow-auto' : ''}`} style={{backgroundColor: '#c0c0c0'}} dir="rtl">
+    <div className="fixed inset-0 w-screen h-screen bg-[#c0c0c0] z-[99999] flex flex-col overflow-hidden text-gray-800" style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100vw',
+      height: '100vh',
+      maxHeight: '100vh',
+      backgroundColor: '#c0c0c0',
+      zIndex: 99999,
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      fontFamily: "'Cairo', Arial, sans-serif"
+    }} dir="rtl">
       {/* Hide scrollbar but keep functionality */}
       <style jsx global>{`
         .scrollbar-hide {
@@ -718,7 +762,7 @@ export default function ProductDetailsModal({
       `}</style>
 
       {/* Header with close button */}
-      <header className="border-b border-gray-700 py-0 relative z-40" style={{backgroundColor: '#661a1a'}}>
+      <header className="border-b border-gray-700 py-0 relative z-40 flex-shrink-0" style={{backgroundColor: '#661a1a'}}>
         <div className="max-w-[80%] mx-auto px-4 flex items-center justify-between min-h-[80px]">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-3">
@@ -758,8 +802,13 @@ export default function ProductDetailsModal({
 
       {/* Product Details Content - Mobile optimized */}
       {isMobile ? (
-        <main className="mobile-modal overflow-y-auto h-[calc(100vh-60px)] scrollbar-hide">
-          <div className="px-3 py-4">
+        <main className="flex-1 overflow-y-auto bg-[#C0C0C0] px-3 py-4 scrollbar-hide"
+          style={{
+            height: '100%',
+            maxHeight: '100%',
+            overflow: 'hidden auto'
+          }}>
+          <div>
             {/* Mobile Navigation Tabs */}
             <div className="mobile-tabs-container mb-4">
               <div className="flex gap-2 min-w-max">
