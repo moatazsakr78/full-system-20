@@ -84,13 +84,36 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
       document.body.style.left = '0';
 
       // Change theme color for cart modal
-      let themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
-      if (!themeColorMeta) {
-        themeColorMeta = document.createElement('meta');
-        themeColorMeta.name = 'theme-color';
-        document.head.appendChild(themeColorMeta);
-      }
-      themeColorMeta.content = '#C0C0C0'; // Gray color to match cart background
+      const grayColor = '#C0C0C0'; // Gray color to match cart background
+
+      // Function to update all meta tags
+      const updateThemeColor = (color: string) => {
+        // Update theme-color meta tag
+        const themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
+        if (themeColorMeta) {
+          themeColorMeta.content = color;
+        }
+
+        // Update msapplication-navbutton-color for Windows Phone
+        const msNavColorMeta = document.querySelector('meta[name="msapplication-navbutton-color"]') as HTMLMetaElement;
+        if (msNavColorMeta) {
+          msNavColorMeta.content = color;
+        }
+
+        // Update apple-mobile-web-app-status-bar-style for iOS
+        const appleStatusBarMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]') as HTMLMetaElement;
+        if (appleStatusBarMeta) {
+          appleStatusBarMeta.content = 'default';
+        }
+      };
+
+      // Apply the gray color immediately and with delays to ensure browser picks it up
+      updateThemeColor(grayColor);
+
+      setTimeout(() => updateThemeColor(grayColor), 10);
+      setTimeout(() => updateThemeColor(grayColor), 100);
+      setTimeout(() => updateThemeColor(grayColor), 250);
+
     } else {
       document.body.style.overflow = '';
       document.body.style.position = '';
@@ -99,11 +122,30 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
       document.body.style.top = '';
       document.body.style.left = '';
 
-      // Restore original theme color
-      const themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
-      if (themeColorMeta) {
-        themeColorMeta.content = '#3B82F6'; // Original blue color
-      }
+      // Restore original theme colors
+      const blueColor = '#3B82F6'; // Original blue color
+
+      // Function to restore theme color
+      const restoreThemeColor = (color: string) => {
+        const themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
+        if (themeColorMeta) {
+          themeColorMeta.content = color;
+        }
+
+        const msNavColorMeta = document.querySelector('meta[name="msapplication-navbutton-color"]') as HTMLMetaElement;
+        if (msNavColorMeta) {
+          msNavColorMeta.content = color;
+        }
+
+        const appleStatusBarMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]') as HTMLMetaElement;
+        if (appleStatusBarMeta) {
+          appleStatusBarMeta.content = 'default';
+        }
+      };
+
+      // Restore the blue color
+      restoreThemeColor(blueColor);
+      setTimeout(() => restoreThemeColor(blueColor), 10);
     }
   }, [isOpen]);
 

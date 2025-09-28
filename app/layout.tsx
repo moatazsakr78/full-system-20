@@ -8,6 +8,11 @@ import { CartProvider } from '@/lib/contexts/CartContext'
 export const metadata: Metadata = {
   title: 'نظام نقاط البيع',
   description: 'نظام إدارة نقاط البيع المتكامل',
+  other: {
+    'theme-color': '#3B82F6',
+    'msapplication-navbutton-color': '#3B82F6',
+    'apple-mobile-web-app-status-bar-style': 'default',
+  },
 }
 
 export const viewport = {
