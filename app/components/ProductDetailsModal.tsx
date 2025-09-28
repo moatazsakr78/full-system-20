@@ -761,38 +761,74 @@ export default function ProductDetailsModal({
         }
       `}</style>
 
-      {/* Header with close button */}
-      <header className="border-b border-gray-700 py-0 relative z-40 flex-shrink-0" style={{backgroundColor: '#661a1a'}}>
-        <div className="max-w-[80%] mx-auto px-4 flex items-center justify-between min-h-[80px]">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-3">
-              <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-20 w-20 object-contain" />
-              <h1 className="text-xl font-bold text-white">El Farouk Group</h1>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <button 
+      {/* Responsive Header */}
+      <header className="border-b border-gray-600 py-0 flex-shrink-0" style={{backgroundColor: '#661a1a'}}>
+        {/* Desktop/Tablet Header */}
+        <div className="hidden md:block">
+          <div className="px-8 flex items-center justify-between" style={{minHeight: '80px'}}>
+            <button
               onClick={onClose}
-              className="text-gray-300 hover:text-red-400 transition-colors font-medium flex items-center gap-2"
+              className="text-white hover:text-red-300 transition-colors p-3 text-lg flex items-center"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              العودة للمتجر
+              <span>العودة للمتجر</span>
             </button>
+
+            <div className="text-white text-2xl font-bold">
+              تفاصيل المنتج
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="h-14 w-14 rounded-lg flex items-center justify-center">
+                <img
+                  src="/assets/logo/El Farouk Group2.png"
+                  alt="El Farouk Group Logo"
+                  className="h-full w-full object-contain rounded-lg"
+                />
+              </div>
+              <div className="flex flex-col leading-tight">
+                <span className="text-white text-lg font-bold">El Farouk</span>
+                <span className="text-white text-lg font-bold">Group</span>
+              </div>
+            </div>
           </div>
-          
-          <div className="flex items-center gap-4">
+        </div>
+
+        {/* Mobile Header */}
+        <div className="md:hidden">
+          <div className="px-3 flex items-center justify-between min-h-[60px]">
+            <button
+              onClick={onClose}
+              className="text-white hover:text-red-300 transition-colors p-2"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            <div className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-lg flex items-center justify-center">
+                <img
+                  src="/assets/logo/El Farouk Group2.png"
+                  alt="El Farouk Group Logo"
+                  className="h-full w-full object-contain rounded-lg"
+                />
+              </div>
+              <div className="flex flex-col leading-tight">
+                <span className="text-white text-sm font-bold">El Farouk</span>
+                <span className="text-white text-sm font-bold">Group</span>
+              </div>
+            </div>
+
             <button
               onClick={() => setShowCartModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-white"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg transition-colors text-white text-sm"
               style={{backgroundColor: '#5D1F1F'}}
-              onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616'; }}
-              onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F'; }}
             >
-              <span>السلة ({cartItems?.length || 0})</span>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span>({cartItems?.length || 0})</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
               </svg>
             </button>
@@ -972,7 +1008,7 @@ export default function ProductDetailsModal({
           </div>
         </main>
       ) : (
-        <main className="ml-0 px-4 py-8 overflow-y-auto h-[calc(100vh-80px)] scrollbar-hide">
+        <main className="flex-1 overflow-y-auto bg-[#c0c0c0] px-4 py-8 scrollbar-hide">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6">
             <button onClick={onClose} className="transition-colors hover:text-[#5D1F1F]">الرئيسية</button>
@@ -1713,46 +1749,6 @@ export default function ProductDetailsModal({
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="py-8 mt-12" style={{backgroundColor: '#4D4D4D', borderTop: '1px solid #666'}}>
-        <div className="max-w-[80%] mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-8 w-8 object-contain" />
-                <h5 className="font-bold text-lg text-white">El Farouk Group</h5>
-              </div>
-              <p className="text-gray-400">متجرك المتكامل للحصول على أفضل المنتجات بأسعار مميزة وجودة عالية</p>
-            </div>
-            <div>
-              <h6 className="font-semibold mb-3">روابط سريعة</h6>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-red-400 transition-colors">الرئيسية</a></li>
-                <li><a href="#" className="hover:text-red-400 transition-colors">المنتجات</a></li>
-                <li><a href="#" className="hover:text-red-400 transition-colors">من نحن</a></li>
-                <li><a href="#" className="hover:text-red-400 transition-colors">اتصل بنا</a></li>
-              </ul>
-            </div>
-            <div>
-              <h6 className="font-semibold mb-3">خدمة العملاء</h6>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-red-400 transition-colors">المساعدة</a></li>
-                <li><a href="#" className="hover:text-red-400 transition-colors">سياسة الإرجاع</a></li>
-                <li><a href="#" className="hover:text-red-400 transition-colors">الشحن والتوصيل</a></li>
-                <li><a href="#" className="hover:text-red-400 transition-colors">الدفع</a></li>
-              </ul>
-            </div>
-            <div>
-              <h6 className="font-semibold mb-3">تواصل معنا</h6>
-              <div className="space-y-2 text-gray-400">
-                <p>📞 966+123456789</p>
-                <p>✉️ info@elfarouk-store.com</p>
-                <p>📍 الرياض، المملكة العربية السعودية</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
 
       {/* Cart Modal */}
       <CartModal
