@@ -850,9 +850,9 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         </nav>
 
         {/* Product Main Section - Amazon Layout */}
-        <div className="grid grid-cols-12 gap-6 mb-12">
-          {/* Side Thumbnails */}
-          <div className="col-span-1">
+        <div className="grid grid-cols-12 gap-6 mb-12 md:grid-cols-12 grid-cols-1">
+          {/* Side Thumbnails - Hidden on mobile */}
+          <div className="col-span-1 hidden md:block">
             <div className="space-y-2 sticky top-4">
               {/* Image Thumbnails */}
               {currentGallery.map((image, index) => (
@@ -916,9 +916,9 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           </div>
 
           {/* Main Display Area */}
-          <div className="col-span-7">
+          <div className="md:col-span-7 col-span-1">
             <div
-              className={`relative w-full h-[600px] bg-white rounded-lg overflow-hidden shadow-lg ${selectedVideo ? 'cursor-pointer' : 'cursor-zoom-in'}`}
+              className={`relative w-full md:aspect-square aspect-[4/3] md:h-auto h-[400px] bg-white rounded-lg overflow-hidden shadow-lg ${selectedVideo ? 'cursor-pointer' : 'cursor-zoom-in'}`}
               onMouseEnter={() => !selectedVideo && setIsZooming(true)}
               onMouseLeave={() => !selectedVideo && setIsZooming(false)}
               onMouseMove={(e) => {
@@ -975,10 +975,66 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 </>
               )}
             </div>
+
+            {/* Mobile Thumbnails - Only shown on mobile */}
+            <div className="md:hidden mt-4">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                {/* Image Thumbnails */}
+                {currentGallery.map((image, index) => (
+                  <button
+                    key={`mobile-image-${index}`}
+                    onClick={() => {
+                      setSelectedImage(index);
+                      setSelectedVideo(null);
+                    }}
+                    className={`flex-shrink-0 w-16 h-16 rounded border-2 overflow-hidden transition-all duration-200 ${
+                      selectedImage === index && !selectedVideo
+                        ? 'border-red-500 ring-1 ring-red-500'
+                        : 'border-gray-300'
+                    }`}
+                  >
+                    <img
+                      src={image}
+                      alt={`${productDetails.name} ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+
+                {/* Video Thumbnails */}
+                {productVideos.map((video, index) => (
+                  <button
+                    key={`mobile-video-${index}`}
+                    onClick={() => {
+                      setSelectedVideo(video.video_url);
+                      setSelectedImage(-1);
+                    }}
+                    className={`relative flex-shrink-0 w-16 h-16 rounded border-2 overflow-hidden transition-all duration-200 ${
+                      selectedVideo === video.video_url
+                        ? 'border-red-500 ring-1 ring-red-500'
+                        : 'border-gray-300'
+                    }`}
+                  >
+                    <video
+                      src={video.video_url}
+                      className="w-full h-full object-cover"
+                      muted
+                      preload="metadata"
+                    />
+                    {/* Video Play Icon Overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Product Info */}
-          <div className="col-span-4 space-y-6">
+          <div className="md:col-span-4 col-span-1 space-y-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">{productDetails.name}</h1>
               <p className="text-gray-600">{productDetails.description}</p>
