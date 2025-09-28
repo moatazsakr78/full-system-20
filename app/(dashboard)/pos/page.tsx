@@ -2405,7 +2405,7 @@ function POSPageContent() {
 
         {/* Shopping Cart Panel - Desktop: Sidebar, Mobile: Shows below search toolbar */}
         <div className="hidden md:flex">
-          <div className="w-80 bg-[#374151] border-l-2 border-gray-500 flex flex-col h-screen flex-shrink-0"
+          <div className="w-80 bg-[#374151] border-l-2 border-r-2 border-gray-500 flex flex-col h-screen flex-shrink-0"
           >
             {/* Cart Items Area - Full Height */}
             <div className="flex-1 border-t-2 border-gray-500 overflow-hidden">
