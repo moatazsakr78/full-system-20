@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { CartService } from '@/lib/cart-service';
 import { CartSession, CartItemData } from '@/lib/cart-utils';
@@ -66,32 +65,6 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
   const [selectedArea, setSelectedArea] = useState<string>('');
   const [shippingCost, setShippingCost] = useState<number>(0);
 
-  // Portal element state
-  const [portalElement, setPortalElement] = useState<HTMLElement | null>(null);
-
-  // Create portal element when component mounts
-  useEffect(() => {
-    if (typeof document !== 'undefined') {
-      // إنشاء div منفصل في body
-      const modalRoot = document.createElement('div');
-      modalRoot.id = 'cart-modal-root';
-      modalRoot.style.position = 'fixed';
-      modalRoot.style.top = '0';
-      modalRoot.style.left = '0';
-      modalRoot.style.width = '100vw';
-      modalRoot.style.height = '100vh';
-      modalRoot.style.zIndex = '9999';
-
-      document.body.appendChild(modalRoot);
-      setPortalElement(modalRoot);
-
-      return () => {
-        if (document.body.contains(modalRoot)) {
-          document.body.removeChild(modalRoot);
-        }
-      };
-    }
-  }, []);
 
   // Sync with database when modal opens
   useEffect(() => {
@@ -100,32 +73,22 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
     }
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Prevent body scroll when modal is open (enhanced version)
+  // Prevent body scroll when modal is open
   useEffect(() => {
-    if (isOpen && typeof document !== 'undefined') {
-      // حفظ الـ styles الأصلية
-      const originalBodyOverflow = window.getComputedStyle(document.body).overflow;
-      const originalDocumentOverflow = window.getComputedStyle(document.documentElement).overflow;
-
-      // منع التمرير في كل من body و html
+    if (isOpen) {
       document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
       document.body.style.width = '100%';
       document.body.style.height = '100%';
       document.body.style.top = '0';
       document.body.style.left = '0';
-
-      return () => {
-        // استعادة الـ styles الأصلية
-        document.body.style.overflow = originalBodyOverflow;
-        document.documentElement.style.overflow = originalDocumentOverflow;
-        document.body.style.position = '';
-        document.body.style.width = '';
-        document.body.style.height = '';
-        document.body.style.top = '';
-        document.body.style.left = '';
-      };
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
     }
   }, [isOpen]);
 
@@ -523,56 +486,18 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
   if (!isOpen) return null;
   
   if (isLoading) {
-    return portalElement ? createPortal(
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: '#C0C0C0',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          padding: '24px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{ color: '#666' }}>جاري التحميل...</div>
+    return (
+      <div className="cart-modal-overlay">
+        <div className="bg-white rounded-lg p-6 shadow-md">
+          <div className="text-gray-600">جاري التحميل...</div>
         </div>
-      </div>,
-      portalElement
-    ) : null;
+      </div>
+    );
   }
   
-  // إذا لم يكن هناك portal element بعد، لا نعرض شيء
-  if (!portalElement) return null;
-
-  const modalContent = (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: 'white',
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        fontFamily: "'Cairo', Arial, sans-serif"
-      }}
-      dir="rtl"
-    >
-      <style>{`
+  return (
+    <>
+      <style jsx>{`
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
@@ -581,6 +506,26 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
           display: none;
         }
       `}</style>
+      <div
+        className="fixed inset-0 w-screen h-screen bg-white z-[99999] flex flex-col overflow-hidden"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          maxHeight: '100vh',
+          backgroundColor: 'white',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          fontFamily: "'Cairo', Arial, sans-serif"
+        }}
+        dir="rtl"
+      >
         {/* Responsive Header */}
         <header className="border-b border-gray-600 py-0 flex-shrink-0" style={{backgroundColor: '#661a1a'}}>
           {/* Desktop/Tablet Header */}
@@ -650,18 +595,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
         </header>
 
         {/* Responsive Content Container */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            backgroundColor: '#C0C0C0',
-            padding: '16px 12px',
-            minHeight: 0,
-            msOverflowStyle: 'none',
-            scrollbarWidth: 'none'
-          }}
-          className="scrollbar-hide md:px-16 md:py-4"
-        >
+        <div className="flex-1 overflow-y-auto bg-[#C0C0C0] px-3 py-4 md:px-16 md:py-4 scrollbar-hide">
           {cartItems.length === 0 ? (
             // Empty cart message
             <div className="text-center py-12">
@@ -1544,10 +1478,9 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
             </>
           )}
         </div>
-    </div>
+      </div>
+    </>
   );
-
-  return createPortal(modalContent, portalElement);
 };
 
 export default CartModal;
