@@ -258,7 +258,7 @@ export default function ProductDetailsModal({
     return () => window.removeEventListener('resize', checkDevice);
   }, []);
 
-  // Prevent body scroll when modal is open (especially for mobile)
+  // Prevent body scroll when modal is open and change theme color
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -267,6 +267,37 @@ export default function ProductDetailsModal({
       document.body.style.height = '100%';
       document.body.style.top = '0';
       document.body.style.left = '0';
+
+      // Change theme color for product details modal to blue like cart
+      const blueColor = '#3B82F6'; // Blue color to match cart modal
+
+      // Function to update all meta tags
+      const updateThemeColor = (color: string) => {
+        // Update theme-color meta tag
+        const themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
+        if (themeColorMeta) {
+          themeColorMeta.content = color;
+        }
+
+        // Update msapplication-navbutton-color for Windows Phone
+        const msNavColorMeta = document.querySelector('meta[name="msapplication-navbutton-color"]') as HTMLMetaElement;
+        if (msNavColorMeta) {
+          msNavColorMeta.content = color;
+        }
+
+        // Update apple-mobile-web-app-status-bar-style for iOS
+        const appleStatusBarMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]') as HTMLMetaElement;
+        if (appleStatusBarMeta) {
+          appleStatusBarMeta.content = 'default';
+        }
+      };
+
+      // Apply the blue color immediately and with delays to ensure browser picks it up
+      updateThemeColor(blueColor);
+      setTimeout(() => updateThemeColor(blueColor), 10);
+      setTimeout(() => updateThemeColor(blueColor), 100);
+      setTimeout(() => updateThemeColor(blueColor), 250);
+
     } else {
       document.body.style.overflow = '';
       document.body.style.position = '';
@@ -274,16 +305,47 @@ export default function ProductDetailsModal({
       document.body.style.height = '';
       document.body.style.top = '';
       document.body.style.left = '';
+
+      // Restore original theme colors
+      const originalBlueColor = '#3B82F6'; // Original blue color
+
+      // Function to restore theme color
+      const restoreThemeColor = (color: string) => {
+        const themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
+        if (themeColorMeta) {
+          themeColorMeta.content = color;
+        }
+
+        const msNavColorMeta = document.querySelector('meta[name="msapplication-navbutton-color"]') as HTMLMetaElement;
+        if (msNavColorMeta) {
+          msNavColorMeta.content = color;
+        }
+
+        const appleStatusBarMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]') as HTMLMetaElement;
+        if (appleStatusBarMeta) {
+          appleStatusBarMeta.content = 'default';
+        }
+      };
+
+      // Restore the blue color
+      restoreThemeColor(originalBlueColor);
+      setTimeout(() => restoreThemeColor(originalBlueColor), 10);
     }
 
     return () => {
-      // Cleanup on unmount
+      // Cleanup on unmount - restore original theme
       document.body.style.overflow = '';
       document.body.style.position = '';
       document.body.style.width = '';
       document.body.style.height = '';
       document.body.style.top = '';
       document.body.style.left = '';
+
+      const originalBlueColor = '#3B82F6';
+      const themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
+      if (themeColorMeta) {
+        themeColorMeta.content = originalBlueColor;
+      }
     };
   }, [isOpen]);
 
