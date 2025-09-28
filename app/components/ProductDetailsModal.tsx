@@ -249,7 +249,9 @@ export default function ProductDetailsModal({
   // Device detection effect
   useEffect(() => {
     const checkDevice = () => {
-      setIsMobile(window.innerWidth < 768);
+      const isMobileDevice = window.innerWidth < 768;
+      setIsMobile(isMobileDevice);
+      console.log('Device detection:', { width: window.innerWidth, isMobile: isMobileDevice });
     };
     checkDevice();
     window.addEventListener('resize', checkDevice);
@@ -684,6 +686,8 @@ export default function ProductDetailsModal({
 
   if (!isOpen) return null;
 
+  console.log('ProductDetailsModal render:', { isOpen, isMobile, windowWidth: typeof window !== 'undefined' ? window.innerWidth : 'SSR' });
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center" style={{backgroundColor: '#c0c0c0'}}>
@@ -728,6 +732,14 @@ export default function ProductDetailsModal({
           scrollbar-width: none;
         }
         .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .mobile-tabs-container {
+          overflow-x: auto;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .mobile-tabs-container::-webkit-scrollbar {
           display: none;
         }
       `}</style>
@@ -829,11 +841,15 @@ export default function ProductDetailsModal({
 
       {/* Product Details Content - Mobile optimized */}
       {isMobile ? (
-        <main className="flex-1 overflow-y-auto bg-[#C0C0C0] px-3 py-4 scrollbar-hide"
+        <main
+          className="flex-1 overflow-y-auto bg-[#C0C0C0] scrollbar-hide"
           style={{
             height: '100%',
             maxHeight: '100%',
-            overflow: 'hidden auto'
+            overflow: 'hidden auto',
+            backgroundColor: '#C0C0C0',
+            flex: '1 1 0%',
+            padding: '12px'
           }}>
           <div>
             {/* Mobile Navigation Tabs */}
