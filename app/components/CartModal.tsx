@@ -72,6 +72,31 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
     }
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Prevent body scroll when modal is open (mobile fix)
+  useEffect(() => {
+    if (isOpen) {
+      // Prevent scrolling on the background page
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+    } else {
+      // Restore scrolling when modal is closed
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    }
+
+    // Cleanup function to restore scroll when component unmounts
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    };
+  }, [isOpen]);
+
   // Load shipping companies
   const loadShippingCompanies = useCallback(async () => {
     try {
@@ -485,10 +510,43 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
+        .cart-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          width: 100vw;
+          height: 100vh;
+          z-index: 9999;
+          background-color: white;
+        }
+        @media (max-width: 768px) {
+          .cart-modal-overlay {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            max-height: 100vh !important;
+            max-height: 100dvh !important;
+            z-index: 9999 !important;
+            background-color: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+          }
+          body {
+            overflow: hidden !important;
+          }
+        }
       `}</style>
-      <div className="fixed inset-0 z-50 font-['Cairo',Arial,sans-serif] bg-white" dir="rtl">
+      <div className="cart-modal-overlay font-['Cairo',Arial,sans-serif] flex flex-col" dir="rtl">
         {/* Responsive Header */}
-        <header className="border-b border-gray-600 py-0 sticky top-0 z-10" style={{backgroundColor: '#661a1a'}}>
+        <header className="border-b border-gray-600 py-0 flex-shrink-0" style={{backgroundColor: '#661a1a'}}>
           {/* Desktop/Tablet Header */}
           <div className="hidden md:block">
             <div className="px-8 flex items-center justify-between" style={{minHeight: '80px'}}>
@@ -556,7 +614,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
         </header>
 
         {/* Responsive Content Container */}
-        <div className="md:px-16 md:py-4 px-3 py-4 h-[calc(100vh-60px)] md:h-[calc(100vh-80px)] overflow-y-auto scrollbar-hide bg-[#C0C0C0]">
+        <div className="md:px-16 md:py-4 px-3 py-4 flex-1 overflow-y-auto scrollbar-hide bg-[#C0C0C0] min-h-0">
           {cartItems.length === 0 ? (
             // Empty cart message
             <div className="text-center py-12">
