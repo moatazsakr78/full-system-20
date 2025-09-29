@@ -349,6 +349,22 @@ export default function ProductDetailsModal({
     };
   }, [isOpen]);
 
+  // Reset states when modal opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset all states when modal closes
+      setSelectedVideo(null);
+      setSelectedImage(0);
+      setProductDetails(null);
+      setCurrentGallery([]);
+      setSelectedColor(null);
+      setSelectedShape(null);
+      setSelectedSize(null);
+      setQuantity(1);
+      return;
+    }
+  }, [isOpen]);
+
   // Fetch product data
   useEffect(() => {
     if (!isOpen || !productId) return;
@@ -630,7 +646,10 @@ export default function ProductDetailsModal({
         setCurrentPrice(productDetail.price);
         setCurrentProductName(productDetail.name);
 
-        
+        // Reset video state when opening new product
+        setSelectedVideo(null);
+        setSelectedImage(0);
+
         // Set initial selections
         if (productDetail.colors && productDetail.colors.length > 0) {
           const firstColor = productDetail.colors[0];
@@ -927,6 +946,28 @@ export default function ProductDetailsModal({
                       controls={true}
                       preload="metadata"
                       playsInline
+                      controlsList="fullscreen"
+                      onLoadedMetadata={(e) => {
+                        // Auto enable fullscreen on mobile when video loads
+                        const video = e.currentTarget;
+                        if (video.requestFullscreen && window.innerWidth < 768) {
+                          // Small delay to ensure video is ready
+                          setTimeout(() => {
+                            video.requestFullscreen().catch(err => {
+                              console.log('Fullscreen not supported or blocked:', err);
+                            });
+                          }, 100);
+                        }
+                      }}
+                      onPlay={(e) => {
+                        // Try to go fullscreen when play starts on mobile
+                        const video = e.currentTarget;
+                        if (video.requestFullscreen && window.innerWidth < 768) {
+                          video.requestFullscreen().catch(err => {
+                            console.log('Fullscreen not supported or blocked:', err);
+                          });
+                        }
+                      }}
                     />
                   </div>
                 ) : (
