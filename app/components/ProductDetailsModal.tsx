@@ -945,29 +945,6 @@ export default function ProductDetailsModal({
                       className="w-full h-full object-cover rounded-lg"
                       controls={true}
                       preload="metadata"
-                      playsInline
-                      controlsList="fullscreen"
-                      onLoadedMetadata={(e) => {
-                        // Auto enable fullscreen on mobile when video loads
-                        const video = e.currentTarget;
-                        if (video.requestFullscreen && window.innerWidth < 768) {
-                          // Small delay to ensure video is ready
-                          setTimeout(() => {
-                            video.requestFullscreen().catch(err => {
-                              console.log('Fullscreen not supported or blocked:', err);
-                            });
-                          }, 100);
-                        }
-                      }}
-                      onPlay={(e) => {
-                        // Try to go fullscreen when play starts on mobile
-                        const video = e.currentTarget;
-                        if (video.requestFullscreen && window.innerWidth < 768) {
-                          video.requestFullscreen().catch(err => {
-                            console.log('Fullscreen not supported or blocked:', err);
-                          });
-                        }
-                      }}
                     />
                   </div>
                 ) : (
