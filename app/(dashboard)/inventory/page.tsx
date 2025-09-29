@@ -28,7 +28,8 @@ import {
   Squares2X2Icon,
   ListBulletIcon,
   EyeIcon,
-  XMarkIcon
+  XMarkIcon,
+  PencilSquareIcon
 } from '@heroicons/react/24/outline'
 
 // Database category interface for type safety
@@ -117,13 +118,14 @@ export default function InventoryPage() {
       const userAgent = navigator.userAgent.toLowerCase()
       const windowWidth = window.innerWidth
 
-      // Check for mobile devices (phones)
+      // Check for mobile devices (phones) - only phones use mobile view
       const isMobileDevice = /mobile|android(?=.*mobile)|iphone|ipod|blackberry|opera mini/i.test(userAgent) ||
                             windowWidth < 768
 
-      // Check for tablet devices
-      const isTabletDevice = /tablet|ipad|playbook|silk|android(?!.*mobile)/i.test(userAgent) ||
-                            (windowWidth >= 768 && windowWidth <= 1024)
+      // Check for tablet devices - only actual tablets use tablet view, not desktop
+      const isTabletDevice = (/tablet|ipad|playbook|silk|android(?!.*mobile)/i.test(userAgent) ||
+                            (windowWidth >= 768 && windowWidth <= 1024)) &&
+                            !/windows|macintosh|linux/i.test(userAgent)
 
       setIsMobile(isMobileDevice)
       setIsTablet(isTabletDevice)
@@ -894,77 +896,77 @@ export default function InventoryPage() {
       <div className="h-full pt-12 overflow-hidden flex flex-col">
         
         {/* Top Action Buttons Toolbar - Full Width */}
-        <div className="bg-[#374151] border-b border-gray-600 px-2 py-2 w-full">
-          <div className="flex items-center justify-start gap-1 overflow-x-auto scrollbar-hide">
+        <div className="bg-[#374151] border-b border-gray-600 px-4 py-2 w-full">
+          <div className="flex items-center justify-start gap-1">
             <button
               onClick={handleRefresh}
-              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
+              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
             >
-              <ArrowPathIcon className="h-4 w-4" />
-              <span className="text-xs">تحديث</span>
+              <ArrowPathIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">تحديث</span>
             </button>
 
             <button
               onClick={toggleAddBranchModal}
-              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
+              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
             >
-              <BuildingStorefrontIcon className="h-4 w-4" />
-              <span className="text-xs">إضافة فرع</span>
+              <BuildingStorefrontIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">إضافة فرع</span>
             </button>
 
             <button
               onClick={toggleAddStorageModal}
-              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
+              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
             >
-              <BuildingOffice2Icon className="h-4 w-4" />
-              <span className="text-xs">إضافة مخزن</span>
+              <BuildingOffice2Icon className="h-5 w-5 mb-1" />
+              <span className="text-sm">إضافة مخزن</span>
             </button>
 
             <button
               onClick={toggleManagementModal}
-              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
+              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
             >
-              <CogIcon className="h-4 w-4" />
-              <span className="text-xs">إدارة</span>
+              <CogIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">إدارة</span>
             </button>
 
-            <button className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors">
-              <DocumentArrowDownIcon className="h-4 w-4" />
-              <span className="text-xs">حفظ كـ PDF</span>
+            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+              <DocumentArrowDownIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">حفظ كـ PDF</span>
             </button>
 
-            <button className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors">
-              <DocumentTextIcon className="h-4 w-4" />
-              <span className="text-xs">اكسل</span>
+            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+              <DocumentTextIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">اكسل</span>
             </button>
 
             <button
               onClick={() => handleQuantityAction('add')}
-              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
+              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
             >
-              <ClipboardDocumentListIcon className="h-4 w-4" />
-              <span className="text-xs">إضافة</span>
+              <ClipboardDocumentListIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">إضافة</span>
             </button>
 
             <button
               onClick={() => handleQuantityAction('edit')}
-              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
+              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
             >
-              <ClipboardDocumentListIcon className="h-4 w-4" />
-              <span className="text-xs">تعديل</span>
+              <PencilSquareIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">تعديل</span>
             </button>
 
-            <button className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors">
-              <ChartBarIcon className="h-4 w-4" />
-              <span className="text-xs">تقرير الجرد</span>
+            <button className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]">
+              <ChartBarIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">تقرير الجرد</span>
             </button>
 
             <button
               onClick={() => setShowColumnsModal(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-gray-300 hover:text-white hover:bg-[#374151] cursor-pointer whitespace-nowrap flex-shrink-0 transition-colors"
+              className="flex flex-col items-center p-2 text-gray-300 hover:text-white cursor-pointer min-w-[80px]"
             >
-              <TableCellsIcon className="h-4 w-4" />
-              <span className="text-xs">الأعمدة</span>
+              <TableCellsIcon className="h-5 w-5 mb-1" />
+              <span className="text-sm">الأعمدة</span>
             </button>
           </div>
         </div>
@@ -1126,37 +1128,46 @@ export default function InventoryPage() {
                     ))}
                   </select>
                   
-                  {/* Stock Status Buttons */}
-                  <div className="flex items-center gap-2">
-                    <button 
+                  {/* Stock Status Buttons - Desktop Style */}
+                  <div className="flex items-center gap-4">
+                    <button
                       onClick={() => handleStockStatusToggle('good')}
-                      className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                        stockStatusFilters.good 
-                          ? 'bg-green-600 hover:bg-green-700 text-white' 
-                          : 'bg-gray-600 text-gray-400 opacity-50'
+                      className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] transition-all ${
+                        stockStatusFilters.good
+                          ? 'text-green-400 hover:text-green-300'
+                          : 'text-gray-500 opacity-50'
                       }`}
                     >
-                      جيد
+                      <div className={`h-5 w-5 mb-1 rounded-full ${
+                        stockStatusFilters.good ? 'bg-green-500' : 'bg-gray-500'
+                      }`}></div>
+                      <span className="text-sm">جيد</span>
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleStockStatusToggle('low')}
-                      className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                        stockStatusFilters.low 
-                          ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-                          : 'bg-gray-600 text-gray-400 opacity-50'
+                      className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] transition-all ${
+                        stockStatusFilters.low
+                          ? 'text-yellow-400 hover:text-yellow-300'
+                          : 'text-gray-500 opacity-50'
                       }`}
                     >
-                      منخفض
+                      <div className={`h-5 w-5 mb-1 rounded-full ${
+                        stockStatusFilters.low ? 'bg-yellow-500' : 'bg-gray-500'
+                      }`}></div>
+                      <span className="text-sm">منخفض</span>
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleStockStatusToggle('zero')}
-                      className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                        stockStatusFilters.zero 
-                          ? 'bg-red-600 hover:bg-red-700 text-white' 
-                          : 'bg-gray-600 text-gray-400 opacity-50'
+                      className={`flex flex-col items-center p-2 cursor-pointer min-w-[80px] transition-all ${
+                        stockStatusFilters.zero
+                          ? 'text-red-400 hover:text-red-300'
+                          : 'text-gray-500 opacity-50'
                       }`}
                     >
-                      صفر
+                      <div className={`h-5 w-5 mb-1 rounded-full ${
+                        stockStatusFilters.zero ? 'bg-red-500' : 'bg-gray-500'
+                      }`}></div>
+                      <span className="text-sm">صفر</span>
                     </button>
                   </div>
                 </div>
