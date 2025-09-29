@@ -15,8 +15,6 @@ interface AddToCartModalProps {
 export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, isTransferMode = false }: AddToCartModalProps) {
   const [quantity, setQuantity] = useState(1)
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
-  const [isEditingQuantity, setIsEditingQuantity] = useState(false)
-  const [tempQuantity, setTempQuantity] = useState('1')
 
   // Use dynamic currency from system settings
   const { formatPrice, getCurrentCurrency } = useCurrency()
@@ -24,40 +22,10 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, 
 
   if (!isOpen || !product) return null
 
-  // جميع دوال التعامل مع الكمية
+  // دالة تغيير الكمية بالأزرار
   const handleQuantityChange = (change: number) => {
     const newQuantity = Math.max(1, quantity + change)
     setQuantity(newQuantity)
-    setTempQuantity(newQuantity.toString())
-  }
-
-  const handleQuantityClick = () => {
-    setIsEditingQuantity(true)
-    setTempQuantity(quantity.toString())
-  }
-
-  const handleQuantityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    if (value === '' || /^\d+$/.test(value)) {
-      setTempQuantity(value)
-    }
-  }
-
-  const handleQuantityInputBlur = () => {
-    const numValue = parseInt(tempQuantity) || 1
-    const finalQuantity = Math.max(1, numValue)
-    setQuantity(finalQuantity)
-    setTempQuantity(finalQuantity.toString())
-    setIsEditingQuantity(false)
-  }
-
-  const handleQuantityInputKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleQuantityInputBlur()
-    } else if (e.key === 'Escape') {
-      setTempQuantity(quantity.toString())
-      setIsEditingQuantity(false)
-    }
   }
 
   const handleAddToCart = () => {
@@ -65,8 +33,6 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, 
     onClose()
     setQuantity(1)
     setSelectedColor(null)
-    setTempQuantity('1')
-    setIsEditingQuantity(false)
   }
 
   // الألوان المتاحة
@@ -145,28 +111,26 @@ export default function AddToCartModal({ isOpen, onClose, product, onAddToCart, 
                 >
                   <MinusIcon className="h-4 w-4 text-white" />
                 </button>
-                <div className="bg-[#374151] rounded-lg px-6 py-3 min-w-[80px] text-center">
-                  {isEditingQuantity ? (
-                    <input
-                      type="text"
-                      value={tempQuantity}
-                      onChange={handleQuantityInputChange}
-                      onBlur={handleQuantityInputBlur}
-                      onKeyDown={handleQuantityInputKeyPress}
-                      className="bg-transparent text-white font-bold text-xl text-center outline-none w-full"
-                      autoFocus
-                      onFocus={(e) => e.target.select()}
-                    />
-                  ) : (
-                    <span
-                      className="text-white font-bold text-xl cursor-pointer hover:bg-[#4B5563] rounded px-2 py-1 transition-colors"
-                      onClick={handleQuantityClick}
-                      title="اضغط للتحرير"
-                    >
-                      {quantity}
-                    </span>
-                  )}
-                </div>
+                <input
+                  type="text"
+                  value={quantity}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    console.log('تغيير الكمية:', value)
+                    if (value === '' || /^\d+$/.test(value)) {
+                      const num = parseInt(value) || 1
+                      if (num >= 1 && num <= 9999) {
+                        setQuantity(num)
+                      }
+                    }
+                  }}
+                  onFocus={(e) => {
+                    console.log('تم النقر على حقل الكمية')
+                    e.target.select()
+                  }}
+                  className="bg-red-600 text-white font-bold text-xl text-center rounded-lg px-6 py-3 min-w-[80px] outline-none border-4 border-yellow-400 focus:border-green-500 hover:bg-red-700 transition-all"
+                  placeholder="اكتب هنا"
+                />
                 <button
                   onClick={() => handleQuantityChange(1)}
                   className="w-10 h-10 bg-[#374151] hover:bg-[#4B5563] rounded-full flex items-center justify-center transition-colors"

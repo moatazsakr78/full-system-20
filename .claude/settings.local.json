@@ -283,7 +283,8 @@
       "Bash(start http://localhost:3000/customers)",
       "Bash(start http://localhost:3000/suppliers)",
       "Bash(npx prettier:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(start test-quantity-input.html)"
     ],
     "deny": [],
     "additionalDirectories": [
