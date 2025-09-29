@@ -914,38 +914,82 @@ export default function ProductDetailsModal({
             padding: '12px'
           }}>
           <div>
-            {/* Mobile Navigation Tabs */}
-            <div className="mobile-tabs-container mb-4">
-              <div className="flex gap-2 min-w-max">
-                <button className="px-3 py-1 bg-blue-500 text-white text-xs rounded whitespace-nowrap">تفاصيل المنتج</button>
-                <button className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded whitespace-nowrap">السعر</button>
-                <button className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded whitespace-nowrap">المخزون</button>
-                <button className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded whitespace-nowrap">الوصف</button>
-                <button className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded whitespace-nowrap">المجموعة</button>
-              </div>
-            </div>
 
             {/* Mobile Product Content */}
             <div className="space-y-4">
-              {/* Product Image */}
+              {/* Product Image/Video */}
               <div className="bg-white rounded-lg p-3">
-                <img
-                  src={currentGallery[selectedImage]}
-                  alt={productDetails.name}
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-                {/* Thumbnail Gallery */}
-                {currentGallery.length > 1 && (
+                {selectedVideo ? (
+                  <div className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                    <video
+                      src={selectedVideo}
+                      className="w-full h-full object-cover"
+                      controls={false}
+                      muted
+                      preload="metadata"
+                    />
+                    {/* Video Play Button */}
+                    <button
+                      onClick={() => setShowVideoModal(true)}
+                      className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 hover:bg-opacity-50 transition-all"
+                    >
+                      <div className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
+                        <svg className="w-6 h-6 text-gray-800 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      </div>
+                    </button>
+                  </div>
+                ) : (
+                  <img
+                    src={currentGallery[selectedImage]}
+                    alt={productDetails.name}
+                    className="w-full aspect-square object-cover rounded-lg"
+                  />
+                )}
+                {/* Thumbnail Gallery - Images and Videos */}
+                {(currentGallery.length > 1 || productVideos.length > 0) && (
                   <div className="flex gap-2 mt-3 overflow-x-auto scrollbar-hide">
+                    {/* Image Thumbnails */}
                     {currentGallery.map((img, index) => (
                       <button
-                        key={index}
-                        onClick={() => setSelectedImage(index)}
+                        key={`image-${index}`}
+                        onClick={() => {
+                          setSelectedImage(index);
+                          setSelectedVideo(null);
+                        }}
                         className={`flex-shrink-0 w-12 h-12 rounded border-2 overflow-hidden ${
-                          selectedImage === index ? 'border-red-500' : 'border-gray-300'
+                          selectedImage === index && !selectedVideo ? 'border-red-500' : 'border-gray-300'
                         }`}
                       >
                         <img src={img} alt={`${index + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+
+                    {/* Video Thumbnails */}
+                    {productVideos.map((video, index) => (
+                      <button
+                        key={`video-${index}`}
+                        onClick={() => {
+                          setSelectedVideo(video.video_url);
+                          setSelectedImage(-1);
+                        }}
+                        className={`relative flex-shrink-0 w-12 h-12 rounded border-2 overflow-hidden ${
+                          selectedVideo === video.video_url ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      >
+                        <video
+                          src={video.video_url}
+                          className="w-full h-full object-cover"
+                          muted
+                          preload="metadata"
+                        />
+                        {/* Video Play Icon Overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        </div>
                       </button>
                     ))}
                   </div>

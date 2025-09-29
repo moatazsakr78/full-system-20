@@ -282,7 +282,8 @@
       "Bash(start http://localhost:3002/product/2ee8d1c5-e054-48f8-8e25-4b7c7875961a)",
       "Bash(start http://localhost:3000/customers)",
       "Bash(start http://localhost:3000/suppliers)",
-      "Bash(npx prettier:*)"
+      "Bash(npx prettier:*)",
+      "Bash(kill:*)"
     ],
     "deny": [],
     "additionalDirectories": [
