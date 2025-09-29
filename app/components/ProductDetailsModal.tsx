@@ -991,7 +991,7 @@ export default function ProductDetailsModal({
                           setSelectedVideo(video.video_url);
                           setSelectedImage(-1);
                         }}
-                        className={`relative flex-shrink-0 w-12 h-12 rounded border-2 overflow-hidden ${
+                        className={`relative flex-shrink-0 w-12 h-12 rounded border-2 overflow-hidden bg-black ${
                           selectedVideo === video.video_url ? 'border-red-500' : 'border-gray-300'
                         }`}
                       >
@@ -1000,9 +1000,13 @@ export default function ProductDetailsModal({
                           className="w-full h-full object-cover"
                           muted
                           preload="metadata"
+                          poster={currentGallery[0] || productDetails.image || ''}
+                          style={{
+                            backgroundColor: '#000000'
+                          }}
                         />
                         {/* Video Play Icon Overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40">
                           <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M8 5v14l11-7z"/>
                           </svg>
