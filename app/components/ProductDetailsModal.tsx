@@ -249,10 +249,11 @@ export default function ProductDetailsModal({
   // Detect device type for responsive design
   const [isMobile, setIsMobile] = useState(false);
 
-  // Device detection effect
+  // Device detection effect - Include tablet in mobile design
   useEffect(() => {
     const checkDevice = () => {
-      const isMobileDevice = window.innerWidth < 768;
+      // Changed from 768 to 1024 to include tablets in mobile design
+      const isMobileDevice = window.innerWidth < 1024;
       setIsMobile(isMobileDevice);
       console.log('Device detection:', { width: window.innerWidth, isMobile: isMobileDevice });
     };
@@ -890,8 +891,8 @@ export default function ProductDetailsModal({
 
       {/* Responsive Header */}
       <header className="border-b border-gray-600 py-0 flex-shrink-0" style={{backgroundColor: '#661a1a'}}>
-        {/* Desktop/Tablet Header */}
-        <div className="hidden md:block">
+        {/* Desktop Header */}
+        <div className="hidden lg:block">
           <div className="px-8 flex items-center justify-between" style={{minHeight: '80px'}}>
             <button
               onClick={onClose}
@@ -923,8 +924,8 @@ export default function ProductDetailsModal({
           </div>
         </div>
 
-        {/* Mobile Header */}
-        <div className="md:hidden">
+        {/* Mobile/Tablet Header */}
+        <div className="lg:hidden">
           <div className="px-3 flex items-center justify-between min-h-[60px]">
             <button
               onClick={onClose}
