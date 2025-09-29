@@ -939,13 +939,23 @@ export default function ProductDetailsModal({
               {/* Product Image/Video */}
               <div className="bg-white rounded-lg p-3">
                 {selectedVideo ? (
-                  <div className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                  <div className="relative w-full aspect-square bg-black rounded-lg overflow-hidden">
                     <video
                       src={selectedVideo}
                       className="w-full h-full object-cover rounded-lg"
                       controls={true}
                       preload="metadata"
+                      poster={currentGallery[0] || productDetails.image || ''}
+                      style={{
+                        backgroundColor: '#000000'
+                      }}
                     />
+                    {/* Video overlay for better visual indication */}
+                    <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 rounded px-2 py-1">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </div>
                   </div>
                 ) : (
                   <img
