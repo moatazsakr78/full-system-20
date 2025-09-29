@@ -265,16 +265,37 @@ export default function ProductDetailsModal({
   useEffect(() => {
     if (isOpen) {
       // Save current scroll position before opening modal
-      const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
-      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollX = window.pageXOffset || document.documentElement.scrollLeft || window.scrollX || 0;
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop || window.scrollY || 0;
       setSavedScrollPosition({ x: scrollX, y: scrollY });
 
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      document.body.style.height = '100%';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.left = `-${scrollX}px`;
+      // Enhanced mobile-friendly scroll lock
+      const isMobile = window.innerWidth <= 768;
+
+      if (isMobile) {
+        // Mobile-specific approach
+        document.documentElement.style.overflow = 'hidden';
+        document.documentElement.style.position = 'fixed';
+        document.documentElement.style.top = `-${scrollY}px`;
+        document.documentElement.style.left = `-${scrollX}px`;
+        document.documentElement.style.width = '100%';
+        document.documentElement.style.height = '100%';
+
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.left = `-${scrollX}px`;
+        document.body.style.width = '100%';
+        document.body.style.height = '100%';
+      } else {
+        // Desktop approach
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        document.body.style.height = '100%';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.left = `-${scrollX}px`;
+      }
 
       // Change theme color for product details modal to blue like cart
       const blueColor = '#3B82F6'; // Blue color to match cart modal
@@ -307,6 +328,19 @@ export default function ProductDetailsModal({
       setTimeout(() => updateThemeColor(blueColor), 250);
 
     } else {
+      // Enhanced mobile-friendly scroll restore
+      const isMobile = window.innerWidth <= 768;
+
+      if (isMobile) {
+        // Mobile-specific cleanup
+        document.documentElement.style.overflow = '';
+        document.documentElement.style.position = '';
+        document.documentElement.style.top = '';
+        document.documentElement.style.left = '';
+        document.documentElement.style.width = '';
+        document.documentElement.style.height = '';
+      }
+
       document.body.style.overflow = '';
       document.body.style.position = '';
       document.body.style.width = '';
@@ -314,10 +348,31 @@ export default function ProductDetailsModal({
       document.body.style.top = '';
       document.body.style.left = '';
 
-      // Restore scroll position after modal closes
-      setTimeout(() => {
-        window.scrollTo(savedScrollPosition.x, savedScrollPosition.y);
-      }, 0);
+      // Enhanced scroll restoration for mobile
+      if (isMobile) {
+        // Multiple restoration attempts for mobile browsers
+        const restoreScroll = () => {
+          window.scrollTo(savedScrollPosition.x, savedScrollPosition.y);
+          document.documentElement.scrollTop = savedScrollPosition.y;
+          document.documentElement.scrollLeft = savedScrollPosition.x;
+          document.body.scrollTop = savedScrollPosition.y;
+          document.body.scrollLeft = savedScrollPosition.x;
+        };
+
+        // Immediate restoration
+        restoreScroll();
+
+        // Delayed restoration for stubborn mobile browsers
+        setTimeout(restoreScroll, 0);
+        setTimeout(restoreScroll, 10);
+        setTimeout(restoreScroll, 50);
+        setTimeout(restoreScroll, 100);
+      } else {
+        // Desktop restoration
+        setTimeout(() => {
+          window.scrollTo(savedScrollPosition.x, savedScrollPosition.y);
+        }, 0);
+      }
 
       // Restore original theme colors
       const originalBlueColor = '#3B82F6'; // Original blue color
