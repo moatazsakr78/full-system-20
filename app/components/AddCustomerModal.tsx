@@ -26,6 +26,7 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
     allowedLimit: '',
     rank: '',
     phone: '',
+    backupPhone: '',
     governorate: '',
     address: ''
   })
@@ -101,6 +102,7 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
       const customerData = {
         name: formData.name.trim(),
         phone: formData.phone.trim() || null,
+        backup_phone: formData.backupPhone.trim() || null,
         address: formData.address.trim() || null,
         city: selectedGovernorate?.name || null,
         group_id: formData.group || null,
@@ -147,6 +149,7 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
       allowedLimit: '',
       rank: '',
       phone: '',
+      backupPhone: '',
       governorate: '',
       address: ''
     })
@@ -319,6 +322,21 @@ export default function AddCustomerModal({ isOpen, onClose }: AddCustomerModalPr
               value={formData.phone}
               onChange={handleInputChange}
               placeholder="أدخل رقم الهاتف"
+              className="w-full px-3 py-2 bg-[#2B3441] border border-[#4A5568] rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-sm"
+            />
+          </div>
+
+          {/* Backup Phone Number */}
+          <div className="space-y-2">
+            <label className="block text-white text-sm font-medium text-right">
+              رقم الهاتف الاحتياطي (اختياري)
+            </label>
+            <input
+              type="tel"
+              name="backupPhone"
+              value={formData.backupPhone}
+              onChange={handleInputChange}
+              placeholder="أدخل رقم الهاتف الاحتياطي"
               className="w-full px-3 py-2 bg-[#2B3441] border border-[#4A5568] rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-sm"
             />
           </div>

@@ -112,12 +112,19 @@ const tableColumns = [
       )
     }
   },
-  { 
-    id: 'phone', 
-    header: 'رقم الهاتف', 
-    accessor: 'phone', 
+  {
+    id: 'phone',
+    header: 'رقم الهاتف',
+    accessor: 'phone',
     width: 150,
     render: (value: string | null) => <span className="text-gray-300 font-mono text-sm">{value || 'غير محدد'}</span>
+  },
+  {
+    id: 'backup_phone',
+    header: 'رقم الهاتف الاحتياطي',
+    accessor: 'backup_phone',
+    width: 150,
+    render: (value: string | null) => <span className="text-gray-300 font-mono text-sm">{value || '-'}</span>
   },
   { 
     id: 'created_at', 

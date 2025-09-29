@@ -399,6 +399,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
             .update({
               name: orderData.customer.name,
               phone: orderData.customer.phone,
+              backup_phone: orderData.customer.altPhone,
               address: orderData.customer.address,
               email: user.email,
               updated_at: new Date().toISOString()
@@ -416,6 +417,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
               user_id: user.id,
               name: orderData.customer.name,
               phone: orderData.customer.phone,
+              backup_phone: orderData.customer.altPhone,
               address: orderData.customer.address,
               email: user.email,
               is_active: true,
