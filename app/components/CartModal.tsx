@@ -65,6 +65,9 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
   const [selectedArea, setSelectedArea] = useState<string>('');
   const [shippingCost, setShippingCost] = useState<number>(0);
 
+  // Save scroll position to restore when modal closes
+  const [savedScrollPosition, setSavedScrollPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
 
   // Sync with database when modal opens
   useEffect(() => {
@@ -76,12 +79,17 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
   // Prevent body scroll when modal is open and change theme color
   useEffect(() => {
     if (isOpen) {
+      // Save current scroll position before opening modal
+      const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      setSavedScrollPosition({ x: scrollX, y: scrollY });
+
       document.body.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
       document.body.style.width = '100%';
       document.body.style.height = '100%';
-      document.body.style.top = '0';
-      document.body.style.left = '0';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = `-${scrollX}px`;
 
       // Change theme color for cart modal
       const grayColor = '#C0C0C0'; // Gray color to match cart background
@@ -121,6 +129,11 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
       document.body.style.height = '';
       document.body.style.top = '';
       document.body.style.left = '';
+
+      // Restore scroll position after modal closes
+      setTimeout(() => {
+        window.scrollTo(savedScrollPosition.x, savedScrollPosition.y);
+      }, 0);
 
       // Restore original theme colors
       const blueColor = '#3B82F6'; // Original blue color

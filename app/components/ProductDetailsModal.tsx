@@ -243,6 +243,9 @@ export default function ProductDetailsModal({
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const [currentProductName, setCurrentProductName] = useState<string>('');
 
+  // Save scroll position to restore when modal closes
+  const [savedScrollPosition, setSavedScrollPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
   // Detect device type for responsive design
   const [isMobile, setIsMobile] = useState(false);
 
@@ -261,12 +264,17 @@ export default function ProductDetailsModal({
   // Prevent body scroll when modal is open and change theme color
   useEffect(() => {
     if (isOpen) {
+      // Save current scroll position before opening modal
+      const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      setSavedScrollPosition({ x: scrollX, y: scrollY });
+
       document.body.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
       document.body.style.width = '100%';
       document.body.style.height = '100%';
-      document.body.style.top = '0';
-      document.body.style.left = '0';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = `-${scrollX}px`;
 
       // Change theme color for product details modal to blue like cart
       const blueColor = '#3B82F6'; // Blue color to match cart modal
@@ -305,6 +313,11 @@ export default function ProductDetailsModal({
       document.body.style.height = '';
       document.body.style.top = '';
       document.body.style.left = '';
+
+      // Restore scroll position after modal closes
+      setTimeout(() => {
+        window.scrollTo(savedScrollPosition.x, savedScrollPosition.y);
+      }, 0);
 
       // Restore original theme colors
       const originalBlueColor = '#3B82F6'; // Original blue color
