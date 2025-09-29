@@ -7,6 +7,7 @@ export interface Customer {
   id: string
   name: string
   phone: string | null
+  backup_phone: string | null
   email: string | null
   address: string | null
   city: string | null
