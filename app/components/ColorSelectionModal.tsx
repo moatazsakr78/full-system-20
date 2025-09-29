@@ -320,9 +320,23 @@ export default function ColorSelectionModal({
                   >
                     <MinusIcon className="h-4 w-4 text-white" />
                   </button>
-                  <div className="bg-[#2B3544] rounded-lg px-6 py-3 min-w-[80px] text-center relative">
-                    <span className="text-white font-bold text-xl">{totalQuantity}</span>
-                  </div>
+                  <input
+                    type="text"
+                    value={totalQuantity}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (value === '' || /^\d+$/.test(value)) {
+                        const num = parseInt(value) || 1
+                        if (num >= 1 && num <= 9999) {
+                          setTotalQuantity(num)
+                          setTempQuantity(num.toString())
+                        }
+                      }
+                    }}
+                    onFocus={(e) => e.target.select()}
+                    className="bg-[#2B3544] text-white font-bold text-lg text-center rounded-lg px-4 py-2 w-[70px] outline-none border-2 border-transparent focus:border-blue-500 hover:bg-[#374151] transition-all cursor-pointer"
+                    placeholder="1"
+                  />
                   <button 
                     onClick={() => handleTotalQuantityChange(1)}
                     className="w-8 h-8 bg-[#374151] hover:bg-[#4A5568] rounded-lg flex items-center justify-center transition-colors duration-150 flex-shrink-0"
