@@ -525,8 +525,8 @@ export default function DesktopHome({
       {/* Desktop Main Content */}
       <main className="max-w-[80%] mx-auto px-4 py-8">
 
-        {/* Featured Products - Only show when no specific category is selected */}
-        {selectedCategory === 'الكل' && (
+        {/* Featured Products - Only show when no specific category is selected and no search query */}
+        {selectedCategory === 'الكل' && !searchQuery && (
           <section className="mb-8">
             <h3 className="text-3xl font-bold mb-6 text-black">المنتجات المميزة</h3>
             {featuredProducts.length > 0 ? (
@@ -547,15 +547,17 @@ export default function DesktopHome({
         )}
 
 
-        {/* Categories Section */}
-        <section id="categories" className="mb-8">
-          <h3 className="text-3xl font-bold mb-6 text-black">فئات المنتجات</h3>
-          <CategoryCarousel
-            categories={categories}
-            onCategorySelect={setSelectedCategory}
-            itemsPerView={4}
-          />
-        </section>
+        {/* Categories Section - Hide when searching */}
+        {!searchQuery && (
+          <section id="categories" className="mb-8">
+            <h3 className="text-3xl font-bold mb-6 text-black">فئات المنتجات</h3>
+            <CategoryCarousel
+              categories={categories}
+              onCategorySelect={setSelectedCategory}
+              itemsPerView={4}
+            />
+          </section>
+        )}
 
         {/* All Products */}
         <section id="products" className="mb-8">

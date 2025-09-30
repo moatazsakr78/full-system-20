@@ -538,38 +538,40 @@ export default function TabletHome({
       {/* Tablet Main Content */}
       <main className="max-w-[96%] mx-auto px-3 py-7" style={{ marginTop: '75px' }}>
 
-        {/* Categories Section - Now First Section with Horizontal Scroll */}
-        <section id="categories" className="mb-7">
-          <h3 className="text-3xl font-bold mb-5 text-black">فئات المنتجات</h3>
-          <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
-            {categories.slice(0, 8).map((category) => (
-              <div
-                key={category.id}
-                className="bg-white rounded-lg text-center hover:shadow-lg transition-all duration-200 border border-gray-200 group flex-shrink-0 w-48 overflow-hidden"
-                onClick={() => setSelectedCategory(category.name)}
-                style={{ height: '200px' }} // زيادة الارتفاع أكثر للجهاز اللوحي
-              >
-                <div className="h-full flex flex-col">
-                  {/* الصورة تملأ معظم المكون */}
-                  <div className="flex-1 overflow-hidden">
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  {/* منطقة صغيرة للنص في الأسفل */}
-                  <div className="bg-white p-3 border-t border-gray-100">
-                    <h4 className="font-semibold text-sm text-gray-800 group-hover:text-red-500 transition-colors truncate">{category.name}</h4>
+        {/* Categories Section - Hide when searching */}
+        {!searchQuery && (
+          <section id="categories" className="mb-7">
+            <h3 className="text-3xl font-bold mb-5 text-black">فئات المنتجات</h3>
+            <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
+              {categories.slice(0, 8).map((category) => (
+                <div
+                  key={category.id}
+                  className="bg-white rounded-lg text-center hover:shadow-lg transition-all duration-200 border border-gray-200 group flex-shrink-0 w-48 overflow-hidden"
+                  onClick={() => setSelectedCategory(category.name)}
+                  style={{ height: '200px' }} // زيادة الارتفاع أكثر للجهاز اللوحي
+                >
+                  <div className="h-full flex flex-col">
+                    {/* الصورة تملأ معظم المكون */}
+                    <div className="flex-1 overflow-hidden">
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    {/* منطقة صغيرة للنص في الأسفل */}
+                    <div className="bg-white p-3 border-t border-gray-100">
+                      <h4 className="font-semibold text-sm text-gray-800 group-hover:text-red-500 transition-colors truncate">{category.name}</h4>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
+        )}
 
-        {/* Featured Products - Only show when no specific category is selected */}
-        {selectedCategory === 'الكل' && (
+        {/* Featured Products - Only show when no specific category is selected and no search query */}
+        {selectedCategory === 'الكل' && !searchQuery && (
           <section className="mb-7">
             <h3 className="text-3xl font-bold mb-5 text-black">المنتجات المميزة</h3>
             {featuredProducts.length > 0 ? (
