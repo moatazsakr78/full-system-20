@@ -20,6 +20,9 @@ interface Order {
   shipping?: number | null;
   status: OrderStatus;
   deliveryType: DeliveryType;
+  customerName: string;
+  customerPhone: string;
+  customerAddress: string;
   items: {
     id: string;
     name: string;
@@ -162,6 +165,9 @@ export default function OrdersPage() {
               shipping: order.shipping_amount ? parseFloat(order.shipping_amount) : null,
               status: order.status,
               deliveryType: order.delivery_type || 'pickup',
+              customerName: order.customer_name || 'غير محدد',
+              customerPhone: order.customer_phone || 'غير محدد',
+              customerAddress: order.customer_address || 'غير محدد',
               items: groupedItems
             };
           });
@@ -444,9 +450,9 @@ export default function OrdersPage() {
                       
                       {/* Customer Information */}
                       <div className="space-y-1 text-sm">
-                        <p className="text-gray-700">اسم العميل: محمد أحمد</p>
-                        <p className="text-gray-700">رقم الهاتف: 011-1234567</p>
-                        <p className="text-gray-700">العنوان: السيوف شماعة</p>
+                        <p className="text-gray-700">اسم العميل: {order.customerName}</p>
+                        <p className="text-gray-700">رقم الهاتف: {order.customerPhone}</p>
+                        <p className="text-gray-700">العنوان: {order.customerAddress}</p>
                       </div>
                       
                       {/* Separator Line */}
@@ -480,9 +486,9 @@ export default function OrdersPage() {
                         <div className="col-span-2">
                           <h5 className="text-lg font-semibold text-blue-600 mb-4">معلومات العميل</h5>
                           <div className="space-y-3 text-lg">
-                            <p className="text-gray-700">الاسم: محمد أحمد</p>
-                            <p className="text-gray-700">الهاتف: 011-1234567</p>
-                            <p className="text-gray-700">العنوان: السيوف شماعة</p>
+                            <p className="text-gray-700">الاسم: {order.customerName}</p>
+                            <p className="text-gray-700">الهاتف: {order.customerPhone}</p>
+                            <p className="text-gray-700">العنوان: {order.customerAddress}</p>
                           </div>
                         </div>
 
