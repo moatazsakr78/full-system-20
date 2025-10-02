@@ -37,7 +37,7 @@ export function useCustomSections() {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await (supabase as any)
         .from('custom_sections')
         .select('*')
         .order('display_order', { ascending: true });
@@ -49,7 +49,7 @@ export function useCustomSections() {
       }
 
       // Parse products from JSON for each section
-      const parsedSections = data?.map(section => ({
+      const parsedSections = data?.map((section: any) => ({
         ...section,
         products: Array.isArray(section.products) ? section.products : []
       })) || [];
@@ -69,7 +69,7 @@ export function useCustomSections() {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await (supabase as any)
         .from('custom_sections')
         .select('*')
         .eq('is_active', true)
@@ -82,7 +82,7 @@ export function useCustomSections() {
       }
 
       // Parse products from JSON for each section
-      const parsedSections = data?.map(section => ({
+      const parsedSections = data?.map((section: any) => ({
         ...section,
         products: Array.isArray(section.products) ? section.products : []
       })) || [];
@@ -102,7 +102,7 @@ export function useCustomSections() {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await (supabase as any)
         .from('custom_sections')
         .select('*')
         .order('display_order', { ascending: true });
@@ -115,7 +115,7 @@ export function useCustomSections() {
 
       // Fetch full product details for each section
       const sectionsWithProducts = await Promise.all(
-        (data || []).map(async (section) => {
+        (data || []).map(async (section: any) => {
           const productIds = Array.isArray(section.products) ? section.products : [];
 
           if (productIds.length === 0) {
@@ -167,7 +167,7 @@ export function useCustomSections() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
-      const { data, error: createError } = await supabase
+      const { data, error: createError } = await (supabase as any)
         .from('custom_sections')
         .insert({
           name: sectionData.name,
@@ -198,7 +198,7 @@ export function useCustomSections() {
   // Update an existing custom section
   const updateSection = useCallback(async (sectionId: string, updates: Partial<CustomSection>) => {
     try {
-      const { data, error: updateError } = await supabase
+      const { data, error: updateError } = await (supabase as any)
         .from('custom_sections')
         .update({
           ...updates,
@@ -225,7 +225,7 @@ export function useCustomSections() {
   // Delete a custom section
   const deleteSection = useCallback(async (sectionId: string) => {
     try {
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await (supabase as any)
         .from('custom_sections')
         .delete()
         .eq('id', sectionId);
@@ -247,7 +247,7 @@ export function useCustomSections() {
   const addProductsToSection = useCallback(async (sectionId: string, productIds: string[]) => {
     try {
       // Get current section
-      const { data: section, error: fetchError } = await supabase
+      const { data: section, error: fetchError } = await (supabase as any)
         .from('custom_sections')
         .select('products')
         .eq('id', sectionId)
@@ -256,9 +256,9 @@ export function useCustomSections() {
       if (fetchError) throw fetchError;
 
       const currentProducts = Array.isArray(section.products) ? section.products : [];
-      const updatedProducts = [...new Set([...currentProducts, ...productIds])]; // Remove duplicates
+      const updatedProducts = Array.from(new Set([...currentProducts, ...productIds])); // Remove duplicates
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('custom_sections')
         .update({
           products: updatedProducts,
@@ -280,7 +280,7 @@ export function useCustomSections() {
   const removeProductsFromSection = useCallback(async (sectionId: string, productIds: string[]) => {
     try {
       // Get current section
-      const { data: section, error: fetchError } = await supabase
+      const { data: section, error: fetchError } = await (supabase as any)
         .from('custom_sections')
         .select('products')
         .eq('id', sectionId)
@@ -292,6 +292,7 @@ export function useCustomSections() {
       const updatedProducts = currentProducts.filter((id: string) => !productIds.includes(id));
 
       const { error: updateError } = await supabase
+        // @ts-ignore - custom_sections table exists in database
         .from('custom_sections')
         .update({
           products: updatedProducts,
@@ -317,14 +318,14 @@ export function useCustomSections() {
         display_order: index
       }));
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .rpc('update_custom_sections_order', { sections_data: updates });
 
       if (updateError) {
         // Fallback to individual updates if RPC doesn't exist
         await Promise.all(
           updates.map(update =>
-            supabase
+            (supabase as any)
               .from('custom_sections')
               .update({ display_order: update.display_order, updated_at: new Date().toISOString() })
               .eq('id', update.id)

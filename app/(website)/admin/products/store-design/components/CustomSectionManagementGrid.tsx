@@ -210,7 +210,7 @@ export default function CustomSectionManagementGrid({
         </div>
         <h3 className="text-xl font-semibold text-gray-700 mb-2">لا توجد أقسام مخصصة</h3>
         <p className="text-gray-500 mb-4">ابدأ بإنشاء أقسام مخصصة لتنظيم منتجات متجرك</p>
-        <p className="text-sm text-gray-400">💡 يمكنك إنشاء أقسام مثل "منتجات تيك توك" أو "المنتجات الجديدة"</p>
+        <p className="text-sm text-gray-400">💡 يمكنك إنشاء أقسام مثل &quot;منتجات تيك توك&quot; أو &quot;المنتجات الجديدة&quot;</p>
       </div>
     );
   }

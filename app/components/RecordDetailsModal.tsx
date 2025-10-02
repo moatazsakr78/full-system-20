@@ -65,7 +65,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
     if (!record?.id) return
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_column_preferences')
         .select('preferences')
         .eq('user_id', 'default_user') // You can replace with actual user_id from auth
@@ -73,7 +73,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
         .single()
 
       if (!error && data?.preferences) {
-        const savedFilter = data.preferences as DateFilter
+        const savedFilter = data.preferences as unknown as DateFilter
         setDateFilter(savedFilter)
       }
     } catch (error) {
@@ -88,7 +88,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
     if (!record?.id) return
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('user_column_preferences')
         .upsert({
           user_id: 'default_user', // You can replace with actual user_id from auth
@@ -518,8 +518,8 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
         .in('product_id', productIds)
 
       // Get unique sale and purchase IDs
-      const saleIds = [...new Set(saleItemsData?.map((item: any) => item.sale_id) || [])]
-      const purchaseIds = [...new Set(purchaseItemsData?.map((item: any) => item.purchase_invoice_id) || [])]
+      const saleIds = Array.from(new Set(saleItemsData?.map((item: any) => item.sale_id) || []))
+      const purchaseIds = Array.from(new Set(purchaseItemsData?.map((item: any) => item.purchase_invoice_id) || []))
 
       // Fetch matching sales with date filter
       let matchingSales: any[] = []

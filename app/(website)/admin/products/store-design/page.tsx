@@ -180,7 +180,7 @@ export default function StoreDesignPage() {
             return original && original.isHidden !== section.isHidden;
           })
           .map(section =>
-            supabase
+            (supabase as any)
               .from('custom_sections')
               .update({
                 is_active: !section.isHidden,
