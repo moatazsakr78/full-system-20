@@ -147,7 +147,7 @@ export function useCustomSections() {
         const productIds = Array.isArray(section.products) ? section.products : [];
 
         const productDetails = productIds
-          .map(id => productsMap.get(id))
+          .map((id: string) => productsMap.get(id))
           .filter(Boolean); // Remove undefined entries
 
         return { ...section, productDetails };
