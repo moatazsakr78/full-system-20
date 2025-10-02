@@ -10,8 +10,6 @@ import { useStoreCategoriesWithProducts } from '../../lib/hooks/useStoreCategori
 import { useCustomSections } from '../../lib/hooks/useCustomSections';
 import InteractiveProductCard from './InteractiveProductCard';
 import CategoryCarousel from './CategoryCarousel';
-import CustomSectionCarousel from './CustomSectionCarousel';
-import FeaturedProductsCarousel from './FeaturedProductsCarousel';
 import ProductDetailsModal from '../../app/components/ProductDetailsModal';
 import CartModal from '../../app/components/CartModal';
 import { useCart } from '../../lib/contexts/CartContext';
@@ -755,20 +753,25 @@ export default function MobileHome({
         }}
       >
 
-        {/* Custom Sections - Only show when ready, no specific category is selected and no search query */}
+        {/* Custom Sections (Dynamic) - Show at the top, before categories */}
         {isSectionsReady && selectedCategory === 'الكل' && !searchQuery && sectionsWithProducts.length > 0 && (
           <>
             {sectionsWithProducts.map((section: any) => (
               section.products && section.products.length > 0 && (
                 <section key={section.id} className="mb-6">
                   <h3 className="text-xl font-bold mb-4 text-black">{section.name}</h3>
-                  <CustomSectionCarousel
-                    sectionName={section.name}
-                    products={section.products}
-                    onAddToCart={handleAddToCart}
-                    itemsPerView={2}
-                    onProductClick={handleProductClick}
-                  />
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {section.products.map((product: any) => (
+                      <div key={product.id} className="flex-shrink-0 w-44">
+                        <InteractiveProductCard
+                          product={product}
+                          onAddToCart={handleAddToCart}
+                          deviceType="mobile"
+                          onProductClick={handleProductClick}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </section>
               )
             ))}
@@ -804,36 +807,6 @@ export default function MobileHome({
                 </div>
               ))}
             </div>
-          </section>
-        )}
-
-        {/* Featured Products - Only show when no specific category is selected and no search query */}
-        {selectedCategory === 'الكل' && !searchQuery && (
-          <section className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-black">المنتجات المميزة</h3>
-            </div>
-
-            {featuredProducts.length > 0 ? (
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                {featuredProducts.map((product) => (
-                  <div key={product.id} className="flex-shrink-0 w-44">
-                    <InteractiveProductCard
-                      product={product}
-                      onAddToCart={handleAddToCart}
-                      deviceType="mobile"
-                      onProductClick={handleProductClick}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="text-gray-400 text-lg mb-2">⭐</div>
-                <p className="text-gray-500">لا توجد منتجات مميزة حالياً</p>
-                <p className="text-gray-400 text-sm">يمكنك إضافة منتجات مميزة من لوحة إدارة المنتجات</p>
-              </div>
-            )}
           </section>
         )}
 

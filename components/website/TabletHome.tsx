@@ -12,8 +12,6 @@ import { useStoreCategoriesWithProducts } from '../../lib/hooks/useStoreCategori
 import { useCustomSections } from '../../lib/hooks/useCustomSections';
 import InteractiveProductCard from './InteractiveProductCard';
 import CategoryCarousel from './CategoryCarousel';
-import CustomSectionCarousel from './CustomSectionCarousel';
-import FeaturedProductsCarousel from './FeaturedProductsCarousel';
 import ProductDetailsModal from '../../app/components/ProductDetailsModal';
 import CartModal from '../../app/components/CartModal';
 import SearchOverlay from './SearchOverlay';
@@ -654,20 +652,25 @@ export default function TabletHome({
       {/* Tablet Main Content */}
       <main className="max-w-[96%] mx-auto px-3 py-7" style={{ marginTop: '75px' }}>
 
-        {/* Custom Sections - Only show when ready, no specific category is selected and no search query */}
+        {/* Custom Sections (Dynamic) - Show at the top, before categories */}
         {isSectionsReady && selectedCategory === 'الكل' && !searchQuery && sectionsWithProducts.length > 0 && (
           <>
             {sectionsWithProducts.map((section: any) => (
               section.products && section.products.length > 0 && (
                 <section key={section.id} className="mb-7">
                   <h3 className="text-3xl font-bold mb-5 text-black">{section.name}</h3>
-                  <CustomSectionCarousel
-                    sectionName={section.name}
-                    products={section.products}
-                    onAddToCart={handleAddToCart}
-                    itemsPerView={3}
-                    onProductClick={handleProductClick}
-                  />
+                  <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
+                    {section.products.map((product: any) => (
+                      <div key={product.id} className="flex-shrink-0 w-64">
+                        <InteractiveProductCard
+                          product={product}
+                          onAddToCart={handleAddToCart}
+                          deviceType="tablet"
+                          onProductClick={handleProductClick}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </section>
               )
             ))}
@@ -703,33 +706,6 @@ export default function TabletHome({
                 </div>
               ))}
             </div>
-          </section>
-        )}
-
-        {/* Featured Products - Only show when no specific category is selected and no search query */}
-        {selectedCategory === 'الكل' && !searchQuery && (
-          <section className="mb-7">
-            <h3 className="text-3xl font-bold mb-5 text-black">المنتجات المميزة</h3>
-            {featuredProducts.length > 0 ? (
-              <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
-                {featuredProducts.map((product) => (
-                  <div key={product.id} className="flex-shrink-0 w-64">
-                    <InteractiveProductCard
-                      product={product}
-                      onAddToCart={handleAddToCart}
-                      deviceType="tablet"
-                      onProductClick={handleProductClick}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="text-gray-400 text-lg mb-2">⭐</div>
-                <p className="text-gray-500">لا توجد منتجات مميزة حالياً</p>
-                <p className="text-gray-400 text-sm">يمكنك إضافة منتجات مميزة من لوحة إدارة المنتجات</p>
-              </div>
-            )}
           </section>
         )}
 
