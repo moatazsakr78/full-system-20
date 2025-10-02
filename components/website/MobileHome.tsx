@@ -7,8 +7,10 @@ import { UserInfo, Product } from './shared/types';
 import AuthButtons from '../../app/components/auth/AuthButtons';
 import { useUserProfile } from '../../lib/hooks/useUserProfile';
 import { useStoreCategoriesWithProducts } from '../../lib/hooks/useStoreCategories';
+import { useCustomSections } from '../../lib/hooks/useCustomSections';
 import InteractiveProductCard from './InteractiveProductCard';
 import CategoryCarousel from './CategoryCarousel';
+import CustomSectionCarousel from './CustomSectionCarousel';
 import FeaturedProductsCarousel from './FeaturedProductsCarousel';
 import ProductDetailsModal from '../../app/components/ProductDetailsModal';
 import CartModal from '../../app/components/CartModal';
@@ -53,7 +55,13 @@ export default function MobileHome({
 
   // Get store categories with their products
   const { categoriesWithProducts, isLoading: isCategoriesLoading } = useStoreCategoriesWithProducts();
-  
+
+  // Get custom sections with products
+  const { sections: customSections, isLoading: isSectionsLoading, fetchSectionsWithProducts } = useCustomSections();
+  const [sectionsWithProducts, setSectionsWithProducts] = useState<any[]>([]);
+  const [isSectionsReady, setIsSectionsReady] = useState(false);
+  const [rawSectionsData, setRawSectionsData] = useState<any[]>([]);
+
   // Handle adding products to cart
   const handleAddToCart = async (product: Product) => {
     try {
@@ -205,6 +213,114 @@ export default function MobileHome({
 
     fetchProductsWithColors();
   }, [databaseProducts]);
+
+  // Load raw sections data immediately on mount
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadRawSections = async () => {
+      try {
+        const sections = await fetchSectionsWithProducts();
+        if (isMounted) {
+          setRawSectionsData(sections);
+        }
+      } catch (error) {
+        console.error('Error loading custom sections:', error);
+      }
+    };
+
+    loadRawSections();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchSectionsWithProducts]);
+
+  // Convert sections when website products are ready
+  useEffect(() => {
+    if (!rawSectionsData || rawSectionsData.length === 0) {
+      setSectionsWithProducts([]);
+      setIsSectionsReady(true);
+      return;
+    }
+
+    if (!websiteProducts || websiteProducts.length === 0) {
+      // Show sections with raw product data if website products aren't ready yet
+      const quickSections = rawSectionsData
+        .filter((section: any) => section.is_active && section.productDetails && section.productDetails.length > 0)
+        .map((section: any) => ({
+          ...section,
+          products: section.productDetails.map((product: any) => ({
+            id: product.id,
+            name: product.name,
+            description: product.description || '',
+            price: product.finalPrice || product.price,
+            originalPrice: product.hasDiscount ? product.price : undefined,
+            image: product.main_image_url,
+            images: [product.main_image_url, product.sub_image_url].filter(Boolean),
+            category: 'عام',
+            colors: [],
+            shapes: [],
+            sizes: [],
+            brand: 'El Farouk Group',
+            stock: 0,
+            rating: product.rating || 0,
+            reviews: product.rating_count || 0,
+            isOnSale: product.hasDiscount || false,
+            discount: product.discount_percentage ? Math.round(product.discount_percentage) : undefined,
+            tags: [],
+            isFeatured: false
+          }))
+        }));
+
+      requestAnimationFrame(() => {
+        setSectionsWithProducts(quickSections);
+        setIsSectionsReady(true);
+      });
+      return;
+    }
+
+    // Full conversion with website products
+    const activeSections = rawSectionsData
+      .filter((section: any) => section.is_active && section.productDetails && section.productDetails.length > 0);
+
+    const sectionsWithConvertedProducts = activeSections.map((section: any) => {
+      const convertedProducts = section.productDetails.map((product: any) => {
+        const dbProduct = websiteProducts.find(wp => wp.id === product.id);
+        return dbProduct || {
+          id: product.id,
+          name: product.name,
+          description: product.description || '',
+          price: product.finalPrice || product.price,
+          originalPrice: product.hasDiscount ? product.price : undefined,
+          image: product.main_image_url,
+          images: [product.main_image_url, product.sub_image_url].filter(Boolean),
+          category: 'عام',
+          colors: [],
+          shapes: [],
+          sizes: [],
+          brand: 'El Farouk Group',
+          stock: 0,
+          rating: product.rating || 0,
+          reviews: product.rating_count || 0,
+          isOnSale: product.hasDiscount || false,
+          discount: product.discount_percentage ? Math.round(product.discount_percentage) : undefined,
+          tags: [],
+          isFeatured: false
+        };
+      });
+
+      return {
+        ...section,
+        products: convertedProducts
+      };
+    });
+
+    requestAnimationFrame(() => {
+      setSectionsWithProducts(sectionsWithConvertedProducts);
+      setIsSectionsReady(true);
+    });
+  }, [rawSectionsData, websiteProducts]);
 
   // Convert store categories to website format
   useEffect(() => {
@@ -632,12 +748,32 @@ export default function MobileHome({
 
 
       {/* Mobile Main Content */}
-      <main 
-        className="px-3 py-4 transition-all duration-300" 
-        style={{ 
+      <main
+        className="px-3 py-4 transition-all duration-300"
+        style={{
           paddingTop: isSearchActive ? '140px' : '70px' // Adjust for header + search bar
         }}
       >
+
+        {/* Custom Sections - Only show when ready, no specific category is selected and no search query */}
+        {isSectionsReady && selectedCategory === 'الكل' && !searchQuery && sectionsWithProducts.length > 0 && (
+          <>
+            {sectionsWithProducts.map((section: any) => (
+              section.products && section.products.length > 0 && (
+                <section key={section.id} className="mb-6">
+                  <h3 className="text-xl font-bold mb-4 text-black">{section.name}</h3>
+                  <CustomSectionCarousel
+                    sectionName={section.name}
+                    products={section.products}
+                    onAddToCart={handleAddToCart}
+                    itemsPerView={2}
+                    onProductClick={handleProductClick}
+                  />
+                </section>
+              )
+            ))}
+          </>
+        )}
 
         {/* Featured Categories - Hide when searching */}
         {!searchQuery && (
