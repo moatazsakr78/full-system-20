@@ -536,7 +536,7 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
       width: 120,
       render: (value: string) => {
         const date = new Date(value)
-        return <span className="text-white">{date.toLocaleDateString('ar-SA')}</span>
+        return <span className="text-white">{date.toLocaleDateString('en-GB')}</span>
       }
     },
     { 
@@ -970,7 +970,7 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
                       {dateFilter.type === 'current_month' && 'عرض فواتير الشهر الحالي'}
                       {dateFilter.type === 'last_month' && 'عرض فواتير الشهر الماضي'}
                       {dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate && 
-                        `من ${dateFilter.startDate.toLocaleDateString('ar-SA')} إلى ${dateFilter.endDate.toLocaleDateString('ar-SA')}`}
+                        `من ${dateFilter.startDate.toLocaleDateString('en-GB')} إلى ${dateFilter.endDate.toLocaleDateString('en-GB')}`}
                     </span>
                   </div>
                 )}

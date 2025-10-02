@@ -270,7 +270,7 @@ const getCustomersTableColumns = (formatPrice: (value: number) => string) => [
     render: (value: string) => {
       if (!value) return <span className="text-gray-400">غير محدد</span>;
       const date = new Date(value);
-      return <span className="text-gray-300">{date.toLocaleDateString('ar-SA')}</span>;
+      return <span className="text-gray-300">{date.toLocaleDateString('en-GB')}</span>;
     }
   },
   {
@@ -1976,7 +1976,7 @@ function ReportsPageContent() {
                               {dateFilter.type === 'current_month' && 'عرض تقارير الشهر الحالي'}
                               {dateFilter.type === 'last_month' && 'عرض تقارير الشهر الماضي'}
                               {dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate &&
-                                <span className="break-words">{`من ${dateFilter.startDate.toLocaleDateString('ar-SA')} إلى ${dateFilter.endDate.toLocaleDateString('ar-SA')}`}</span>}
+                                <span className="break-words">{`من ${dateFilter.startDate.toLocaleDateString('en-GB')} إلى ${dateFilter.endDate.toLocaleDateString('en-GB')}`}</span>}
                             </span>
                           </div>
                         )}

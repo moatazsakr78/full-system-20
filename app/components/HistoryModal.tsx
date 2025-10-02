@@ -151,7 +151,7 @@ export default function HistoryModal({
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'غير محدد'
     const date = new Date(dateString)
-    return date.toLocaleDateString('ar-SA', {
+    return date.toLocaleDateString('en-GB', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

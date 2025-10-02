@@ -534,7 +534,7 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       width: 120,
       render: (value: string) => {
         const date = new Date(value)
-        return <span className="text-white">{date.toLocaleDateString('ar-SA')}</span>
+        return <span className="text-white">{date.toLocaleDateString('en-GB')}</span>
       }
     },
     { 
@@ -961,7 +961,7 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
                       {dateFilter.type === 'current_month' && 'عرض فواتير الشهر الحالي'}
                       {dateFilter.type === 'last_month' && 'عرض فواتير الشهر الماضي'}
                       {dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate && 
-                        `من ${dateFilter.startDate.toLocaleDateString('ar-SA')} إلى ${dateFilter.endDate.toLocaleDateString('ar-SA')}`}
+                        `من ${dateFilter.startDate.toLocaleDateString('en-GB')} إلى ${dateFilter.endDate.toLocaleDateString('en-GB')}`}
                     </span>
                   </div>
                 )}

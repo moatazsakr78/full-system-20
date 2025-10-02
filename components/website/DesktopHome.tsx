@@ -9,8 +9,9 @@ import RightSidebar from '../../app/components/layout/RightSidebar';
 import { useRightSidebar } from '../../app/lib/hooks/useRightSidebar';
 import { useUserProfile } from '../../lib/hooks/useUserProfile';
 import { useStoreCategoriesWithProducts } from '../../lib/hooks/useStoreCategories';
+import { useCustomSections } from '../../lib/hooks/useCustomSections';
 import CategoryCarousel from './CategoryCarousel';
-import FeaturedProductsCarousel from './FeaturedProductsCarousel';
+import CustomSectionCarousel from './CustomSectionCarousel';
 import InteractiveProductCard from './InteractiveProductCard';
 import ProductDetailsModal from '../../app/components/ProductDetailsModal';
 import CartModal from '../../app/components/CartModal';
@@ -57,6 +58,10 @@ export default function DesktopHome({
 
   // Get store categories with their products
   const { categoriesWithProducts, isLoading: isCategoriesLoading } = useStoreCategoriesWithProducts();
+
+  // Get custom sections with products
+  const { sections: customSections, isLoading: isSectionsLoading, fetchSectionsWithProducts } = useCustomSections();
+  const [sectionsWithProducts, setSectionsWithProducts] = useState<any[]>([]);
   
   // Handle adding products to cart
   const handleAddToCart = async (product: Product) => {
@@ -238,6 +243,55 @@ export default function DesktopHome({
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Fetch custom sections with full product details
+  useEffect(() => {
+    const loadSectionsWithProducts = async () => {
+      const sections = await fetchSectionsWithProducts();
+
+      // Only show active sections
+      const activeSections = sections.filter((section: any) => section.is_active);
+
+      // Convert section products to website format
+      const sectionsWithConvertedProducts = activeSections.map((section: any) => {
+        const convertedProducts = (section.productDetails || []).map((product: any) => {
+          const dbProduct = websiteProducts.find(wp => wp.id === product.id);
+          return dbProduct || {
+            id: product.id,
+            name: product.name,
+            description: product.description || '',
+            price: product.finalPrice || product.price,
+            originalPrice: product.hasDiscount ? product.price : undefined,
+            image: product.main_image_url,
+            images: [product.main_image_url, product.sub_image_url].filter(Boolean),
+            category: 'عام',
+            colors: [],
+            shapes: [],
+            sizes: [],
+            brand: 'El Farouk Group',
+            stock: 0,
+            rating: product.rating || 0,
+            reviews: product.rating_count || 0,
+            isOnSale: product.hasDiscount || false,
+            discount: product.discount_percentage ? Math.round(product.discount_percentage) : undefined,
+            tags: [],
+            isFeatured: false
+          };
+        });
+
+        return {
+          ...section,
+          products: convertedProducts
+        };
+      });
+
+      setSectionsWithProducts(sectionsWithConvertedProducts);
+    };
+
+    if (websiteProducts.length > 0) {
+      loadSectionsWithProducts();
+    }
+  }, [websiteProducts, fetchSectionsWithProducts]);
 
   // Handle scroll for compact header
   useEffect(() => {
@@ -525,27 +579,34 @@ export default function DesktopHome({
       {/* Desktop Main Content */}
       <main className="max-w-[80%] mx-auto px-4 py-8">
 
-        {/* Featured Products - Only show when no specific category is selected and no search query */}
-        {selectedCategory === 'الكل' && !searchQuery && (
-          <section className="mb-8">
-            <h3 className="text-3xl font-bold mb-6 text-black">المنتجات المميزة</h3>
-            {featuredProducts.length > 0 ? (
-              <FeaturedProductsCarousel
-                products={featuredProducts}
-                onAddToCart={handleAddToCart}
-                itemsPerView={4}
-                onProductClick={handleProductClick}
-              />
-            ) : (
-              <div className="text-center py-12">
-                <div className="text-gray-400 text-lg mb-2">⭐</div>
-                <p className="text-gray-500">لا توجد منتجات مميزة حالياً</p>
-                <p className="text-gray-400 text-sm">يمكنك إضافة منتجات مميزة من لوحة إدارة المنتجات</p>
-              </div>
-            )}
-          </section>
+        {/* Custom Sections - Only show when no specific category is selected and no search query */}
+        {selectedCategory === 'الكل' && !searchQuery && sectionsWithProducts.length > 0 && (
+          <>
+            {sectionsWithProducts.map((section: any) => (
+              section.products && section.products.length > 0 && (
+                <section key={section.id} className="mb-8">
+                  <h3 className="text-3xl font-bold mb-6 text-black">{section.name}</h3>
+                  <CustomSectionCarousel
+                    sectionName={section.name}
+                    products={section.products}
+                    onAddToCart={handleAddToCart}
+                    itemsPerView={4}
+                    onProductClick={handleProductClick}
+                  />
+                </section>
+              )
+            ))}
+          </>
         )}
 
+        {/* Show message if no sections available */}
+        {selectedCategory === 'الكل' && !searchQuery && sectionsWithProducts.length === 0 && !isSectionsLoading && (
+          <div className="text-center py-12 bg-white rounded-lg border border-gray-200 mb-8">
+            <div className="text-gray-400 text-lg mb-2">📦</div>
+            <p className="text-gray-500">لا توجد أقسام مخصصة حالياً</p>
+            <p className="text-gray-400 text-sm">يمكنك إنشاء أقسام مخصصة من صفحة &quot;تصميم المتجر&quot;</p>
+          </div>
+        )}
 
         {/* Categories Section - Hide when searching */}
         {!searchQuery && (

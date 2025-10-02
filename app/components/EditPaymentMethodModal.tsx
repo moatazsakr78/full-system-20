@@ -187,7 +187,7 @@ export default function EditPaymentMethodModal({
           <div className="p-3 bg-gray-800 rounded-lg">
             <p className="text-xs text-gray-400 mb-1">تاريخ الإنشاء</p>
             <p className="text-sm text-white">
-              {paymentMethod.created_at ? new Date(paymentMethod.created_at).toLocaleDateString('ar-SA') : '-'}
+              {paymentMethod.created_at ? new Date(paymentMethod.created_at).toLocaleDateString('en-GB') : '-'}
             </p>
           </div>
 

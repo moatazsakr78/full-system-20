@@ -132,11 +132,11 @@ export default function PaymentMethodsPage() {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-'
     const date = new Date(dateString)
-    return date.toLocaleDateString('ar-SA', {
+    return date.toLocaleDateString('en-GB', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit'
-    }).replace(/\//g, '/')
+    })
   }
 
   const filteredPaymentMethods = paymentMethods.filter(method =>

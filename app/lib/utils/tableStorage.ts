@@ -68,8 +68,8 @@ export function saveTableConfig(
       columns: config.columns.length,
       visibleColumns: config.columns.filter(col => col.visible).length,
       hiddenColumns: config.columns.filter(col => !col.visible).length,
-      savedAt: new Date(config.timestamp).toLocaleString('ar-SA'),
-      expiresAt: expirationDate.toLocaleString('ar-SA'),
+      savedAt: new Date(config.timestamp).toLocaleString('en-GB'),
+      expiresAt: expirationDate.toLocaleString('en-GB'),
       validFor: '365 days (1 year)',
       storageKey,
       dataSize: new Blob([JSON.stringify(config)]).size + ' bytes'
@@ -149,10 +149,10 @@ export function loadTableConfig(
       columns: config.columns.length,
       visibleColumns: config.columns.filter(col => col.visible).length,
       hiddenColumns: config.columns.filter(col => !col.visible).length,
-      savedOn: new Date(config.timestamp).toLocaleString('ar-SA'),
+      savedOn: new Date(config.timestamp).toLocaleString('en-GB'),
       ageInDays: `${ageInDays} days ago`,
       remainingDays: `${remainingDays} days remaining`,
-      validUntil: new Date(config.timestamp + CONFIG_EXPIRY).toLocaleString('ar-SA'),
+      validUntil: new Date(config.timestamp + CONFIG_EXPIRY).toLocaleString('en-GB'),
       storageKey,
       dataSize: new Blob([storedConfig]).size + ' bytes'
     })

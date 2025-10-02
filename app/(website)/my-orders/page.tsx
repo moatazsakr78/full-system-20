@@ -420,7 +420,7 @@ export default function OrdersPage() {
                       {/* Right Side: Order Number and Date */}
                       <div className="flex flex-col items-end text-right">
                         <span className="text-sm md:text-base font-medium text-gray-800">طلب رقم: {order.id}</span>
-                        <span className="text-xs md:text-sm text-gray-600">{new Date(order.date).toLocaleDateString('ar-SA')}</span>
+                        <span className="text-xs md:text-sm text-gray-600">{new Date(order.date).toLocaleDateString('en-GB')}</span>
                       </div>
                     </div>
                   </div>

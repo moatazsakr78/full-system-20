@@ -43,9 +43,83 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
   const [isDeleting, setIsDeleting] = useState(false)
   const [transactionToDelete, setTransactionToDelete] = useState<any>(null)
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [highlightedProductId, setHighlightedProductId] = useState<string | null>(null)
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null)
+
   // Date filter state
   const [showDateFilter, setShowDateFilter] = useState(false)
-  const [dateFilter, setDateFilter] = useState<DateFilter>({ type: 'all' })
+  const [dateFilter, setDateFilter] = useState<DateFilter>({ type: 'today' })
+  const [isLoadingPreferences, setIsLoadingPreferences] = useState(true)
+
+  // Calculate real record balance based on filtered transactions
+  const recordBalance = useMemo(() => {
+    const salesTotal = sales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0)
+    const purchasesTotal = purchaseInvoices.reduce((sum, purchase) => sum + (purchase.total_amount || 0), 0)
+    return salesTotal - purchasesTotal
+  }, [sales, purchaseInvoices])
+
+  // Load date filter preferences from database
+  const loadDateFilterPreferences = async () => {
+    if (!record?.id) return
+
+    try {
+      const { data, error } = await supabase
+        .from('user_column_preferences')
+        .select('preferences')
+        .eq('user_id', 'default_user') // You can replace with actual user_id from auth
+        .eq('table_name', `record_${record.id}_date_filter`)
+        .single()
+
+      if (!error && data?.preferences) {
+        const savedFilter = data.preferences as DateFilter
+        setDateFilter(savedFilter)
+      }
+    } catch (error) {
+      console.error('Error loading date filter preferences:', error)
+    } finally {
+      setIsLoadingPreferences(false)
+    }
+  }
+
+  // Save date filter preferences to database
+  const saveDateFilterPreferences = async (filter: DateFilter) => {
+    if (!record?.id) return
+
+    try {
+      const { error } = await supabase
+        .from('user_column_preferences')
+        .upsert({
+          user_id: 'default_user', // You can replace with actual user_id from auth
+          table_name: `record_${record.id}_date_filter`,
+          preferences: filter,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,table_name'
+        })
+
+      if (error) {
+        console.error('Error saving date filter preferences:', error)
+      }
+    } catch (error) {
+      console.error('Error saving date filter preferences:', error)
+    }
+  }
+
+  // Load preferences on mount
+  useEffect(() => {
+    if (isOpen && record?.id) {
+      loadDateFilterPreferences()
+    }
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout)
+      }
+    }
+  }, [isOpen, record?.id])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (viewMode !== 'split' || activeTab !== 'transactions') return
@@ -330,7 +404,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
 
   // Set up real-time subscriptions and fetch initial data
   useEffect(() => {
-    if (isOpen && record?.id) {
+    if (isOpen && record?.id && !isLoadingPreferences) {
       fetchSales()
       fetchPurchaseInvoices()
 
@@ -393,7 +467,146 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
         supabase.removeChannel(purchaseInvoiceItemsChannel)
       }
     }
-  }, [isOpen, record?.id, dateFilter])
+  }, [isOpen, record?.id, dateFilter, isLoadingPreferences])
+
+  // Search for product in invoices
+  const searchProductInInvoices = async (query: string) => {
+    if (!query.trim() || !record?.id) {
+      setSearchQuery('')
+      setHighlightedProductId(null)
+      // Reset to normal view with date filter
+      fetchSales()
+      fetchPurchaseInvoices()
+      return
+    }
+
+    setSearchQuery(query)
+    setIsLoadingSales(true)
+    setIsLoadingPurchases(true)
+
+    try {
+      // First, search for products matching the query
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select('id, name, barcode')
+        .or(`name.ilike.%${query}%,barcode.ilike.%${query}%`)
+        .limit(50)
+
+      if (productsError || !productsData || productsData.length === 0) {
+        console.log('No products found matching:', query)
+        setSales([])
+        setPurchaseInvoices([])
+        setHighlightedProductId(null)
+        setIsLoadingSales(false)
+        setIsLoadingPurchases(false)
+        return
+      }
+
+      const productIds = productsData.map(p => p.id)
+      const firstProductId = productsData[0].id
+
+      // Search in sale_items for these products
+      const { data: saleItemsData } = await supabase
+        .from('sale_items')
+        .select('sale_id, product_id')
+        .in('product_id', productIds)
+
+      // Search in purchase_invoice_items for these products
+      const { data: purchaseItemsData } = await supabase
+        .from('purchase_invoice_items')
+        .select('purchase_invoice_id, product_id')
+        .in('product_id', productIds)
+
+      // Get unique sale and purchase IDs
+      const saleIds = [...new Set(saleItemsData?.map((item: any) => item.sale_id) || [])]
+      const purchaseIds = [...new Set(purchaseItemsData?.map((item: any) => item.purchase_invoice_id) || [])]
+
+      // Fetch matching sales with date filter
+      let matchingSales: any[] = []
+      if (saleIds.length > 0) {
+        let salesQuery = supabase
+          .from('sales')
+          .select(`
+            id,
+            invoice_number,
+            customer_id,
+            total_amount,
+            payment_method,
+            notes,
+            created_at,
+            time,
+            invoice_type,
+            customer:customers(
+              name,
+              phone
+            )
+          `)
+          .eq('record_id', record.id)
+          .in('id', saleIds)
+
+        // Apply date filter
+        salesQuery = applyDateFilter(salesQuery)
+
+        const { data: salesData } = await salesQuery.order('created_at', { ascending: false })
+        matchingSales = salesData || []
+      }
+
+      // Fetch matching purchases with date filter
+      let matchingPurchases: any[] = []
+      if (purchaseIds.length > 0) {
+        let purchasesQuery = supabase
+          .from('purchase_invoices')
+          .select(`
+            id,
+            invoice_number,
+            supplier_id,
+            total_amount,
+            payment_status,
+            notes,
+            created_at,
+            time,
+            invoice_type,
+            supplier:suppliers(
+              name,
+              phone
+            )
+          `)
+          .eq('record_id', record.id)
+          .in('id', purchaseIds)
+
+        // Apply date filter
+        purchasesQuery = applyDateFilter(purchasesQuery)
+
+        const { data: purchasesData } = await purchasesQuery.order('created_at', { ascending: false })
+        matchingPurchases = purchasesData || []
+      }
+
+      // Update sales and purchases with search results
+      setSales(matchingSales)
+      setPurchaseInvoices(matchingPurchases)
+
+      // Highlight the first found product
+      setHighlightedProductId(firstProductId)
+
+      // Auto-select first transaction if available
+      if (matchingSales.length > 0 || matchingPurchases.length > 0) {
+        setSelectedTransaction(0)
+
+        // Load items for first transaction
+        if (matchingSales.length > 0) {
+          fetchSaleItems(matchingSales[0].id)
+        } else if (matchingPurchases.length > 0) {
+          fetchPurchaseInvoiceItems(matchingPurchases[0].id)
+        }
+      }
+
+    } catch (error) {
+      console.error('Search error:', error)
+    } finally {
+      setIsLoadingSales(false)
+      setIsLoadingPurchases(false)
+    }
+  }
 
   // Create combined transactions array from sales and purchase invoices
   const allTransactions = useMemo(() => {
@@ -404,7 +617,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       client: sale.customer,
       clientType: 'عميل'
     }))
-    
+
     const purchasesWithType = purchaseInvoices.map(purchase => ({
       ...purchase,
       transactionType: 'purchase',
@@ -412,9 +625,9 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       client: purchase.supplier,
       clientType: 'مورد'
     }))
-    
+
     // Combine and sort by creation date
-    return [...salesWithType, ...purchasesWithType].sort((a, b) => 
+    return [...salesWithType, ...purchasesWithType].sort((a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
   }, [sales, purchaseInvoices])
@@ -860,7 +1073,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
       width: 120,
       render: (value: string) => {
         const date = new Date(value)
-        return <span className="text-white">{date.toLocaleDateString('ar-SA')}</span>
+        return <span className="text-white">{date.toLocaleDateString('en-GB')}</span>
       }
     },
     { 
@@ -1021,32 +1234,45 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
   ]
 
   const transactionDetailsColumns = [
-    { 
-      id: 'index', 
-      header: '#', 
-      accessor: '#', 
+    {
+      id: 'index',
+      header: '#',
+      accessor: '#',
       width: 50,
       render: (value: any, item: any, index: number) => (
         <span className="text-white">{index + 1}</span>
       )
     },
-    { 
-      id: 'category', 
-      header: 'المجموعة', 
-      accessor: 'product.category.name', 
+    {
+      id: 'category',
+      header: 'المجموعة',
+      accessor: 'product.category.name',
       width: 120,
-      render: (value: string, item: any) => (
-        <span className="text-purple-400">{item.product?.category?.name || 'غير محدد'}</span>
-      )
+      render: (value: string, item: any) => {
+        const isHighlighted = highlightedProductId === item.product?.id
+        return (
+          <span className={`${isHighlighted ? 'bg-yellow-500/40 px-2 py-1 rounded text-yellow-100 font-semibold' : 'text-purple-400'}`}>
+            {item.product?.category?.name || 'غير محدد'}
+          </span>
+        )
+      }
     },
-    { 
-      id: 'productName', 
-      header: 'اسم المنتج', 
-      accessor: 'product.name', 
+    {
+      id: 'productName',
+      header: 'اسم المنتج',
+      accessor: 'product.name',
       width: 200,
-      render: (value: string, item: any) => (
-        <span className="text-white font-medium">{item.product?.name || 'منتج محذوف'}</span>
-      )
+      render: (value: string, item: any) => {
+        const isHighlighted = highlightedProductId === item.product?.id
+        return (
+          <div className={`flex items-center gap-2 ${isHighlighted ? 'bg-yellow-500/40 px-2 py-1 rounded' : ''}`}>
+            {isHighlighted && <span className="text-yellow-300 text-lg">★</span>}
+            <span className={`font-medium ${isHighlighted ? 'text-yellow-100 font-bold' : 'text-white'}`}>
+              {item.product?.name || 'منتج محذوف'}
+            </span>
+          </div>
+        )
+      }
     },
     { 
       id: 'quantity', 
@@ -1261,7 +1487,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
                 {/* Record Balance */}
                 <div className="p-4 border-b border-gray-600">
                   <div className="bg-purple-600 rounded p-4 text-center">
-                    <div className="text-2xl font-bold text-white">{formatPrice(190322)}</div>
+                    <div className="text-2xl font-bold text-white">{formatPrice(recordBalance, 'system')}</div>
                     <div className="text-purple-200 text-sm">رصيد السجل</div>
                   </div>
                 </div>
@@ -1269,37 +1495,48 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
                 {/* Record Details */}
                 <div className="p-4 space-y-4 flex-1">
                   <h3 className="text-white font-medium text-lg text-right">معلومات السجل</h3>
-                
+
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-white">{record?.name || 'السجل الرئيسي'}</span>
                     <span className="text-gray-400 text-sm">اسم السجل</span>
                   </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-purple-400 flex items-center gap-1">
-                      <span>نوع مختلط</span>
-                      <span>🔄</span>
-                    </span>
-                    <span className="text-gray-400 text-sm">نوع السجل</span>
-                  </div>
-                  
+
                   <div className="flex justify-between items-center">
                     <span className="text-white">جميع الفروع</span>
                     <span className="text-gray-400 text-sm">الفرع</span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
-                    <span className="text-white">7/3/2025</span>
-                    <span className="text-gray-400 text-sm">تاريخ الإنشاء</span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-yellow-400 flex items-center gap-1">
-                      <span>سجل رئيسي</span>
-                      <span>⭐</span>
+                    <span className="text-blue-400 flex items-center gap-1">
+                      <span>
+                        {dateFilter.type === 'today' && 'اليوم'}
+                        {dateFilter.type === 'current_week' && 'الأسبوع الحالي'}
+                        {dateFilter.type === 'last_week' && 'الأسبوع الماضي'}
+                        {dateFilter.type === 'current_month' && 'الشهر الحالي'}
+                        {dateFilter.type === 'last_month' && 'الشهر الماضي'}
+                        {dateFilter.type === 'custom' && 'فترة مخصصة'}
+                        {dateFilter.type === 'all' && 'جميع الفترات'}
+                      </span>
+                      <span>📅</span>
                     </span>
-                    <span className="text-gray-400 text-sm">الحالة</span>
+                    <span className="text-gray-400 text-sm">الفترة الزمنية</span>
+                  </div>
+
+                  {dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-white text-xs">
+                        {dateFilter.startDate.toLocaleDateString('en-GB')} - {dateFilter.endDate.toLocaleDateString('en-GB')}
+                      </span>
+                      <span className="text-gray-400 text-sm">من - إلى</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-white">
+                      {new Date().toLocaleDateString('en-GB')}
+                    </span>
+                    <span className="text-gray-400 text-sm">التاريخ الحالي</span>
                   </div>
                 </div>
               </div>
@@ -1312,19 +1549,24 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
                 </h4>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-white">5</span>
+                    <span className="text-white">{allTransactions.length}</span>
                     <span className="text-gray-400 text-sm">عدد المعاملات</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-green-400">{formatPrice(3322)}</span>
+                    <span className="text-green-400">{formatPrice(sales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0), 'system')}</span>
                     <span className="text-gray-400 text-sm">إجمالي المدين</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-red-400">{formatPrice(2658)}</span>
+                    <span className="text-red-400">{formatPrice(purchaseInvoices.reduce((sum, purchase) => sum + (purchase.total_amount || 0), 0), 'system')}</span>
                     <span className="text-gray-400 text-sm">إجمالي الدائن</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-white">7/15/2025</span>
+                    <span className="text-white">
+                      {allTransactions.length > 0
+                        ? new Date(allTransactions[0].created_at).toLocaleDateString('en-GB')
+                        : '-'
+                      }
+                    </span>
                     <span className="text-gray-400 text-sm">آخر معاملة</span>
                   </div>
                 </div>
@@ -1349,8 +1591,8 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
                       {dateFilter.type === 'last_week' && 'عرض فواتير الأسبوع الماضي'}
                       {dateFilter.type === 'current_month' && 'عرض فواتير الشهر الحالي'}
                       {dateFilter.type === 'last_month' && 'عرض فواتير الشهر الماضي'}
-                      {dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate && 
-                        `من ${dateFilter.startDate.toLocaleDateString('ar-SA')} إلى ${dateFilter.endDate.toLocaleDateString('ar-SA')}`}
+                      {dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate &&
+                        `من ${dateFilter.startDate.toLocaleDateString('en-GB')} إلى ${dateFilter.endDate.toLocaleDateString('en-GB')}`}
                     </span>
                   </div>
                 )}
@@ -1362,14 +1604,79 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
             <div className="flex-1 flex flex-col min-w-0 relative">
               
               {/* Search Bar */}
-              <div className="bg-[#374151] border-b border-gray-600 p-4">
+              <div className={`bg-[#374151] border-b p-4 transition-colors ${searchQuery ? 'border-blue-500' : 'border-gray-600'}`}>
+                {searchQuery && (
+                  <div className="mb-2 text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-blue-400">
+                      <span>🔍</span>
+                      <span>البحث نشط - عرض الفواتير التي تحتوي على المنتج المحدد فقط</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400">النتائج:</span>
+                      <span className="bg-blue-600 text-white px-2 py-0.5 rounded font-medium">
+                        {allTransactions.length}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <div className="relative">
-                  <MagnifyingGlassIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <MagnifyingGlassIcon className={`absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 transition-colors ${searchQuery ? 'text-blue-400' : 'text-gray-400'}`} />
                   <input
                     type="text"
-                    placeholder="ابحث عن معاملة (رقم المعاملة، الوصف، أو المرجع)..."
-                    className="w-full pl-4 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="ابحث عن منتج (اسم المنتج أو الباركود)..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setSearchQuery(value)
+
+                      // Clear previous timeout
+                      if (searchTimeout) {
+                        clearTimeout(searchTimeout)
+                      }
+
+                      // Set new timeout for auto-search after 500ms
+                      if (value.trim()) {
+                        const timeout = setTimeout(() => {
+                          searchProductInInvoices(value)
+                        }, 500)
+                        setSearchTimeout(timeout)
+                      } else {
+                        // If search is cleared, reload normal data
+                        setHighlightedProductId(null)
+                        fetchSales()
+                        fetchPurchaseInvoices()
+                      }
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        // Clear timeout and search immediately
+                        if (searchTimeout) {
+                          clearTimeout(searchTimeout)
+                        }
+                        searchProductInInvoices(searchQuery)
+                      }
+                    }}
+                    className="w-full pl-24 pr-10 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   />
+                  <div className="absolute left-2 top-1/2 transform -translate-y-1/2 flex gap-1">
+                    <button
+                      onClick={() => searchProductInInvoices(searchQuery)}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+                    >
+                      بحث
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSearchQuery('')
+                        setHighlightedProductId(null)
+                        fetchSales()
+                        fetchPurchaseInvoices()
+                      }}
+                      className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded transition-colors"
+                    >
+                      مسح
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1417,6 +1724,12 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
                         <div className="flex items-center justify-center h-full">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
                           <span className="text-gray-400">جاري تحميل الفواتير...</span>
+                        </div>
+                      ) : allTransactions.length === 0 && searchQuery ? (
+                        <div className="flex flex-col items-center justify-center h-full p-8">
+                          <div className="text-6xl mb-4">🔍</div>
+                          <p className="text-gray-400 text-lg mb-2">لا توجد فواتير تحتوي على هذا المنتج</p>
+                          <p className="text-gray-500 text-sm">ابحث عن منتج آخر أو امسح البحث</p>
                         </div>
                       ) : (
                         <ResizableTable
@@ -1524,6 +1837,7 @@ export default function RecordDetailsModal({ isOpen, onClose, record }: RecordDe
         onClose={() => setShowDateFilter(false)}
         onDateFilterChange={(filter) => {
           setDateFilter(filter)
+          saveDateFilterPreferences(filter)
         }}
         currentFilter={dateFilter}
       />

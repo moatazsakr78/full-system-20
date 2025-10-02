@@ -714,11 +714,11 @@ export default function ProductManagementPage() {
                 <span className={`font-medium ${managementMode === 'products' ? 'text-red-600' : 'text-gray-700'}`}>إدارة المنتجات</span>
               </button>
               
-              <button 
+              <button
                 onClick={() => setManagementMode('categories')}
                 className={`w-full flex items-center justify-between px-4 py-3 text-right rounded-lg transition-colors ${
-                  managementMode === 'categories' 
-                    ? 'bg-red-100 border-2 border-red-300' 
+                  managementMode === 'categories'
+                    ? 'bg-red-100 border-2 border-red-300'
                     : 'bg-gray-50 hover:bg-gray-100'
                 }`}
               >
@@ -727,7 +727,17 @@ export default function ProductManagementPage() {
                 </svg>
                 <span className={`font-medium ${managementMode === 'categories' ? 'text-red-600' : 'text-gray-700'}`}>إدارة الفئات</span>
               </button>
-              
+
+              <button
+                onClick={() => router.push('/admin/products/store-design')}
+                className="w-full flex items-center justify-between px-4 py-3 text-right rounded-lg transition-colors bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-2 border-purple-200"
+              >
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                </svg>
+                <span className="font-medium text-purple-600">تصميم المتجر</span>
+              </button>
+
             </div>
           </div>
           </div>

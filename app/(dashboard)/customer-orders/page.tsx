@@ -691,11 +691,11 @@ export default function CustomerOrdersPage() {
             <span>رقم الفاتورة:</span>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <span>${new Date().toLocaleDateString('ar-SA')}</span>
+            <span>${new Date().toLocaleDateString('en-GB')}</span>
             <span>التاريخ:</span>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-            <span>${new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</span>
+            <span>${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
             <span>الوقت:</span>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
@@ -1346,7 +1346,7 @@ export default function CustomerOrdersPage() {
                       {/* Right Side: Order Number and Date */}
                       <div className="flex flex-col items-end text-right">
                         <span className="text-sm md:text-base font-medium text-gray-800">طلب رقم: {order.id}</span>
-                        <span className="text-xs md:text-sm text-gray-600">{new Date(order.date).toLocaleDateString('ar-SA')}</span>
+                        <span className="text-xs md:text-sm text-gray-600">{new Date(order.date).toLocaleDateString('en-GB')}</span>
                       </div>
                     </div>
                   </div>
@@ -1850,7 +1850,7 @@ export default function CustomerOrdersPage() {
                   {selectedOrderForEdit.customerPhone && (
                     <p className="text-gray-600 text-sm">الهاتف: {selectedOrderForEdit.customerPhone}</p>
                   )}
-                  <p className="text-gray-600 text-sm">التاريخ: {new Date(selectedOrderForEdit.date).toLocaleDateString('ar-SA')}</p>
+                  <p className="text-gray-600 text-sm">التاريخ: {new Date(selectedOrderForEdit.date).toLocaleDateString('en-GB')}</p>
                 </div>
 
                 {/* Items List */}
@@ -2068,7 +2068,7 @@ export default function CustomerOrdersPage() {
                     {selectedOrderForInvoice.customerPhone && (
                       <div><span className="font-semibold">رقم الهاتف:</span> {selectedOrderForInvoice.customerPhone}</div>
                     )}
-                    <div><span className="font-semibold">التاريخ:</span> {new Date(selectedOrderForInvoice.date).toLocaleDateString('ar-SA')}</div>
+                    <div><span className="font-semibold">التاريخ:</span> {new Date(selectedOrderForInvoice.date).toLocaleDateString('en-GB')}</div>
                     
                     {/* Display detailed breakdown if subtotal and shipping are available */}
                     {selectedOrderForInvoice.subtotal !== null && selectedOrderForInvoice.subtotal !== undefined && selectedOrderForInvoice.shipping !== null && selectedOrderForInvoice.shipping !== undefined ? (
