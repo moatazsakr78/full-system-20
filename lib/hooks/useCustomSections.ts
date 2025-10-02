@@ -102,54 +102,56 @@ export function useCustomSections() {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await (supabase as any)
-        .from('custom_sections')
-        .select('*')
-        .order('display_order', { ascending: true });
+      // Fetch sections and all products in parallel
+      const [sectionsResponse, productsResponse] = await Promise.all([
+        (supabase as any)
+          .from('custom_sections')
+          .select('*')
+          .order('display_order', { ascending: true }),
+        supabase
+          .from('products')
+          .select('id, name, description, main_image_url, sub_image_url, price, discount_percentage, discount_amount, is_hidden, rating, rating_count')
+          .eq('is_hidden', false)
+      ]);
 
-      if (fetchError) {
-        console.error('Error fetching custom sections:', fetchError);
-        setError(fetchError.message);
+      if (sectionsResponse.error) {
+        console.error('Error fetching custom sections:', sectionsResponse.error);
+        setError(sectionsResponse.error.message);
         return [];
       }
 
-      // Fetch full product details for each section
-      const sectionsWithProducts = await Promise.all(
-        (data || []).map(async (section: any) => {
-          const productIds = Array.isArray(section.products) ? section.products : [];
+      if (productsResponse.error) {
+        console.error('Error fetching products:', productsResponse.error);
+      }
 
-          if (productIds.length === 0) {
-            return { ...section, productDetails: [] };
-          }
+      const allProducts = productsResponse.data || [];
 
-          const { data: products, error: productsError } = await supabase
-            .from('products')
-            .select('id, name, description, main_image_url, sub_image_url, price, discount_percentage, discount_amount, is_hidden, rating, rating_count')
-            .in('id', productIds)
-            .eq('is_hidden', false);
+      // Create a map of products for O(1) lookup
+      const productsMap = new Map(
+        allProducts.map(product => {
+          const hasDiscount = product.discount_percentage && product.discount_percentage > 0;
+          const finalPrice = hasDiscount
+            ? Number(product.price) * (1 - Number(product.discount_percentage) / 100)
+            : Number(product.price);
 
-          if (productsError) {
-            console.error('Error fetching section products:', productsError);
-            return { ...section, productDetails: [] };
-          }
-
-          // Calculate final prices for products with discounts
-          const productsWithPrices = (products || []).map(product => {
-            const hasDiscount = product.discount_percentage && product.discount_percentage > 0;
-            const finalPrice = hasDiscount
-              ? Number(product.price) * (1 - Number(product.discount_percentage) / 100)
-              : Number(product.price);
-
-            return {
-              ...product,
-              finalPrice,
-              hasDiscount
-            };
-          });
-
-          return { ...section, productDetails: productsWithPrices };
+          return [product.id, {
+            ...product,
+            finalPrice,
+            hasDiscount
+          }];
         })
       );
+
+      // Map sections to their products using the products map
+      const sectionsWithProducts = (sectionsResponse.data || []).map((section: any) => {
+        const productIds = Array.isArray(section.products) ? section.products : [];
+
+        const productDetails = productIds
+          .map(id => productsMap.get(id))
+          .filter(Boolean); // Remove undefined entries
+
+        return { ...section, productDetails };
+      });
 
       setSections(sectionsWithProducts);
       return sectionsWithProducts;

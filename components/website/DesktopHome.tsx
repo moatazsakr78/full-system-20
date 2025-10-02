@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProducts, Product as DatabaseProduct } from '../../app/lib/hooks/useProducts';
 import { UserInfo, Product } from './shared/types';
@@ -62,6 +62,8 @@ export default function DesktopHome({
   // Get custom sections with products
   const { sections: customSections, isLoading: isSectionsLoading, fetchSectionsWithProducts } = useCustomSections();
   const [sectionsWithProducts, setSectionsWithProducts] = useState<any[]>([]);
+  const [isSectionsReady, setIsSectionsReady] = useState(false);
+  const [rawSectionsData, setRawSectionsData] = useState<any[]>([]);
   
   // Handle adding products to cart
   const handleAddToCart = async (product: Product) => {
@@ -244,19 +246,43 @@ export default function DesktopHome({
     setIsClient(true);
   }, []);
 
-  // Fetch custom sections with full product details
+  // Load raw sections data immediately on mount
   useEffect(() => {
-    const loadSectionsWithProducts = async () => {
-      const sections = await fetchSectionsWithProducts();
+    let isMounted = true;
 
-      // Only show active sections
-      const activeSections = sections.filter((section: any) => section.is_active);
+    const loadRawSections = async () => {
+      try {
+        const sections = await fetchSectionsWithProducts();
+        if (isMounted) {
+          setRawSectionsData(sections);
+        }
+      } catch (error) {
+        console.error('Error loading custom sections:', error);
+      }
+    };
 
-      // Convert section products to website format
-      const sectionsWithConvertedProducts = activeSections.map((section: any) => {
-        const convertedProducts = (section.productDetails || []).map((product: any) => {
-          const dbProduct = websiteProducts.find(wp => wp.id === product.id);
-          return dbProduct || {
+    loadRawSections();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchSectionsWithProducts]);
+
+  // Convert sections when website products are ready
+  useEffect(() => {
+    if (!rawSectionsData || rawSectionsData.length === 0) {
+      setSectionsWithProducts([]);
+      setIsSectionsReady(true);
+      return;
+    }
+
+    if (!websiteProducts || websiteProducts.length === 0) {
+      // Show sections with raw product data if website products aren't ready yet
+      const quickSections = rawSectionsData
+        .filter((section: any) => section.is_active && section.productDetails && section.productDetails.length > 0)
+        .map((section: any) => ({
+          ...section,
+          products: section.productDetails.map((product: any) => ({
             id: product.id,
             name: product.name,
             description: product.description || '',
@@ -276,22 +302,57 @@ export default function DesktopHome({
             discount: product.discount_percentage ? Math.round(product.discount_percentage) : undefined,
             tags: [],
             isFeatured: false
-          };
-        });
+          }))
+        }));
 
-        return {
-          ...section,
-          products: convertedProducts
+      requestAnimationFrame(() => {
+        setSectionsWithProducts(quickSections);
+        setIsSectionsReady(true);
+      });
+      return;
+    }
+
+    // Full conversion with website products
+    const activeSections = rawSectionsData
+      .filter((section: any) => section.is_active && section.productDetails && section.productDetails.length > 0);
+
+    const sectionsWithConvertedProducts = activeSections.map((section: any) => {
+      const convertedProducts = section.productDetails.map((product: any) => {
+        const dbProduct = websiteProducts.find(wp => wp.id === product.id);
+        return dbProduct || {
+          id: product.id,
+          name: product.name,
+          description: product.description || '',
+          price: product.finalPrice || product.price,
+          originalPrice: product.hasDiscount ? product.price : undefined,
+          image: product.main_image_url,
+          images: [product.main_image_url, product.sub_image_url].filter(Boolean),
+          category: 'عام',
+          colors: [],
+          shapes: [],
+          sizes: [],
+          brand: 'El Farouk Group',
+          stock: 0,
+          rating: product.rating || 0,
+          reviews: product.rating_count || 0,
+          isOnSale: product.hasDiscount || false,
+          discount: product.discount_percentage ? Math.round(product.discount_percentage) : undefined,
+          tags: [],
+          isFeatured: false
         };
       });
 
-      setSectionsWithProducts(sectionsWithConvertedProducts);
-    };
+      return {
+        ...section,
+        products: convertedProducts
+      };
+    });
 
-    if (websiteProducts.length > 0) {
-      loadSectionsWithProducts();
-    }
-  }, [websiteProducts, fetchSectionsWithProducts]);
+    requestAnimationFrame(() => {
+      setSectionsWithProducts(sectionsWithConvertedProducts);
+      setIsSectionsReady(true);
+    });
+  }, [rawSectionsData, websiteProducts]);
 
   // Handle scroll for compact header
   useEffect(() => {
@@ -579,8 +640,8 @@ export default function DesktopHome({
       {/* Desktop Main Content */}
       <main className="max-w-[80%] mx-auto px-4 py-8">
 
-        {/* Custom Sections - Only show when no specific category is selected and no search query */}
-        {selectedCategory === 'الكل' && !searchQuery && sectionsWithProducts.length > 0 && (
+        {/* Custom Sections - Only show when ready, no specific category is selected and no search query */}
+        {isSectionsReady && selectedCategory === 'الكل' && !searchQuery && sectionsWithProducts.length > 0 && (
           <>
             {sectionsWithProducts.map((section: any) => (
               section.products && section.products.length > 0 && (
@@ -597,15 +658,6 @@ export default function DesktopHome({
               )
             ))}
           </>
-        )}
-
-        {/* Show message if no sections available */}
-        {selectedCategory === 'الكل' && !searchQuery && sectionsWithProducts.length === 0 && !isSectionsLoading && (
-          <div className="text-center py-12 bg-white rounded-lg border border-gray-200 mb-8">
-            <div className="text-gray-400 text-lg mb-2">📦</div>
-            <p className="text-gray-500">لا توجد أقسام مخصصة حالياً</p>
-            <p className="text-gray-400 text-sm">يمكنك إنشاء أقسام مخصصة من صفحة &quot;تصميم المتجر&quot;</p>
-          </div>
         )}
 
         {/* Categories Section - Hide when searching */}
