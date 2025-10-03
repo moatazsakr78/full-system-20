@@ -15,6 +15,7 @@ import CategoryCarousel from './CategoryCarousel';
 import ProductDetailsModal from '../../app/components/ProductDetailsModal';
 import CartModal from '../../app/components/CartModal';
 import SearchOverlay from './SearchOverlay';
+import QuantityModal from './QuantityModal';
 import { useCart } from '../../lib/contexts/CartContext';
 import { useCartBadge } from '../../lib/hooks/useCartBadge';
 
@@ -42,6 +43,8 @@ export default function TabletHome({
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
   const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
+  const [isQuantityModalOpen, setIsQuantityModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [websiteProducts, setWebsiteProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   
@@ -68,17 +71,25 @@ export default function TabletHome({
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successProductName, setSuccessProductName] = useState('');
 
-  // Handle adding products to cart
+  // Handle adding products to cart - now opens quantity modal
   const handleAddToCart = async (product: Product) => {
+    setSelectedProduct(product);
+    setIsQuantityModalOpen(true);
+  };
+
+  // Handle quantity confirmation
+  const handleQuantityConfirm = async (quantity: number) => {
+    if (!selectedProduct) return;
+
     try {
-      console.log('🛒 Tablet: Adding product to cart:', product.name);
-      const selectedColorName = product.selectedColor?.name || undefined;
-      const selectedShapeName = product.selectedShape?.name || undefined;
-      await addToCart(String(product.id), 1, product.price, selectedColorName, selectedShapeName);
+      console.log('🛒 Tablet: Adding product to cart:', selectedProduct.name, 'Quantity:', quantity);
+      const selectedColorName = selectedProduct.selectedColor?.name || undefined;
+      const selectedShapeName = selectedProduct.selectedShape?.name || undefined;
+      await addToCart(String(selectedProduct.id), quantity, selectedProduct.price, selectedColorName, selectedShapeName);
       console.log('✅ Tablet: Product added successfully');
-      
+
       // Show success message
-      setSuccessProductName(product.name);
+      setSuccessProductName(selectedProduct.name);
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
     } catch (error) {
@@ -805,6 +816,17 @@ export default function TabletHome({
           </div>
         </div>
       )}
+
+      {/* Quantity Modal */}
+      <QuantityModal
+        isOpen={isQuantityModalOpen}
+        onClose={() => {
+          setIsQuantityModalOpen(false);
+          setSelectedProduct(null);
+        }}
+        onConfirm={handleQuantityConfirm}
+        productName={selectedProduct?.name}
+      />
     </>
   );
 }

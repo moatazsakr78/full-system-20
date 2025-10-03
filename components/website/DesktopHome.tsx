@@ -16,6 +16,7 @@ import InteractiveProductCard from './InteractiveProductCard';
 import ProductDetailsModal from '../../app/components/ProductDetailsModal';
 import CartModal from '../../app/components/CartModal';
 import SearchOverlay from './SearchOverlay';
+import QuantityModal from './QuantityModal';
 import { useCart } from '../../lib/contexts/CartContext';
 import { useCartBadge } from '../../lib/hooks/useCartBadge';
 
@@ -43,6 +44,8 @@ export default function DesktopHome({
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
   const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
+  const [isQuantityModalOpen, setIsQuantityModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
   // Use right sidebar hook for the website menu
   const { isRightSidebarOpen, toggleRightSidebar, closeRightSidebar } = useRightSidebar();
@@ -65,13 +68,21 @@ export default function DesktopHome({
   const [isSectionsReady, setIsSectionsReady] = useState(false);
   const [rawSectionsData, setRawSectionsData] = useState<any[]>([]);
   
-  // Handle adding products to cart
+  // Handle adding products to cart - now opens quantity modal
   const handleAddToCart = async (product: Product) => {
+    setSelectedProduct(product);
+    setIsQuantityModalOpen(true);
+  };
+
+  // Handle quantity confirmation
+  const handleQuantityConfirm = async (quantity: number) => {
+    if (!selectedProduct) return;
+
     try {
-      console.log('🛒 Desktop: Adding product to cart:', product.name);
-      const selectedColorName = product.selectedColor?.name || undefined;
-      const selectedShapeName = product.selectedShape?.name || undefined;
-      await addToCart(String(product.id), 1, product.price, selectedColorName, selectedShapeName);
+      console.log('🛒 Desktop: Adding product to cart:', selectedProduct.name, 'Quantity:', quantity);
+      const selectedColorName = selectedProduct.selectedColor?.name || undefined;
+      const selectedShapeName = selectedProduct.selectedShape?.name || undefined;
+      await addToCart(String(selectedProduct.id), quantity, selectedProduct.price, selectedColorName, selectedShapeName);
       console.log('✅ Desktop: Product added successfully');
     } catch (error) {
       console.error('❌ Desktop: Error adding product to cart:', error);
@@ -757,6 +768,17 @@ export default function DesktopHome({
           setSelectedProductId(String(product.id));
           setIsProductModalOpen(true);
         }}
+      />
+
+      {/* Quantity Modal */}
+      <QuantityModal
+        isOpen={isQuantityModalOpen}
+        onClose={() => {
+          setIsQuantityModalOpen(false);
+          setSelectedProduct(null);
+        }}
+        onConfirm={handleQuantityConfirm}
+        productName={selectedProduct?.name}
       />
     </>
   );
