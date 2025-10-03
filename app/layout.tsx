@@ -4,6 +4,7 @@ import TopHeader from './components/layout/TopHeader'
 import { CurrencyProvider } from '@/lib/hooks/useCurrency'
 import { SystemSettingsProvider } from '@/lib/hooks/useSystemSettings'
 import { CartProvider } from '@/lib/contexts/CartContext'
+import { UserProfileProvider } from '@/lib/contexts/UserProfileContext'
 
 export const metadata: Metadata = {
   title: 'نظام نقاط البيع',
@@ -32,10 +33,12 @@ export default function RootLayout({
       <body className="font-arabic bg-[#1F2937] text-gray-800">
         <SystemSettingsProvider>
           <CurrencyProvider>
-            <CartProvider>
-              <TopHeader />
-              {children}
-            </CartProvider>
+            <UserProfileProvider>
+              <CartProvider>
+                <TopHeader />
+                {children}
+              </CartProvider>
+            </UserProfileProvider>
           </CurrencyProvider>
         </SystemSettingsProvider>
       </body>

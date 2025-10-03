@@ -352,6 +352,38 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
     // Use context for immediate local update + database sync
     await removeFromCart(itemId);
   };
+
+  const handleGroupQuantityChange = async (group: any, newTotalQuantity: number) => {
+    if (newTotalQuantity < 1) return;
+
+    const currentTotalQuantity = group.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+    const quantityDifference = newTotalQuantity - currentTotalQuantity;
+
+    if (quantityDifference === 0) return;
+
+    // Calculate proportional distribution of the new quantity
+    const items = group.items;
+
+    if (quantityDifference > 0) {
+      // Increase: add to the first item
+      await updateQuantity(items[0].id, items[0].quantity + quantityDifference);
+    } else {
+      // Decrease: subtract proportionally, starting from last items
+      let remaining = Math.abs(quantityDifference);
+      for (let i = items.length - 1; i >= 0 && remaining > 0; i--) {
+        const item = items[i];
+        const reduceBy = Math.min(item.quantity, remaining);
+        const newQty = item.quantity - reduceBy;
+
+        if (newQty > 0) {
+          await updateQuantity(item.id, newQty);
+        } else {
+          await removeFromCart(item.id);
+        }
+        remaining -= reduceBy;
+      }
+    }
+  };
   
   const handleClearCart = async () => {
     // Use context for immediate local update + database sync
@@ -599,15 +631,6 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
   
   return (
     <>
-      <style jsx>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
       <div
         className="fixed inset-0 w-screen h-screen bg-white z-[99999] flex flex-col overflow-hidden"
         style={{
@@ -697,7 +720,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
         </header>
 
         {/* Responsive Content Container */}
-        <div className="flex-1 overflow-y-auto bg-[#C0C0C0] px-3 py-4 md:px-16 md:py-4 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto bg-[#C0C0C0] px-3 py-4 md:px-16 md:py-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {cartItems.length === 0 ? (
             // Empty cart message
             <div className="text-center py-12">
@@ -803,8 +826,43 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                                 </td>
                                 
                                 {/* Quantity */}
-                                <td className="p-4 text-center">
-                                  <span className="font-medium text-gray-900">{totalQuantity}</span>
+                                <td className="p-4">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <button
+                                      onClick={() => handleGroupQuantityChange(group, totalQuantity + 1)}
+                                      className="w-7 h-7 rounded-md bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                      </svg>
+                                    </button>
+                                    <input
+                                      type="number"
+                                      value={totalQuantity}
+                                      onChange={(e) => {
+                                        const newValue = parseInt(e.target.value);
+                                        if (!isNaN(newValue) && newValue >= 1) {
+                                          handleGroupQuantityChange(group, newValue);
+                                        }
+                                      }}
+                                      onFocus={(e) => e.target.select()}
+                                      className="w-14 h-7 text-center font-medium text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                      min="1"
+                                    />
+                                    <button
+                                      onClick={() => totalQuantity > 1 && handleGroupQuantityChange(group, totalQuantity - 1)}
+                                      disabled={totalQuantity <= 1}
+                                      className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors ${
+                                        totalQuantity <= 1
+                                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                          : 'bg-gray-200 hover:bg-gray-300'
+                                      }`}
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                                      </svg>
+                                    </button>
+                                  </div>
                                 </td>
                                 
                                 {/* Total */}
@@ -1192,8 +1250,43 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                                   </td>
                                   
                                   {/* Quantity */}
-                                  <td className="p-4 text-center">
-                                    <span className="font-medium text-gray-900">{totalQuantity}</span>
+                                  <td className="p-4">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <button
+                                        onClick={() => handleGroupQuantityChange(group, totalQuantity + 1)}
+                                        className="w-7 h-7 rounded-md bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                      </button>
+                                      <input
+                                        type="number"
+                                        value={totalQuantity}
+                                        onChange={(e) => {
+                                          const newValue = parseInt(e.target.value);
+                                          if (!isNaN(newValue) && newValue >= 1) {
+                                            handleGroupQuantityChange(group, newValue);
+                                          }
+                                        }}
+                                        onFocus={(e) => e.target.select()}
+                                        className="w-14 h-7 text-center font-medium text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                        min="1"
+                                      />
+                                      <button
+                                        onClick={() => totalQuantity > 1 && handleGroupQuantityChange(group, totalQuantity - 1)}
+                                        disabled={totalQuantity <= 1}
+                                        className={`w-7 h-7 rounded-md flex items-center justify-center transition-colors ${
+                                          totalQuantity <= 1
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-gray-200 hover:bg-gray-300'
+                                        }`}
+                                      >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                                        </svg>
+                                      </button>
+                                    </div>
                                   </td>
                                   
                                   {/* Total */}
@@ -1296,9 +1389,44 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                             </div>
                             
                             {/* Quantity */}
-                            <div className="bg-white rounded-lg p-2 text-center">
-                              <div className="text-xs text-gray-500 mb-1">الكمية</div>
-                              <div className="text-sm font-medium text-gray-900">{totalQuantity}</div>
+                            <div className="bg-white rounded-lg p-2">
+                              <div className="text-xs text-gray-500 mb-1 text-center">الكمية</div>
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => handleGroupQuantityChange(group, totalQuantity + 1)}
+                                  className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                  </svg>
+                                </button>
+                                <input
+                                  type="number"
+                                  value={totalQuantity}
+                                  onChange={(e) => {
+                                    const newValue = parseInt(e.target.value);
+                                    if (!isNaN(newValue) && newValue >= 1) {
+                                      handleGroupQuantityChange(group, newValue);
+                                    }
+                                  }}
+                                  onFocus={(e) => e.target.select()}
+                                  className="w-10 h-6 text-center text-sm font-medium text-gray-900 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  min="1"
+                                />
+                                <button
+                                  onClick={() => totalQuantity > 1 && handleGroupQuantityChange(group, totalQuantity - 1)}
+                                  disabled={totalQuantity <= 1}
+                                  className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${
+                                    totalQuantity <= 1
+                                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                      : 'bg-gray-200 hover:bg-gray-300'
+                                  }`}
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                                  </svg>
+                                </button>
+                              </div>
                             </div>
                             
                             {/* Total */}
