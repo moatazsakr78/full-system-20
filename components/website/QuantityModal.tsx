@@ -31,8 +31,29 @@ export default function QuantityModal({ isOpen, onClose, onConfirm, productName 
     }
   };
 
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow empty string for clearing
+    if (value === '') {
+      setQuantity(1);
+      return;
+    }
+    // Parse and validate
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue >= 1) {
+      setQuantity(numValue);
+    }
+  };
+
+  const handleQuantityFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Select all text when focused
+    e.target.select();
+  };
+
   const handleConfirm = () => {
-    onConfirm(quantity);
+    // Make sure quantity is at least 1
+    const finalQuantity = quantity < 1 ? 1 : quantity;
+    onConfirm(finalQuantity);
     onClose();
   };
 
@@ -50,6 +71,17 @@ export default function QuantityModal({ isOpen, onClose, onConfirm, productName 
           className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Hide number input arrows */}
+          <style jsx>{`
+            input[type='number']::-webkit-inner-spin-button,
+            input[type='number']::-webkit-outer-spin-button {
+              -webkit-appearance: none;
+              margin: 0;
+            }
+            input[type='number'] {
+              -moz-appearance: textfield;
+            }
+          `}</style>
           {/* Title */}
           <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
             تحديد الكمية
@@ -75,13 +107,16 @@ export default function QuantityModal({ isOpen, onClose, onConfirm, productName 
               </svg>
             </button>
 
-            {/* Quantity Display */}
-            <div
-              className="w-28 h-14 rounded-xl flex items-center justify-center text-2xl font-bold text-blue-600 border-2"
+            {/* Quantity Input */}
+            <input
+              type="number"
+              value={quantity}
+              onChange={handleQuantityChange}
+              onFocus={handleQuantityFocus}
+              className="w-28 h-14 rounded-xl flex items-center justify-center text-center text-2xl font-bold text-blue-600 border-2 focus:outline-none focus:ring-2"
               style={{ borderColor: '#3B82F6' }}
-            >
-              {quantity}
-            </div>
+              min="1"
+            />
 
             {/* Minus Button */}
             <button

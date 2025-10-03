@@ -29,9 +29,7 @@ export default function InteractiveProductCard({
   const imageRef = useRef<HTMLDivElement>(null);
   
   // Mobile-specific states
-  const [showQuantityModal, setShowQuantityModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
-  const [quantity, setQuantity] = useState('1');
   const [note, setNote] = useState('');
   
   // Get cart functions for direct access
@@ -524,10 +522,17 @@ export default function InteractiveProductCard({
       {deviceType === 'mobile' && (
         <div className="flex gap-1 mt-3">
           {/* Add Button (80% width) */}
-          <button 
-            onClick={(e) => {
+          <button
+            onClick={async (e) => {
               e.stopPropagation();
-              setShowQuantityModal(true);
+              const productToAdd = {
+                ...currentProduct,
+                selectedColor: selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : null),
+                selectedShape: selectedShape || (product.shapes && product.shapes.length > 0 ? product.shapes[0] : null),
+                selectedSize: selectedSize,
+                price: getDisplayPrice() // Use the display price based on user role
+              };
+              await onAddToCart(productToAdd);
             }}
             className="flex-[4] rounded-lg font-medium transition-colors text-white p-1.5 text-xs"
             style={{backgroundColor: '#5D1F1F'}}
@@ -540,9 +545,9 @@ export default function InteractiveProductCard({
           >
             إضافة
           </button>
-          
+
           {/* Note Button (20% width) with gray color like in the image */}
-          <button 
+          <button
             onClick={(e) => {
               e.stopPropagation();
               setShowNoteModal(true);
@@ -563,108 +568,6 @@ export default function InteractiveProductCard({
           </button>
         </div>
       )}
-      
-      {/* Quantity Modal */}
-      {showQuantityModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-             onClick={(e) => {
-               if (e.target === e.currentTarget) {
-                 setShowQuantityModal(false);
-               }
-             }}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm mx-4">
-            <h3 className="text-lg font-bold text-center mb-6 text-gray-800">تحديد الكمية</h3>
-            
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <button 
-                onClick={() => {
-                  const newValue = Math.max(1, parseInt(quantity) - 1).toString();
-                  setQuantity(newValue);
-                }}
-                className="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-xl font-bold transition-colors"
-              >
-                -
-              </button>
-              
-              <input 
-                type="text" 
-                value={quantity}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/[^0-9]/g, '');
-                  if (value === '' || parseInt(value) >= 1) {
-                    setQuantity(value || '1');
-                  }
-                }}
-                className="w-20 h-12 text-center text-xl font-bold border-2 border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
-                style={{ color: '#3B82F6' }}
-                autoFocus
-                onFocus={(e) => e.target.select()}
-              />
-              
-              <button 
-                onClick={() => {
-                  const newValue = (parseInt(quantity) + 1).toString();
-                  setQuantity(newValue);
-                }}
-                className="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center text-xl font-bold transition-colors"
-              >
-                +
-              </button>
-            </div>
-            
-            <div className="flex gap-3">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowQuantityModal(false);
-                }}
-                className="flex-1 py-3 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg font-medium transition-colors"
-              >
-                إلغاء
-              </button>
-              <button 
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  const productToAdd = {
-                    ...currentProduct,
-                    selectedColor: selectedColor || (product.colors && product.colors.length > 0 ? product.colors[0] : null),
-                    selectedShape: selectedShape || (product.shapes && product.shapes.length > 0 ? product.shapes[0] : null),
-                    selectedSize: selectedSize
-                  };
-                  
-                  const selectedColorName = productToAdd.selectedColor?.name || undefined;
-                  const selectedShapeName = productToAdd.selectedShape?.name || undefined;
-                  const quantityToAdd = parseInt(quantity);
-                  const priceToUse = getDisplayPrice(); // Use the display price based on user role
-                  
-                  try {
-                    console.log('🛒 Adding to cart:', quantityToAdd, 'units of product:', currentProduct.name, 'at price:', priceToUse);
-                    // Use directAddToCart with the full quantity at once - much faster!
-                    await directAddToCart(String(currentProduct.id), quantityToAdd, priceToUse, selectedColorName, selectedShapeName);
-                    console.log('✅ Successfully added', quantityToAdd, 'units to cart');
-                  } catch (error) {
-                    console.error('❌ Error adding to cart:', error);
-                  }
-                  
-                  setShowQuantityModal(false);
-                  setQuantity('1');
-                }}
-                className="flex-1 py-3 text-white rounded-lg font-medium transition-colors"
-                style={{backgroundColor: '#5D1F1F'}}
-                onMouseEnter={(e) => {
-                  (e.target as HTMLButtonElement).style.backgroundColor = '#4A1616';
-                }}
-                onMouseLeave={(e) => {
-                  (e.target as HTMLButtonElement).style.backgroundColor = '#5D1F1F';
-                }}
-              >
-                إضافة للطلب
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
       {/* Note Modal */}
       {showNoteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
