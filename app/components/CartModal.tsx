@@ -64,17 +64,66 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
   const [selectedGovernorate, setSelectedGovernorate] = useState<string>('');
   const [selectedArea, setSelectedArea] = useState<string>('');
   const [shippingCost, setShippingCost] = useState<number>(0);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
   // Save scroll position to restore when modal closes
   const [savedScrollPosition, setSavedScrollPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
 
-  // Sync with database when modal opens
+  // Sync with database when modal opens and load customer profile
   useEffect(() => {
     if (isOpen) {
       syncWithDatabase();
+      loadCustomerProfile();
     }
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load customer profile data to auto-fill form
+  const loadCustomerProfile = async () => {
+    try {
+      const { data: { user } } = await CartService.supabase.auth.getUser();
+
+      if (!user) return; // Not logged in, skip auto-fill
+
+      // Load customer profile from customers table
+      const { data: customerData, error } = await (CartService.supabase as any)
+        .from('customers')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading customer profile:', error);
+        return;
+      }
+
+      if (customerData) {
+        // Auto-fill customer data from profile
+        setCustomerData({
+          name: customerData.name || '',
+          phone: customerData.phone || '',
+          altPhone: customerData.backup_phone || '',
+          address: customerData.address || ''
+        });
+
+        // Auto-fill governorate if exists
+        if (customerData.governorate && deliveryMethod === 'delivery') {
+          // Try to find and select matching governorate
+          const matchingGov = governorates.find(g =>
+            g.name.toLowerCase().includes(customerData.governorate.toLowerCase())
+          );
+          if (matchingGov) {
+            setSelectedGovernorate(matchingGov.id);
+            if (matchingGov.type === 'simple') {
+              setShippingCost(matchingGov.price || 0);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading customer profile for auto-fill:', error);
+    }
+  };
 
   // Prevent body scroll when modal is open and change theme color
   useEffect(() => {
@@ -310,11 +359,71 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
   // Handle area selection
   const handleAreaSelect = (areaId: string) => {
     setSelectedArea(areaId);
-    
+
     const governorate = governorates.find(g => g.id === selectedGovernorate);
     const area = governorate?.areas?.find(a => a.id === areaId);
     if (area) {
       setShippingCost(area.price);
+    }
+  };
+
+  // Get user location and convert to address using Google Maps Geocoding
+  const handleGetLocation = async () => {
+    if (!navigator.geolocation) {
+      alert('المتصفح لا يدعم خدمة تحديد الموقع');
+      return;
+    }
+
+    setIsLoadingLocation(true);
+
+    try {
+      // Get user's coordinates
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+
+      // Use Google Maps Geocoding API to convert coordinates to address
+      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&language=ar&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`;
+
+      const response = await fetch(geocodeUrl);
+      const data = await response.json();
+
+      if (data.status === 'OK' && data.results && data.results.length > 0) {
+        // Get the formatted address in Arabic
+        const formattedAddress = data.results[0].formatted_address;
+
+        // Also include coordinates for reference
+        const addressWithCoords = `${formattedAddress}\n\nالإحداثيات: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+
+        setCustomerData(prev => ({
+          ...prev,
+          address: addressWithCoords
+        }));
+
+        alert('تم تحديد الموقع بنجاح!');
+      } else {
+        throw new Error('فشل تحويل الموقع إلى عنوان');
+      }
+    } catch (error: any) {
+      console.error('Error getting location:', error);
+
+      if (error.code === 1) {
+        alert('تم رفض الوصول إلى الموقع. يرجى السماح بالوصول إلى موقعك في إعدادات المتصفح.');
+      } else if (error.code === 2) {
+        alert('فشل تحديد الموقع. يرجى التأكد من تفعيل خدمة الموقع.');
+      } else if (error.code === 3) {
+        alert('انتهت مهلة تحديد الموقع. يرجى المحاولة مرة أخرى.');
+      } else {
+        alert('حدث خطأ أثناء تحديد الموقع. يرجى المحاولة مرة أخرى.');
+      }
+    } finally {
+      setIsLoadingLocation(false);
     }
   };
   
@@ -337,10 +446,24 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
   const total = subtotal + shipping;
   
   const handleInputChange = (field: keyof CustomerData, value: string) => {
-    setCustomerData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    // Phone number validation for Egyptian numbers (11 digits starting with 01)
+    if (field === 'phone' || field === 'altPhone') {
+      // Only allow digits
+      const digits = value.replace(/\D/g, '');
+
+      // Limit to 11 digits
+      const limitedDigits = digits.slice(0, 11);
+
+      setCustomerData(prev => ({
+        ...prev,
+        [field]: limitedDigits
+      }));
+    } else {
+      setCustomerData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
   };
   
   const handleQuantityChange = async (itemId: string, newQuantity: number) => {
@@ -537,6 +660,30 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
       if (!customerData.phone.trim()) {
         alert('يرجى إدخال رقم الهاتف');
         return;
+      }
+
+      // Validate phone number format (11 digits starting with 01)
+      if (customerData.phone.length !== 11) {
+        alert('رقم الهاتف يجب أن يكون 11 رقم');
+        return;
+      }
+
+      if (!customerData.phone.startsWith('01')) {
+        alert('رقم الهاتف يجب أن يبدأ بـ 01');
+        return;
+      }
+
+      // Validate alternative phone if provided
+      if (customerData.altPhone.trim()) {
+        if (customerData.altPhone.length !== 11) {
+          alert('رقم الهاتف الثاني يجب أن يكون 11 رقم');
+          return;
+        }
+
+        if (!customerData.altPhone.startsWith('01')) {
+          alert('رقم الهاتف الثاني يجب أن يبدأ بـ 01');
+          return;
+        }
       }
       
       // Only require address for delivery method
@@ -1072,7 +1219,9 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                             type="tel"
                             value={customerData.phone}
                             onChange={(e) => handleInputChange('phone', e.target.value)}
-                            placeholder="أدخل رقم الهاتف"
+                            placeholder="أدخل رقم الهاتف (يفضل أن يكون عليه واتساب)"
+                            maxLength={11}
+                            pattern="^01[0-9]{9}$"
                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-gray-900 bg-white placeholder-gray-500"
                           />
                         </div>
@@ -1084,6 +1233,8 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                             value={customerData.altPhone}
                             onChange={(e) => handleInputChange('altPhone', e.target.value)}
                             placeholder="أدخل رقم هاتف آخر"
+                            maxLength={11}
+                            pattern="^01[0-9]{9}$"
                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-gray-900 bg-white placeholder-gray-500"
                           />
                         </div>
@@ -1092,13 +1243,40 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                         {deliveryMethod === 'delivery' && (
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">العنوان</label>
-                            <textarea
-                              value={customerData.address}
-                              onChange={(e) => handleInputChange('address', e.target.value)}
-                              placeholder="أدخل عنوان التوصيل"
-                              rows={3}
-                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors resize-none text-gray-900 bg-white placeholder-gray-500"
-                            />
+                            <div className="relative">
+                              <textarea
+                                value={customerData.address}
+                                onChange={(e) => handleInputChange('address', e.target.value)}
+                                placeholder="أدخل عنوان التوصيل أو اضغط على زر الموقع"
+                                rows={3}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors resize-none text-gray-900 bg-white placeholder-gray-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleGetLocation}
+                                disabled={isLoadingLocation}
+                                className={`absolute left-2 top-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                                  isLoadingLocation
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                                }`}
+                                title="جلب الموقع الحالي من خرائط جوجل"
+                              >
+                                {isLoadingLocation ? (
+                                  <span className="flex items-center gap-1">
+                                    <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    جاري التحميل...
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1">
+                                    📍 موقعي
+                                  </span>
+                                )}
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1614,7 +1792,9 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                         type="tel"
                         value={customerData.phone}
                         onChange={(e) => handleInputChange('phone', e.target.value)}
-                        placeholder="أدخل رقم الهاتف"
+                        placeholder="أدخل رقم الهاتف (يفضل أن يكون عليه واتساب)"
+                        maxLength={11}
+                        pattern="^01[0-9]{9}$"
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-gray-900 bg-white placeholder-gray-500"
                       />
                     </div>
@@ -1626,6 +1806,8 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                         value={customerData.altPhone}
                         onChange={(e) => handleInputChange('altPhone', e.target.value)}
                         placeholder="أدخل رقم هاتف آخر"
+                        maxLength={11}
+                        pattern="^01[0-9]{9}$"
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors text-gray-900 bg-white placeholder-gray-500"
                       />
                     </div>
@@ -1634,13 +1816,40 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
                     {deliveryMethod === 'delivery' && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">العنوان</label>
-                        <textarea
-                          value={customerData.address}
-                          onChange={(e) => handleInputChange('address', e.target.value)}
-                          placeholder="أدخل عنوان التوصيل"
-                          rows={3}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors resize-none text-gray-900 bg-white placeholder-gray-500"
-                        />
+                        <div className="relative">
+                          <textarea
+                            value={customerData.address}
+                            onChange={(e) => handleInputChange('address', e.target.value)}
+                            placeholder="أدخل عنوان التوصيل أو اضغط على زر الموقع"
+                            rows={3}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors resize-none text-gray-900 bg-white placeholder-gray-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleGetLocation}
+                            disabled={isLoadingLocation}
+                            className={`absolute left-2 top-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                              isLoadingLocation
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-blue-500 hover:bg-blue-600 text-white'
+                            }`}
+                            title="جلب الموقع الحالي من خرائط جوجل"
+                          >
+                            {isLoadingLocation ? (
+                              <span className="flex items-center gap-1">
+                                <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                جاري التحميل...
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1">
+                                📍 موقعي
+                              </span>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

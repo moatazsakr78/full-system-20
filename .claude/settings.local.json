@@ -284,7 +284,8 @@
       "Bash(start http://localhost:3000/suppliers)",
       "Bash(npx prettier:*)",
       "Bash(kill:*)",
-      "Bash(start test-quantity-input.html)"
+      "Bash(start test-quantity-input.html)",
+      "Bash(npx supabase db push:*)"
     ],
     "deny": [],
     "additionalDirectories": [
