@@ -177,8 +177,8 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
                 {/* Profile */}
                 <button
                   onClick={() => {
-                    // Handle Profile navigation
-                    alert('سيتم إضافة صفحة الملف الشخصي قريباً');
+                    // Navigate to profile page
+                    window.location.href = '/profile';
                     onClose();
                   }}
                   className="flex items-center gap-3 w-full p-3 text-black hover:bg-gray-300 rounded-lg transition-colors text-right group"

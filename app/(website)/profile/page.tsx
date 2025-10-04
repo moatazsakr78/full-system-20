@@ -259,35 +259,46 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
-      {/* Header */}
-      <header className="bg-[#3B82F6] shadow-md">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+    <div className="h-screen overflow-hidden bg-white flex flex-col" dir="rtl">
+      {/* Store Header (Red) */}
+      <header className="border-b border-gray-700 py-0 relative z-40" style={{backgroundColor: '#5d1f1f'}}>
+        <div className="relative flex items-center min-h-[60px] md:min-h-[80px]">
+          <div className="max-w-[95%] md:max-w-[95%] lg:max-w-[80%] mx-auto px-2 md:px-3 lg:px-4 flex items-center justify-between min-h-[60px] md:min-h-[80px] w-full">
+
+            {/* زر العودة - اليسار */}
             <button
-              onClick={() => router.back()}
-              className="text-white hover:text-gray-200 transition-colors flex items-center gap-2"
+              onClick={() => router.push('/')}
+              className="flex items-center p-2 text-white hover:text-gray-300 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              <span>رجوع</span>
+              <span className="hidden md:inline mr-2">العودة</span>
             </button>
 
-            <h1 className="text-white text-xl font-bold">الملف الشخصي</h1>
+            {/* النص الرئيسي - الوسط */}
+            <div className="absolute left-1/2 transform -translate-x-1/2">
+              <h1 className="text-lg md:text-2xl font-bold text-white text-center whitespace-nowrap">
+                الملف الشخصي
+              </h1>
+            </div>
 
-            <div className="w-20"></div>
+            {/* اللوجو - اليمين */}
+            <div className="flex items-center">
+              <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-12 w-12 md:h-16 md:w-16 object-contain" />
+            </div>
+
           </div>
         </div>
       </header>
 
       {/* Profile Form */}
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
+      <div className="flex-1 overflow-y-auto px-4 py-6 max-w-2xl mx-auto w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div className="bg-white rounded-lg shadow-md p-6">
           {/* Profile Image */}
           <div className="flex flex-col items-center mb-8">
             <div className="relative">
-              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 border-4 border-blue-500">
+              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 border-4 border-[#661a1a]">
                 {profileData.profile_image_url ? (
                   <img
                     src={profileData.profile_image_url}
@@ -304,7 +315,7 @@ export default function ProfilePage() {
               {/* Upload button */}
               <label
                 htmlFor="profile-image-upload"
-                className={`absolute bottom-0 right-0 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-2 cursor-pointer transition-colors ${
+                className={`absolute bottom-0 right-0 bg-[#661a1a] hover:bg-[#7d2222] text-white rounded-full p-2 cursor-pointer transition-colors ${
                   isUploadingImage ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -338,7 +349,7 @@ export default function ProfilePage() {
                 value={profileData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="أدخل الاسم الكامل"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors text-gray-900 bg-white placeholder-gray-400"
               />
             </div>
 
@@ -354,7 +365,7 @@ export default function ProfilePage() {
                 placeholder="أدخل رقم الهاتف (يفضل أن يكون عليه واتساب)"
                 maxLength={11}
                 pattern="^01[0-9]{9}$"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors text-gray-900 bg-white placeholder-gray-400"
               />
               <p className="text-xs text-gray-500 mt-1">رقم مصري يبدأ بـ 01 ومكون من 11 رقم</p>
             </div>
@@ -371,7 +382,7 @@ export default function ProfilePage() {
                 placeholder="أدخل رقم هاتف آخر (اختياري)"
                 maxLength={11}
                 pattern="^01[0-9]{9}$"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors text-gray-900 bg-white placeholder-gray-400"
               />
             </div>
 
@@ -385,7 +396,7 @@ export default function ProfilePage() {
                 value={profileData.governorate}
                 onChange={(e) => handleInputChange('governorate', e.target.value)}
                 placeholder="أدخل المحافظة"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 bg-white placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors text-gray-900 bg-white placeholder-gray-400"
               />
             </div>
 
@@ -399,7 +410,7 @@ export default function ProfilePage() {
                 onChange={(e) => handleInputChange('address', e.target.value)}
                 placeholder="أدخل العنوان التفصيلي"
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none text-gray-900 bg-white placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors resize-none text-gray-900 bg-white placeholder-gray-400"
               />
             </div>
           </div>
@@ -412,24 +423,11 @@ export default function ProfilePage() {
               className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-colors ${
                 isSaving
                   ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-500 hover:bg-blue-600'
+                  : 'bg-[#661a1a] hover:bg-[#7d2222]'
               }`}
             >
               {isSaving ? 'جاري الحفظ...' : 'حفظ البيانات'}
             </button>
-          </div>
-
-          {/* Info Note */}
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="text-sm text-blue-700">
-                <p className="font-medium mb-1">فائدة حفظ البيانات:</p>
-                <p>عند حفظ بياناتك هنا، سيتم ملء معلوماتك تلقائياً في السلة عند إتمام أي طلب، مما يوفر عليك الوقت في كل مرة.</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
