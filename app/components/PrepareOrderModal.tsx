@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { supabase } from '../lib/supabase/client';
 
 // Order item interface with preparation status
 interface OrderItem {
   id: string;
+  product_id?: string;
   name: string;
   quantity: number;
   price: number;
@@ -41,8 +43,6 @@ export default function PrepareOrderModal({ isOpen, onClose, orderId }: PrepareO
 
     const loadOrder = async () => {
       try {
-        const { supabase } = await import('../lib/supabase/client');
-        
         // Get order with its items and product details
         const { data: orderData, error: orderError } = await supabase
           .from('orders')
@@ -123,12 +123,6 @@ export default function PrepareOrderModal({ isOpen, onClose, orderId }: PrepareO
         setOrder(transformedOrder);
         setLoading(false);
 
-        // Note: Real-time updates disabled for grouped items to avoid complexity
-        // Set up real-time subscription for order items preparation status
-        // (Disabled for grouped items as it requires complex handling)
-
-        // Note: Real-time subscription cleanup would go here if implemented
-
       } catch (error) {
         console.error('Error loading order:', error);
         setLoading(false);
@@ -137,6 +131,71 @@ export default function PrepareOrderModal({ isOpen, onClose, orderId }: PrepareO
 
     loadOrder();
   }, [isOpen, orderId]);
+
+  // Real-time subscription for order items preparation updates
+  useEffect(() => {
+    if (!isOpen || !orderId || !order) return;
+
+    console.log('Setting up real-time subscription for order:', orderId);
+
+    // Create channel for this specific order
+    const channel = supabase
+      .channel(`prepare_order_${orderId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'order_items'
+        },
+        async (payload) => {
+          console.log('Real-time item preparation update received:', payload);
+
+          // Fetch the product_id for the updated item
+          const { data: itemData } = await supabase
+            .from('order_items')
+            .select('product_id, order_id, is_prepared')
+            .eq('id', payload.new.id)
+            .single();
+
+          if (!itemData) return;
+
+          // Update the order items if this item belongs to the current order
+          setOrder(prevOrder => {
+            if (!prevOrder) return prevOrder;
+
+            // Find the grouped item by product_id
+            const updatedItems = prevOrder.items.map(item => {
+              // Match by product_id (since items are grouped)
+              if (item.product_id === itemData.product_id) {
+                console.log(`Updating item ${item.name} preparation status to: ${itemData.is_prepared}`);
+                return {
+                  ...item,
+                  isPrepared: itemData.is_prepared || false,
+                  preparedAt: payload.new.prepared_at,
+                  preparedBy: payload.new.prepared_by
+                };
+              }
+              return item;
+            });
+
+            return {
+              ...prevOrder,
+              items: updatedItems
+            };
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Prepare order modal subscription status:', status);
+      });
+
+    // Cleanup subscription
+    return () => {
+      console.log('Cleaning up real-time subscription for order:', orderId);
+      supabase.removeChannel(channel);
+    };
+  }, [isOpen, orderId, order]);
 
   // Calculate preparation progress
   useEffect(() => {
@@ -153,7 +212,6 @@ export default function PrepareOrderModal({ isOpen, onClose, orderId }: PrepareO
     if (!order) return;
     
     try {
-      const { supabase } = await import('../lib/supabase/client');
       const item = order.items.find(i => i.id === itemId);
       if (!item) return;
 
@@ -207,7 +265,6 @@ export default function PrepareOrderModal({ isOpen, onClose, orderId }: PrepareO
     if (!order) return;
     
     try {
-      const { supabase } = await import('../lib/supabase/client');
       
       // First, get the full order details to determine delivery type
       const { data: orderData, error: fetchError } = await supabase
