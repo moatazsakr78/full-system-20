@@ -285,7 +285,8 @@
       "Bash(npx prettier:*)",
       "Bash(kill:*)",
       "Bash(start test-quantity-input.html)",
-      "Bash(npx supabase db push:*)"
+      "Bash(npx supabase db push:*)",
+      "Bash(cmd /c:*)"
     ],
     "deny": [],
     "additionalDirectories": [

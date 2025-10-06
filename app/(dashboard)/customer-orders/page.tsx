@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import PrepareOrderModal from '../../components/PrepareOrderModal';
 import { useFormatPrice } from '@/lib/hooks/useCurrency';
+import { supabase } from '../../lib/supabase/client';
 
 // Order status type
 type OrderStatus = 'pending' | 'processing' | 'ready_for_pickup' | 'ready_for_shipping' | 'shipped' | 'delivered' | 'cancelled' | 'issue';
@@ -27,6 +28,7 @@ interface Order {
   updated_at?: string;
   items: {
     id: string;
+    product_id?: string;
     name: string;
     quantity: number;
     price: number;
@@ -125,7 +127,6 @@ export default function CustomerOrdersPage() {
   useEffect(() => {
     const loadOrders = async () => {
       try {
-        const { supabase } = await import('../../lib/supabase/client');
         
         // Get all orders with their items and product details for all customers
         const { data: ordersData, error: ordersError } = await supabase
@@ -239,111 +240,6 @@ export default function CustomerOrdersPage() {
         if (!branchesResult.error) setBranches(branchesResult.data || []);
         if (!recordsResult.error) setRecords(recordsResult.data || []);
 
-        // Set up real-time subscriptions
-        const channel = supabase.channel('customer_orders_updates');
-
-        // Listen for order items preparation status updates
-        channel.on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'order_items'
-          },
-          async (payload) => {
-            console.log('Real-time preparation update received:', payload);
-
-            // Fetch the product_id for the updated item
-            const { data: itemData } = await supabase
-              .from('order_items')
-              .select('product_id, order_id')
-              .eq('id', payload.new.id)
-              .single();
-
-            if (!itemData) return;
-
-            // Update the specific order's progress
-            setOrders(prevOrders => {
-              return prevOrders.map(order => {
-                // Check if this is the order that contains the updated item
-                if (order.orderId !== itemData.order_id) {
-                  return order;
-                }
-
-                // Find the grouped item by product_id
-                const updatedItemIndex = order.items.findIndex(item =>
-                  item.product_id === itemData.product_id
-                );
-
-                if (updatedItemIndex !== -1) {
-                  // Update the item's preparation status
-                  const updatedItems = [...order.items];
-                  updatedItems[updatedItemIndex] = {
-                    ...updatedItems[updatedItemIndex],
-                    isPrepared: payload.new.is_prepared || false
-                  };
-
-                  // Recalculate progress
-                  const preparedItems = updatedItems.filter(item => item.isPrepared).length;
-                  const totalItems = updatedItems.length;
-                  const preparationProgress = totalItems > 0 ? (preparedItems / totalItems) * 100 : 0;
-
-                  console.log(`Order ${order.id}: Progress updated to ${preparationProgress}%`);
-
-                  return {
-                    ...order,
-                    items: updatedItems,
-                    preparationProgress
-                  };
-                }
-
-                return order;
-              });
-            });
-          }
-        );
-
-        // Listen for order status updates
-        channel.on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'orders'
-          },
-          (payload) => {
-            console.log('Real-time order status update received:', payload);
-
-            // Update the order's status and other fields
-            setOrders(prevOrders => {
-              return prevOrders.map(order => {
-                if (order.orderId === payload.new.id) {
-                  console.log(`Order ${order.id}: Status updated from ${order.status} to ${payload.new.status}`);
-
-                  return {
-                    ...order,
-                    status: payload.new.status,
-                    updated_at: payload.new.updated_at,
-                    // Update any other fields that might change
-                    total: payload.new.total_amount ? parseFloat(payload.new.total_amount) : order.total,
-                    subtotal: payload.new.subtotal_amount ? parseFloat(payload.new.subtotal_amount) : order.subtotal,
-                    shipping: payload.new.shipping_amount ? parseFloat(payload.new.shipping_amount) : order.shipping,
-                  };
-                }
-                return order;
-              });
-            });
-          }
-        );
-
-        // Subscribe to the channel
-        channel.subscribe();
-
-        // Cleanup subscription on unmount
-        return () => {
-          supabase.removeChannel(channel);
-        };
-
       } catch (error) {
         console.error('Error loading orders:', error);
         setLoading(false);
@@ -351,6 +247,136 @@ export default function CustomerOrdersPage() {
     };
 
     loadOrders();
+  }, []);
+
+  // Handle page visibility changes (important for mobile devices)
+  useEffect(() => {
+    let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    const setupRealtimeSubscription = () => {
+      // Clean up existing channel if any
+      if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
+      }
+
+      // Create new channel
+      realtimeChannel = supabase.channel('customer_orders_realtime');
+
+      // Listen for order items preparation status updates
+      realtimeChannel.on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'order_items'
+        },
+        async (payload) => {
+          console.log('Real-time preparation update received:', payload);
+
+          // Fetch the product_id for the updated item
+          const { data: itemData } = await supabase
+            .from('order_items')
+            .select('product_id, order_id')
+            .eq('id', payload.new.id)
+            .single();
+
+          if (!itemData) return;
+
+          // Update the specific order's progress
+          setOrders(prevOrders => {
+            return prevOrders.map(order => {
+              if (order.orderId !== itemData.order_id) {
+                return order;
+              }
+
+              const updatedItemIndex = order.items.findIndex(item =>
+                item.product_id === itemData.product_id
+              );
+
+              if (updatedItemIndex !== -1) {
+                const updatedItems = [...order.items];
+                updatedItems[updatedItemIndex] = {
+                  ...updatedItems[updatedItemIndex],
+                  isPrepared: payload.new.is_prepared || false
+                };
+
+                const preparedItems = updatedItems.filter(item => item.isPrepared).length;
+                const totalItems = updatedItems.length;
+                const preparationProgress = totalItems > 0 ? (preparedItems / totalItems) * 100 : 0;
+
+                console.log(`Order ${order.id}: Progress updated to ${preparationProgress}%`);
+
+                return {
+                  ...order,
+                  items: updatedItems,
+                  preparationProgress
+                };
+              }
+
+              return order;
+            });
+          });
+        }
+      );
+
+      // Listen for order status updates
+      realtimeChannel.on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          console.log('Real-time order status update received:', payload);
+
+          setOrders(prevOrders => {
+            return prevOrders.map(order => {
+              if (order.orderId === payload.new.id) {
+                console.log(`Order ${order.id}: Status updated from ${order.status} to ${payload.new.status}`);
+
+                return {
+                  ...order,
+                  status: payload.new.status,
+                  updated_at: payload.new.updated_at,
+                  total: payload.new.total_amount ? parseFloat(payload.new.total_amount) : order.total,
+                  subtotal: payload.new.subtotal_amount ? parseFloat(payload.new.subtotal_amount) : order.subtotal,
+                  shipping: payload.new.shipping_amount ? parseFloat(payload.new.shipping_amount) : order.shipping,
+                };
+              }
+              return order;
+            });
+          });
+        }
+      );
+
+      // Subscribe to the channel
+      realtimeChannel.subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
+    };
+
+    // Initial setup
+    setupRealtimeSubscription();
+
+    // Handle page visibility changes (crucial for mobile browsers)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Page became visible - reconnecting real-time subscriptions');
+        setupRealtimeSubscription();
+      }
+    };
+
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
+      }
+    };
   }, []);
 
   // Filter orders based on active tab and date range
@@ -491,8 +517,7 @@ export default function CustomerOrdersPage() {
         const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
 
         try {
-          const { supabase } = await import('../../lib/supabase/client');
-
+    
           // Rule 1: Delete cancelled orders after 24 hours
           if (order.status === 'cancelled' && hoursDiff >= 24) {
             console.log(`Deleting cancelled order ${order.id} after 24 hours`);
@@ -679,7 +704,6 @@ export default function CustomerOrdersPage() {
     setCreatingInvoice(true);
 
     try {
-      const { supabase } = await import('../../lib/supabase/client');
 
       // Use database function to create invoice - bypasses RLS policies
       const { data: result, error: functionError } = await supabase
@@ -879,7 +903,6 @@ export default function CustomerOrdersPage() {
   // Handle marking order as cancelled
   const handleMarkAsCancelled = async (orderId: string) => {
     try {
-      const { supabase } = await import('../../lib/supabase/client');
       
       const { error } = await supabase
         .from('orders')
@@ -914,7 +937,6 @@ export default function CustomerOrdersPage() {
   // Handle marking order as having an issue
   const handleMarkAsIssue = async (orderId: string) => {
     try {
-      const { supabase } = await import('../../lib/supabase/client');
       
       const { error } = await supabase
         .from('orders')
@@ -1069,7 +1091,6 @@ export default function CustomerOrdersPage() {
     if (!selectedOrderForEdit) return;
     
     try {
-      const { supabase } = await import('../../lib/supabase/client');
       
       // Update order total
       const { error: orderError } = await supabase
@@ -1133,7 +1154,6 @@ export default function CustomerOrdersPage() {
   // Update order status
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
-      const { supabase } = await import('../../lib/supabase/client');
       
       const { error } = await supabase
         .from('orders')
