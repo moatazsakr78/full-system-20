@@ -239,73 +239,109 @@ export default function CustomerOrdersPage() {
         if (!branchesResult.error) setBranches(branchesResult.data || []);
         if (!recordsResult.error) setRecords(recordsResult.data || []);
 
-        // Set up real-time subscription for order items preparation status
-        const subscription = supabase
-          .channel('order_items_preparation_updates')
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'order_items'
-            },
-            async (payload) => {
-              console.log('Real-time preparation update received:', payload);
+        // Set up real-time subscriptions
+        const channel = supabase.channel('customer_orders_updates');
 
-              // Fetch the product_id for the updated item
-              const { data: itemData } = await supabase
-                .from('order_items')
-                .select('product_id, order_id')
-                .eq('id', payload.new.id)
-                .single();
+        // Listen for order items preparation status updates
+        channel.on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'order_items'
+          },
+          async (payload) => {
+            console.log('Real-time preparation update received:', payload);
 
-              if (!itemData) return;
+            // Fetch the product_id for the updated item
+            const { data: itemData } = await supabase
+              .from('order_items')
+              .select('product_id, order_id')
+              .eq('id', payload.new.id)
+              .single();
 
-              // Update the specific order's progress
-              setOrders(prevOrders => {
-                return prevOrders.map(order => {
-                  // Check if this is the order that contains the updated item
-                  if (order.orderId !== itemData.order_id) {
-                    return order;
-                  }
+            if (!itemData) return;
 
-                  // Find the grouped item by product_id
-                  const updatedItemIndex = order.items.findIndex(item =>
-                    item.product_id === itemData.product_id
-                  );
-
-                  if (updatedItemIndex !== -1) {
-                    // Update the item's preparation status
-                    const updatedItems = [...order.items];
-                    updatedItems[updatedItemIndex] = {
-                      ...updatedItems[updatedItemIndex],
-                      isPrepared: payload.new.is_prepared || false
-                    };
-
-                    // Recalculate progress
-                    const preparedItems = updatedItems.filter(item => item.isPrepared).length;
-                    const totalItems = updatedItems.length;
-                    const preparationProgress = totalItems > 0 ? (preparedItems / totalItems) * 100 : 0;
-
-                    console.log(`Order ${order.id}: Progress updated to ${preparationProgress}%`);
-
-                    return {
-                      ...order,
-                      items: updatedItems,
-                      preparationProgress
-                    };
-                  }
-
+            // Update the specific order's progress
+            setOrders(prevOrders => {
+              return prevOrders.map(order => {
+                // Check if this is the order that contains the updated item
+                if (order.orderId !== itemData.order_id) {
                   return order;
-                });
+                }
+
+                // Find the grouped item by product_id
+                const updatedItemIndex = order.items.findIndex(item =>
+                  item.product_id === itemData.product_id
+                );
+
+                if (updatedItemIndex !== -1) {
+                  // Update the item's preparation status
+                  const updatedItems = [...order.items];
+                  updatedItems[updatedItemIndex] = {
+                    ...updatedItems[updatedItemIndex],
+                    isPrepared: payload.new.is_prepared || false
+                  };
+
+                  // Recalculate progress
+                  const preparedItems = updatedItems.filter(item => item.isPrepared).length;
+                  const totalItems = updatedItems.length;
+                  const preparationProgress = totalItems > 0 ? (preparedItems / totalItems) * 100 : 0;
+
+                  console.log(`Order ${order.id}: Progress updated to ${preparationProgress}%`);
+
+                  return {
+                    ...order,
+                    items: updatedItems,
+                    preparationProgress
+                  };
+                }
+
+                return order;
               });
-            }
-          )
-          .subscribe();
+            });
+          }
+        );
+
+        // Listen for order status updates
+        channel.on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'orders'
+          },
+          (payload) => {
+            console.log('Real-time order status update received:', payload);
+
+            // Update the order's status and other fields
+            setOrders(prevOrders => {
+              return prevOrders.map(order => {
+                if (order.orderId === payload.new.id) {
+                  console.log(`Order ${order.id}: Status updated from ${order.status} to ${payload.new.status}`);
+
+                  return {
+                    ...order,
+                    status: payload.new.status,
+                    updated_at: payload.new.updated_at,
+                    // Update any other fields that might change
+                    total: payload.new.total_amount ? parseFloat(payload.new.total_amount) : order.total,
+                    subtotal: payload.new.subtotal_amount ? parseFloat(payload.new.subtotal_amount) : order.subtotal,
+                    shipping: payload.new.shipping_amount ? parseFloat(payload.new.shipping_amount) : order.shipping,
+                  };
+                }
+                return order;
+              });
+            });
+          }
+        );
+
+        // Subscribe to the channel
+        channel.subscribe();
 
         // Cleanup subscription on unmount
         return () => {
-          supabase.removeChannel(subscription);
+          supabase.removeChannel(channel);
         };
 
       } catch (error) {
