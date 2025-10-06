@@ -28,10 +28,66 @@ export default function ProfilePage() {
     profile_image_url: ''
   });
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [governorateSearch, setGovernorateSearch] = useState('');
+  const [showGovernorateDropdown, setShowGovernorateDropdown] = useState(false);
+
+  // Egyptian governorates list
+  const egyptianGovernorates = [
+    'القاهرة',
+    'الجيزة',
+    'الإسكندرية',
+    'الدقهلية',
+    'البحيرة',
+    'الفيوم',
+    'الغربية',
+    'الإسماعيلية',
+    'المنوفية',
+    'المنيا',
+    'القليوبية',
+    'الوادي الجديد',
+    'الشرقية',
+    'أسيوط',
+    'سوهاج',
+    'بني سويف',
+    'قنا',
+    'أسوان',
+    'الأقصر',
+    'البحر الأحمر',
+    'مطروح',
+    'شمال سيناء',
+    'جنوب سيناء',
+    'بورسعيد',
+    'دمياط',
+    'السويس',
+    'كفر الشيخ'
+  ];
+
+  // Filter governorates based on search
+  const filteredGovernorates = egyptianGovernorates.filter(gov =>
+    gov.includes(governorateSearch)
+  );
 
   // Load user and profile data on mount
   useEffect(() => {
     loadUserProfile();
+  }, []);
+
+  // Initialize search with current governorate value
+  useEffect(() => {
+    setGovernorateSearch(profileData.governorate);
+  }, [profileData.governorate]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.governorate-dropdown-container')) {
+        setShowGovernorateDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const loadUserProfile = async () => {
@@ -293,12 +349,12 @@ export default function ProfilePage() {
       </header>
 
       {/* Profile Form */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 max-w-2xl mx-auto w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex-1 overflow-y-auto px-4 py-4 max-w-xl mx-auto w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="bg-white rounded-lg shadow-md p-4">
           {/* Profile Image */}
-          <div className="flex flex-col items-center mb-8">
+          <div className="flex flex-col items-center mb-4">
             <div className="relative">
-              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 border-4 border-[#661a1a]">
+              <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 border-4 border-[#661a1a]">
                 {profileData.profile_image_url ? (
                   <img
                     src={profileData.profile_image_url}
@@ -315,11 +371,11 @@ export default function ProfilePage() {
               {/* Upload button */}
               <label
                 htmlFor="profile-image-upload"
-                className={`absolute bottom-0 right-0 bg-[#661a1a] hover:bg-[#7d2222] text-white rounded-full p-2 cursor-pointer transition-colors ${
+                className={`absolute bottom-0 right-0 bg-[#661a1a] hover:bg-[#7d2222] text-white rounded-full p-1.5 cursor-pointer transition-colors ${
                   isUploadingImage ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
@@ -334,14 +390,14 @@ export default function ProfilePage() {
               </label>
             </div>
 
-            <p className="text-sm text-gray-500 mt-3">اضغط على الكاميرا لتغيير الصورة</p>
+            <p className="text-xs text-gray-500 mt-2">اضغط على الكاميرا لتغيير الصورة</p>
           </div>
 
           {/* Form Fields */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 الاسم <span className="text-red-500">*</span>
               </label>
               <input
@@ -349,13 +405,13 @@ export default function ProfilePage() {
                 value={profileData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="أدخل الاسم الكامل"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors text-gray-900 bg-white placeholder-gray-400"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors text-gray-900 bg-white placeholder-gray-400"
               />
             </div>
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 رقم الهاتف (يفضل واتساب) <span className="text-red-500">*</span>
               </label>
               <input
@@ -365,14 +421,14 @@ export default function ProfilePage() {
                 placeholder="أدخل رقم الهاتف (يفضل أن يكون عليه واتساب)"
                 maxLength={11}
                 pattern="^01[0-9]{9}$"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors text-gray-900 bg-white placeholder-gray-400"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors text-gray-900 bg-white placeholder-gray-400"
               />
-              <p className="text-xs text-gray-500 mt-1">رقم مصري يبدأ بـ 01 ومكون من 11 رقم</p>
+              <p className="text-xs text-gray-500 mt-0.5">رقم مصري يبدأ بـ 01 ومكون من 11 رقم</p>
             </div>
 
             {/* Alternative Phone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 رقم هاتف احتياطي
               </label>
               <input
@@ -382,45 +438,85 @@ export default function ProfilePage() {
                 placeholder="أدخل رقم هاتف آخر (اختياري)"
                 maxLength={11}
                 pattern="^01[0-9]{9}$"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors text-gray-900 bg-white placeholder-gray-400"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors text-gray-900 bg-white placeholder-gray-400"
               />
             </div>
 
             {/* Governorate */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="governorate-dropdown-container relative">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 المحافظة
               </label>
-              <input
-                type="text"
-                value={profileData.governorate}
-                onChange={(e) => handleInputChange('governorate', e.target.value)}
-                placeholder="أدخل المحافظة"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors text-gray-900 bg-white placeholder-gray-400"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={governorateSearch}
+                  onChange={(e) => {
+                    setGovernorateSearch(e.target.value);
+                    setShowGovernorateDropdown(true);
+                  }}
+                  onFocus={() => setShowGovernorateDropdown(true)}
+                  placeholder="ابحث أو اختر المحافظة"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors text-gray-900 bg-white placeholder-gray-400"
+                />
+                <svg
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+
+                {/* Dropdown */}
+                {showGovernorateDropdown && filteredGovernorates.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {filteredGovernorates.map((gov) => (
+                      <div
+                        key={gov}
+                        onClick={() => {
+                          setGovernorateSearch(gov);
+                          setProfileData(prev => ({ ...prev, governorate: gov }));
+                          setShowGovernorateDropdown(false);
+                        }}
+                        className="px-3 py-2 text-sm text-gray-900 hover:bg-red-50 cursor-pointer transition-colors"
+                      >
+                        {gov}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* No results message */}
+                {showGovernorateDropdown && filteredGovernorates.length === 0 && governorateSearch && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3">
+                    <p className="text-sm text-gray-500 text-center">لا توجد نتائج</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Address */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 العنوان
               </label>
               <textarea
                 value={profileData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
                 placeholder="أدخل العنوان التفصيلي"
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors resize-none text-gray-900 bg-white placeholder-gray-400"
+                rows={3}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#661a1a] focus:border-[#661a1a] transition-colors resize-none text-gray-900 bg-white placeholder-gray-400"
               />
             </div>
           </div>
 
           {/* Save Button */}
-          <div className="mt-8">
+          <div className="mt-4">
             <button
               onClick={handleSaveProfile}
               disabled={isSaving}
-              className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-colors ${
+              className={`w-full py-2.5 px-4 rounded-lg font-medium text-white transition-colors ${
                 isSaving
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-[#661a1a] hover:bg-[#7d2222]'

@@ -249,17 +249,31 @@ export default function CustomerOrdersPage() {
               schema: 'public',
               table: 'order_items'
             },
-            (payload) => {
+            async (payload) => {
               console.log('Real-time preparation update received:', payload);
-              
+
+              // Fetch the product_id for the updated item
+              const { data: itemData } = await supabase
+                .from('order_items')
+                .select('product_id, order_id')
+                .eq('id', payload.new.id)
+                .single();
+
+              if (!itemData) return;
+
               // Update the specific order's progress
               setOrders(prevOrders => {
                 return prevOrders.map(order => {
-                  // Find if this order contains the updated item
-                  const updatedItemIndex = order.items.findIndex(item => 
-                    String(item.id) === String(payload.new.id)
+                  // Check if this is the order that contains the updated item
+                  if (order.orderId !== itemData.order_id) {
+                    return order;
+                  }
+
+                  // Find the grouped item by product_id
+                  const updatedItemIndex = order.items.findIndex(item =>
+                    item.product_id === itemData.product_id
                   );
-                  
+
                   if (updatedItemIndex !== -1) {
                     // Update the item's preparation status
                     const updatedItems = [...order.items];
@@ -267,19 +281,21 @@ export default function CustomerOrdersPage() {
                       ...updatedItems[updatedItemIndex],
                       isPrepared: payload.new.is_prepared || false
                     };
-                    
+
                     // Recalculate progress
                     const preparedItems = updatedItems.filter(item => item.isPrepared).length;
                     const totalItems = updatedItems.length;
                     const preparationProgress = totalItems > 0 ? (preparedItems / totalItems) * 100 : 0;
-                    
+
+                    console.log(`Order ${order.id}: Progress updated to ${preparationProgress}%`);
+
                     return {
                       ...order,
                       items: updatedItems,
                       preparationProgress
                     };
                   }
-                  
+
                   return order;
                 });
               });
