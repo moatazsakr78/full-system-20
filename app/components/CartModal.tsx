@@ -6,6 +6,7 @@ import { CartService } from '@/lib/cart-service';
 import { CartSession, CartItemData } from '@/lib/cart-utils';
 import { useCart } from '@/lib/contexts/CartContext';
 import { useFormatPrice } from '@/lib/hooks/useCurrency';
+import { useCompanySettings } from '@/lib/hooks/useCompanySettings';
 
 interface CustomerData {
   name: string;
@@ -45,6 +46,7 @@ interface CartModalProps {
 const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
   const router = useRouter();
   const formatPrice = useFormatPrice();
+  const { logoUrl } = useCompanySettings();
   const [isLoading, setIsLoading] = useState(false);
   const [customerData, setCustomerData] = useState<CustomerData>({
     name: '',
@@ -759,7 +761,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
               <div className="flex items-center gap-3">
                 <div className="h-14 w-14 rounded-lg flex items-center justify-center">
                   <img
-                    src="/assets/logo/El Farouk Group2.png"
+                    src={logoUrl || '/assets/logo/El Farouk Group2.png'}
                     alt="El Farouk Group Logo"
                     className="h-full w-full object-contain rounded-lg"
                   />
@@ -787,7 +789,7 @@ const CartModal = ({ isOpen, onClose, onCartChange }: CartModalProps) => {
               <div className="flex items-center gap-2">
                 <div className="h-10 w-10 rounded-lg flex items-center justify-center">
                   <img
-                    src="/assets/logo/El Farouk Group2.png"
+                    src={logoUrl || '/assets/logo/El Farouk Group2.png'}
                     alt="El Farouk Group Logo"
                     className="h-full w-full object-contain rounded-lg"
                   />

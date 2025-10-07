@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import PrepareOrderModal from '../../components/PrepareOrderModal';
 import { useFormatPrice } from '@/lib/hooks/useCurrency';
 import { supabase } from '../../lib/supabase/client';
+import { useCompanySettings } from '@/lib/hooks/useCompanySettings';
 
 // Order status type
 type OrderStatus = 'pending' | 'processing' | 'ready_for_pickup' | 'ready_for_shipping' | 'shipped' | 'delivered' | 'cancelled' | 'issue';
@@ -75,6 +76,7 @@ const statusIcons: Record<OrderStatus, string> = {
 
 export default function CustomerOrdersPage() {
   const formatPrice = useFormatPrice();
+  const { companyName, logoUrl } = useCompanySettings();
   const [activeTab, setActiveTab] = useState<'all' | 'preparation' | 'followup' | 'completed' | 'issues'>('all');
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
@@ -757,7 +759,7 @@ export default function CustomerOrdersPage() {
     const printContent = `
       <div style="font-family: 'Cairo', Arial, sans-serif; max-width: 300px; margin: 0 auto; direction: rtl;">
         <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px;">
-          <h2 style="margin: 0; font-size: 18px;">El Farouk Group</h2>
+          <h2 style="margin: 0; font-size: 18px;">${companyName}</h2>
           <p style="margin: 5px 0; font-size: 12px;">فاتورة بيع</p>
         </div>
         
@@ -1219,7 +1221,7 @@ export default function CustomerOrdersPage() {
 
             {/* اللوجو - اليمين */}
             <div className="flex items-center">
-              <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-12 w-12 md:h-16 md:w-16 object-contain" />
+              <img src={logoUrl || '/assets/logo/El Farouk Group2.png'} alt="الفاروق" className="h-12 w-12 md:h-16 md:w-16 object-contain" />
             </div>
 
           </div>

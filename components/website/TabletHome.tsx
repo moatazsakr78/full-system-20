@@ -18,6 +18,7 @@ import SearchOverlay from './SearchOverlay';
 import QuantityModal from './QuantityModal';
 import { useCart } from '../../lib/contexts/CartContext';
 import { useCartBadge } from '../../lib/hooks/useCartBadge';
+import { useCompanySettings } from '../../lib/hooks/useCompanySettings';
 
 interface TabletHomeProps {
   userInfo: UserInfo;
@@ -53,7 +54,10 @@ export default function TabletHome({
   
   // Get user profile to check admin status
   const { isAdmin } = useUserProfile();
-  
+
+  // Get company settings
+  const { companyName, logoUrl } = useCompanySettings();
+
   // Get cart badge count and cart functions
   const { cartBadgeCount } = useCartBadge();
   const { addToCart } = useCart();
@@ -215,7 +219,7 @@ export default function TabletHome({
                 shapes: shapes, // Real shapes from product variants
                 sizes: sizes,
                 category: dbProduct.category?.name || 'عام',
-                brand: 'El Farouk Group',
+                brand: companyName,
                 stock: dbProduct.stock || 0,
                 rating: Number(dbProduct.rating) || 0,
                 reviews: dbProduct.rating_count || 0,
@@ -284,7 +288,7 @@ export default function TabletHome({
             colors: [],
             shapes: [],
             sizes: [],
-            brand: 'El Farouk Group',
+            brand: companyName,
             stock: 0,
             rating: product.rating || 0,
             reviews: product.rating_count || 0,
@@ -397,7 +401,7 @@ export default function TabletHome({
             image: product.main_image_url,
             category: selectedCategory,
             colors: [],
-            brand: 'El Farouk Group',
+            brand: companyName,
             stock: 0,
             rating: 0,
             reviews: 0,
@@ -496,8 +500,8 @@ export default function TabletHome({
                 
                 {/* Logo and Title - Left Side */}
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-12 w-12 object-contain" />
-                  <h1 className="text-lg font-bold text-white">El Farouk Group</h1>
+                  <img src={logoUrl || '/assets/logo/El Farouk Group2.png'} alt={companyName} className="h-12 w-12 object-contain" />
+                  <h1 className="text-lg font-bold text-white">{companyName}</h1>
                 </div>
               
                 {/* Search Bar - Expanded Width */}
@@ -582,10 +586,9 @@ export default function TabletHome({
               
               {/* Logo and Title - Left Side */}
               <div className="flex items-center gap-3 flex-shrink-0">
-                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-16 w-16 object-contain" />
+                <img src={logoUrl || '/assets/logo/El Farouk Group2.png'} alt={companyName} className="h-16 w-16 object-contain" />
                 <div className="flex flex-col">
-                  <h1 className="text-lg font-bold text-white leading-tight">El Farouk</h1>
-                  <h2 className="text-lg font-bold text-white leading-tight">Group</h2>
+                  <h1 className="text-lg font-bold text-white leading-tight">{companyName}</h1>
                 </div>
               </div>
             
@@ -747,8 +750,8 @@ export default function TabletHome({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-7 w-7 object-contain" />
-                <h5 className="font-bold text-lg text-white">El Farouk Group</h5>
+                <img src={logoUrl || '/assets/logo/El Farouk Group2.png'} alt={companyName} className="h-7 w-7 object-contain" />
+                <h5 className="font-bold text-lg text-white">{companyName}</h5>
               </div>
               <p className="text-gray-400 mb-4">متجرك المتكامل للحصول على أفضل المنتجات بأسعار مميزة وجودة عالية</p>
               <div className="space-y-2 text-gray-400">

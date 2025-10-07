@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFormatPrice } from '@/lib/hooks/useCurrency';
+import { useCompanySettings } from '@/lib/hooks/useCompanySettings';
 
 // Order status type
 type OrderStatus = 'pending' | 'processing' | 'ready_for_pickup' | 'ready_for_shipping' | 'shipped' | 'delivered' | 'cancelled' | 'issue';
@@ -59,6 +60,7 @@ const statusColors: Record<OrderStatus, string> = {
 export default function OrdersPage() {
   const router = useRouter();
   const formatPrice = useFormatPrice();
+  const { logoUrl } = useCompanySettings();
   const [activeTab, setActiveTab] = useState<'completed' | 'pending'>('completed');
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
@@ -290,7 +292,7 @@ export default function OrdersPage() {
 
             {/* اللوجو - اليمين */}
             <div className="flex items-center">
-              <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-12 w-12 md:h-16 md:w-16 object-contain" />
+              <img src={logoUrl || '/assets/logo/El Farouk Group2.png'} alt="الفاروق" className="h-12 w-12 md:h-16 md:w-16 object-contain" />
             </div>
 
           </div>

@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
+import { useCompanySettings } from '@/lib/hooks/useCompanySettings';
 
 export default function SignUpPage() {
   const router = useRouter();
   const { signUpWithEmail, signInWithGoogle } = useAuth();
+  const { companyName, logoUrl } = useCompanySettings();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -92,12 +94,12 @@ export default function SignUpPage() {
             <div className="flex items-center gap-3">
               <div className="h-20 w-20 rounded-lg flex items-center justify-center">
                 <img 
-                  src="/assets/logo/El Farouk Group2.png" 
+                  src={logoUrl || '/assets/logo/El Farouk Group2.png'} 
                   alt="El Farouk Group Logo" 
                   className="h-full w-full object-contain rounded-lg"
                 />
               </div>
-              <h1 className="text-xl font-bold text-white">El Farouk Group</h1>
+              <h1 className="text-xl font-bold text-white">{companyName}</h1>
             </div>
           </div>
           

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { ArrowRightIcon, PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline'
 import { supabase } from '@/app/lib/supabase/client'
+import { useCompanySettings } from '@/lib/hooks/useCompanySettings'
 
 interface ShippingCompany {
   id: string
@@ -17,6 +18,9 @@ export default function ShippingPage() {
   const [newCompanyName, setNewCompanyName] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Get company settings
+  const { companyName, logoUrl } = useCompanySettings()
 
   // Load companies from database
   useEffect(() => {
@@ -105,12 +109,12 @@ export default function ShippingPage() {
             <div className="flex items-center gap-3">
               <div className="h-20 w-20 rounded-lg flex items-center justify-center">
                 <img 
-                  src="/assets/logo/El Farouk Group2.png" 
+                  src={logoUrl || '/assets/logo/El Farouk Group2.png'} 
                   alt="El Farouk Group Logo" 
                   className="h-full w-full object-contain rounded-lg"
                 />
               </div>
-              <h1 className="text-xl font-bold text-white">El Farouk Group</h1>
+              <h1 className="text-xl font-bold text-white">{companyName}</h1>
             </div>
           </div>
           

@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase/client';
 import { useFormatPrice } from '@/lib/hooks/useCurrency';
 import { useRatingsDisplay } from '../../lib/hooks/useRatingSettings';
 import { useCart } from '../../lib/contexts/CartContext';
+import { useCompanySettings } from '@/lib/hooks/useCompanySettings';
 import CartModal from './CartModal';
 
 interface DatabaseProduct {
@@ -209,6 +210,7 @@ export default function ProductDetailsModal({
 }: ProductDetailsModalProps) {
   const router = useRouter();
   const formatPrice = useFormatPrice();
+  const { logoUrl } = useCompanySettings();
   const { showRatings } = useRatingsDisplay();
   const { cartItems, addToCart } = useCart();
   const [productDetails, setProductDetails] = useState<ProductDetail | null>(null);
@@ -911,7 +913,7 @@ export default function ProductDetailsModal({
             <div className="flex items-center gap-3">
               <div className="h-14 w-14 rounded-lg flex items-center justify-center">
                 <img
-                  src="/assets/logo/El Farouk Group2.png"
+                  src={logoUrl || '/assets/logo/El Farouk Group2.png'}
                   alt="El Farouk Group Logo"
                   className="h-full w-full object-contain rounded-lg"
                 />
@@ -939,7 +941,7 @@ export default function ProductDetailsModal({
             <div className="flex items-center gap-2">
               <div className="h-10 w-10 rounded-lg flex items-center justify-center">
                 <img
-                  src="/assets/logo/El Farouk Group2.png"
+                  src={logoUrl || '/assets/logo/El Farouk Group2.png'}
                   alt="El Farouk Group Logo"
                   className="h-full w-full object-contain rounded-lg"
                 />

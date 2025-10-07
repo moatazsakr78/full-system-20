@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
-import { 
+import {
   ClipboardDocumentListIcon,
   UserIcon,
   HeartIcon,
@@ -12,6 +12,7 @@ import {
   MapIcon
 } from '@heroicons/react/24/outline';
 import { useUserProfile } from '@/lib/hooks/useUserProfile';
+import { useCompanySettings } from '@/lib/hooks/useCompanySettings';
 
 interface RightSidebarProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ interface RightSidebarProps {
 export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const { profile, isAdmin, loading } = useUserProfile();
+  const { companyName } = useCompanySettings();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -236,7 +238,7 @@ export default function RightSidebar({ isOpen, onClose }: RightSidebarProps) {
         {/* Footer */}
         <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-400 bg-[#eaeaea]">
           <p className="text-center text-black text-xs">
-            El Farouk Group
+            {companyName}
           </p>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useCart, CartProvider } from "@/lib/contexts/CartContext";
 import { useCartBadge } from "@/lib/hooks/useCartBadge";
 import CartModal from "@/app/components/CartModal";
+import { useCompanySettings } from "@/lib/hooks/useCompanySettings";
 import {
   ProductGridImage,
   ProductModalImage,
@@ -131,6 +132,7 @@ function POSPageContent() {
   const { startRender, endRender } = usePerformanceMonitor("POSPage");
   const systemCurrency = useSystemCurrency();
   const formatPrice = useFormatPrice();
+  const { companyName, logoUrl } = useCompanySettings();
 
   const [searchQuery, setSearchQuery] = useState("");
   // Keep CartContext for website functionality
@@ -1330,14 +1332,14 @@ function POSPageContent() {
         </head>
         <body>
           <div class="receipt-header">
-            <img 
-              src="${window.location.origin}/assets/logo/El Farouk Group2.png" 
-              alt="El Farouk Group" 
+            <img
+              src="${logoUrl || (window.location.origin + '/assets/logo/El Farouk Group2.png')}"
+              alt="${companyName}"
               class="company-logo"
               onerror="this.style.display='none'; document.querySelector('.company-logo-fallback').style.display='block';"
             />
             <div class="company-logo-fallback" style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 4px;">🏢</div>
-            <div class="company-name">El Farouk Group</div>
+            <div class="company-name">${companyName}</div>
             <div class="receipt-date">${new Date().toLocaleDateString("ar-EG")} - ${new Date().toLocaleDateString("en-US")}</div>
             <div class="receipt-address">${selections.branch?.name || "الفرع الرئيسي"}</div>
             <div class="receipt-phone">${selections.branch?.phone || "01102862856"}</div>

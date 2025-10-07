@@ -19,6 +19,7 @@ import SearchOverlay from './SearchOverlay';
 import QuantityModal from './QuantityModal';
 import { useCart } from '../../lib/contexts/CartContext';
 import { useCartBadge } from '../../lib/hooks/useCartBadge';
+import { useCompanySettings } from '../../lib/hooks/useCompanySettings';
 
 interface DesktopHomeProps {
   userInfo: UserInfo;
@@ -54,7 +55,10 @@ export default function DesktopHome({
   
   // Get user profile to check admin status
   const { isAdmin } = useUserProfile();
-  
+
+  // Get company settings
+  const { companyName, logoUrl } = useCompanySettings();
+
   // Get cart badge count and cart functions
   const { cartBadgeCount } = useCartBadge();
   const { addToCart } = useCart();
@@ -211,7 +215,7 @@ export default function DesktopHome({
                 shapes: shapes, // Real shapes from product variants
                 sizes: sizes, // Real sizes from size groups
                 category: dbProduct.category?.name || 'عام',
-                brand: 'El Farouk Group',
+                brand: companyName,
                 stock: dbProduct.stock || 0,
                 rating: Number(dbProduct.rating) || 0,
                 reviews: dbProduct.rating_count || 0,
@@ -305,7 +309,7 @@ export default function DesktopHome({
             colors: [],
             shapes: [],
             sizes: [],
-            brand: 'El Farouk Group',
+            brand: companyName,
             stock: 0,
             rating: product.rating || 0,
             reviews: product.rating_count || 0,
@@ -342,7 +346,7 @@ export default function DesktopHome({
           colors: [],
           shapes: [],
           sizes: [],
-          brand: 'El Farouk Group',
+          brand: companyName,
           stock: 0,
           rating: product.rating || 0,
           reviews: product.rating_count || 0,
@@ -395,7 +399,7 @@ export default function DesktopHome({
             image: product.main_image_url,
             category: selectedCategory,
             colors: [],
-            brand: 'El Farouk Group',
+            brand: companyName,
             stock: 0,
             rating: 0,
             reviews: 0,
@@ -478,8 +482,8 @@ export default function DesktopHome({
             {/* Main Compact Content Container */}
             <div className="max-w-[90%] mx-auto px-4 flex items-center justify-between w-full min-h-[50px]">
               <div className="flex items-center gap-3">
-                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-10 w-10 object-contain" />
-                <h1 className="text-base font-bold text-white">El Farouk Group</h1>
+                <img src={logoUrl || '/assets/logo/El Farouk Group2.png'} alt={companyName} className="h-10 w-10 object-contain" />
+                <h1 className="text-base font-bold text-white">{companyName}</h1>
               </div>
             
             {/* Compact Search Bar */}
@@ -567,8 +571,8 @@ export default function DesktopHome({
           <div className="max-w-[80%] mx-auto px-4 flex items-center justify-between min-h-[80px] w-full">
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-3">
-                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-20 w-20 object-contain" />
-                <h1 className="text-xl font-bold text-white">El Farouk Group</h1>
+                <img src={logoUrl || '/assets/logo/El Farouk Group2.png'} alt={companyName} className="h-20 w-20 object-contain" />
+                <h1 className="text-xl font-bold text-white">{companyName}</h1>
               </div>
             </div>
           
@@ -709,8 +713,8 @@ export default function DesktopHome({
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-8 w-8 object-contain" />
-                <h5 className="font-bold text-lg text-white">El Farouk Group</h5>
+                <img src={logoUrl || '/assets/logo/El Farouk Group2.png'} alt={companyName} className="h-8 w-8 object-contain" />
+                <h5 className="font-bold text-lg text-white">{companyName}</h5>
               </div>
               <p className="text-gray-400">متجرك المتكامل للحصول على أفضل المنتجات بأسعار مميزة وجودة عالية</p>
             </div>

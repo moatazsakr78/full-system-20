@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { ArrowRightIcon, PlusIcon, PencilIcon, TrashIcon, MapPinIcon } from '@heroicons/react/24/outline'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/app/lib/supabase/client'
+import { useCompanySettings } from '@/lib/hooks/useCompanySettings'
 
 interface Area {
   id: string
@@ -36,6 +37,7 @@ export default function ShippingCompanyDetails() {
   const params = useParams()
   const router = useRouter()
   const companyId = params?.id as string
+  const { companyName, logoUrl } = useCompanySettings()
 
   const [company, setCompany] = useState<ShippingCompany | null>(null)
   const [governorates, setGovernorates] = useState<Governorate[]>([])
@@ -266,12 +268,12 @@ export default function ShippingCompanyDetails() {
             <div className="flex items-center gap-3">
               <div className="h-20 w-20 rounded-lg flex items-center justify-center">
                 <img 
-                  src="/assets/logo/El Farouk Group2.png" 
+                  src={logoUrl || '/assets/logo/El Farouk Group2.png'} 
                   alt="El Farouk Group Logo" 
                   className="h-full w-full object-contain rounded-lg"
                 />
               </div>
-              <h1 className="text-xl font-bold text-white">El Farouk Group</h1>
+              <h1 className="text-xl font-bold text-white">{companyName}</h1>
             </div>
           </div>
           

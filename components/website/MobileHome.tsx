@@ -15,6 +15,7 @@ import CartModal from '../../app/components/CartModal';
 import QuantityModal from './QuantityModal';
 import { useCart } from '../../lib/contexts/CartContext';
 import { useCartBadge } from '../../lib/hooks/useCartBadge';
+import { useCompanySettings } from '../../lib/hooks/useCompanySettings';
 
 interface MobileHomeProps {
   userInfo: UserInfo;
@@ -49,7 +50,10 @@ export default function MobileHome({
   
   // Get user profile to check admin status
   const { isAdmin } = useUserProfile();
-  
+
+  // Get company settings
+  const { companyName, logoUrl } = useCompanySettings();
+
   // Get cart badge count and cart functions
   const { cartBadgeCount } = useCartBadge();
   const { addToCart } = useCart();
@@ -202,7 +206,7 @@ export default function MobileHome({
                 shapes: shapes, // Real shapes from product variants
                 sizes: sizes,
                 category: dbProduct.category?.name || 'عام',
-                brand: 'El Farouk Group',
+                brand: companyName,
                 stock: dbProduct.stock || 0,
                 rating: Number(dbProduct.rating) || 0,
                 reviews: dbProduct.rating_count || 0,
@@ -271,7 +275,7 @@ export default function MobileHome({
             colors: [],
             shapes: [],
             sizes: [],
-            brand: 'El Farouk Group',
+            brand: companyName,
             stock: 0,
             rating: product.rating || 0,
             reviews: product.rating_count || 0,
@@ -308,7 +312,7 @@ export default function MobileHome({
           colors: [],
           shapes: [],
           sizes: [],
-          brand: 'El Farouk Group',
+          brand: companyName,
           stock: 0,
           rating: product.rating || 0,
           reviews: product.rating_count || 0,
@@ -398,7 +402,7 @@ export default function MobileHome({
             image: product.main_image_url,
             category: selectedCategory,
             colors: [],
-            brand: 'El Farouk Group',
+            brand: companyName,
             stock: 0,
             rating: 0,
             reviews: 0,
@@ -468,12 +472,11 @@ export default function MobileHome({
               </button>
               
               {/* Logo */}
-              <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-14 w-14 object-contain" />
-              
+              <img src={logoUrl || '/assets/logo/El Farouk Group2.png'} alt={companyName} className="h-14 w-14 object-contain" />
+
               {/* Logo Text */}
               <div className="flex flex-col leading-tight">
-                <span className="text-white text-lg font-bold">El Farouk</span>
-                <span className="text-white text-lg font-bold">Group</span>
+                <span className="text-white text-lg font-bold">{companyName}</span>
               </div>
             </div>
 
@@ -703,7 +706,7 @@ export default function MobileHome({
               {/* Footer */}
               <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-400 bg-[#eaeaea]">
                 <p className="text-center text-black text-xs">
-                  El Farouk Group
+                  {companyName}
                 </p>
               </div>
             </div>

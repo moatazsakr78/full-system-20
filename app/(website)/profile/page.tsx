@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase/client';
+import { useCompanySettings } from '@/lib/hooks/useCompanySettings';
 
 interface CustomerProfile {
   id?: string;
@@ -16,6 +17,7 @@ interface CustomerProfile {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { logoUrl } = useCompanySettings();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -341,7 +343,7 @@ export default function ProfilePage() {
 
             {/* اللوجو - اليمين */}
             <div className="flex items-center">
-              <img src="/assets/logo/El Farouk Group2.png" alt="الفاروق" className="h-12 w-12 md:h-16 md:w-16 object-contain" />
+              <img src={logoUrl || '/assets/logo/El Farouk Group2.png'} alt="الفاروق" className="h-12 w-12 md:h-16 md:w-16 object-contain" />
             </div>
 
           </div>
