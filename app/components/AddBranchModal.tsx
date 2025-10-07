@@ -15,6 +15,7 @@ interface Branch {
   is_active: boolean | null
   created_at: string | null
   updated_at: string | null
+  location_link: string | null
 }
 
 interface AddBranchModalProps {
@@ -32,6 +33,7 @@ export default function AddBranchModal({ isOpen, onClose, onBranchCreated, editB
     name: '',
     address: '',
     phone: '',
+    locationLink: '',
     allowShapeColors: false
   })
 
@@ -42,6 +44,7 @@ export default function AddBranchModal({ isOpen, onClose, onBranchCreated, editB
         name: editBranch.name || '',
         address: editBranch.address || '',
         phone: editBranch.phone || '',
+        locationLink: editBranch.location_link || '',
         allowShapeColors: editBranch.allow_variants || false
       })
     } else if (!isEditing) {
@@ -49,6 +52,7 @@ export default function AddBranchModal({ isOpen, onClose, onBranchCreated, editB
         name: '',
         address: '',
         phone: '',
+        locationLink: '',
         allowShapeColors: false
       })
     }
@@ -81,11 +85,12 @@ export default function AddBranchModal({ isOpen, onClose, onBranchCreated, editB
             name: formData.name.trim(),
             address: formData.address.trim(),
             phone: formData.phone.trim(),
+            location_link: formData.locationLink.trim() || null,
             allow_variants: formData.allowShapeColors,
             updated_at: new Date().toISOString()
           })
           .eq('id', editBranch.id)
-          
+
         if (error) throw error
       } else {
         // Create new branch
@@ -95,10 +100,11 @@ export default function AddBranchModal({ isOpen, onClose, onBranchCreated, editB
             name: formData.name.trim(),
             address: formData.address.trim(),
             phone: formData.phone.trim(),
+            location_link: formData.locationLink.trim() || null,
             allow_variants: formData.allowShapeColors,
             is_active: true
           })
-          
+
         if (error) throw error
       }
       
@@ -107,6 +113,7 @@ export default function AddBranchModal({ isOpen, onClose, onBranchCreated, editB
         name: '',
         address: '',
         phone: '',
+        locationLink: '',
         allowShapeColors: false
       })
       
@@ -126,6 +133,7 @@ export default function AddBranchModal({ isOpen, onClose, onBranchCreated, editB
       name: '',
       address: '',
       phone: '',
+      locationLink: '',
       allowShapeColors: false
     })
     onClose()
@@ -137,6 +145,7 @@ export default function AddBranchModal({ isOpen, onClose, onBranchCreated, editB
       name: '',
       address: '',
       phone: '',
+      locationLink: '',
       allowShapeColors: false
     })
   }
@@ -236,6 +245,21 @@ export default function AddBranchModal({ isOpen, onClose, onBranchCreated, editB
               value={formData.phone}
               onChange={handleInputChange}
               placeholder="أدخل رقم الهاتف"
+              className="w-full px-3 py-2 bg-[#2B3441] border border-[#4A5568] rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-sm"
+            />
+          </div>
+
+          {/* Location Link Field */}
+          <div className="space-y-2">
+            <label className="block text-white text-sm font-medium text-right">
+              رابط الموقع
+            </label>
+            <input
+              type="url"
+              name="locationLink"
+              value={formData.locationLink}
+              onChange={handleInputChange}
+              placeholder="أدخل رابط خرائط Google أو Apple Maps"
               className="w-full px-3 py-2 bg-[#2B3441] border border-[#4A5568] rounded text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#5DADE2] focus:border-[#5DADE2] text-right text-sm"
             />
           </div>

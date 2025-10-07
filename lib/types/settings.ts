@@ -92,6 +92,28 @@ export interface SecuritySettings {
   lockout_duration_minutes: number;
 }
 
+// Social Media interface
+export interface SocialMedia {
+  platform: string;
+  link: string;
+}
+
+// Branch interface
+export interface Branch {
+  branchId: string;
+  branchName: string;
+  address: string;
+  locationLink: string;
+}
+
+// Company settings
+export interface CompanySettings {
+  name: string;
+  logoUrl: string;
+  socialMedia: SocialMedia[];
+  branches: Branch[];
+}
+
 // Main settings object that combines all categories
 export interface SystemSettingsObject {
   currency: CurrencySettings;
@@ -101,6 +123,7 @@ export interface SystemSettingsObject {
   pos: POSSettings;
   reports: ReportsSettings;
   security: SecuritySettings;
+  company: CompanySettings;
   version: string;
   last_updated: string;
   updated_by?: string;
@@ -180,6 +203,12 @@ export const DEFAULT_SETTINGS: SystemSettingsObject = {
     session_timeout_minutes: 120,
     max_login_attempts: 5,
     lockout_duration_minutes: 30
+  },
+  company: {
+    name: 'El Farouk Group',
+    logoUrl: '',
+    socialMedia: [{ platform: '', link: '' }],
+    branches: []
   },
   version: '1.0.0',
   last_updated: new Date().toISOString()

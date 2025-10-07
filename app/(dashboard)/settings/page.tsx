@@ -6,7 +6,9 @@ import {
   GlobeAltIcon,
   PaintBrushIcon,
   BellIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  BuildingOfficeIcon,
+  PhotoIcon
 } from '@heroicons/react/24/outline';
 import TopHeader from '@/app/components/layout/TopHeader';
 import Sidebar from '@/app/components/layout/Sidebar';
@@ -14,6 +16,8 @@ import { Currency, DEFAULT_SYSTEM_CURRENCY, DEFAULT_WEBSITE_CURRENCY, DEFAULT_UN
 import { useCurrencySettings } from '@/lib/hooks/useCurrency';
 import { useCurrencySettings as useDbCurrencySettings } from '@/lib/hooks/useSystemSettings';
 import { useRatingsDisplay } from '@/lib/hooks/useRatingSettings';
+import { useCompanySettings } from '@/lib/hooks/useCompanySettings';
+import { supabase } from '@/app/lib/supabase/client';
 
 // Custom dropdown component with delete buttons
 const CurrencyDropdownWithDelete = ({
@@ -171,6 +175,12 @@ const settingsCategories: SettingsCategory[] = [
     name: 'الأمان',
     icon: ShieldCheckIcon,
     description: 'إعدادات الأمان وكلمات المرور'
+  },
+  {
+    id: 'company',
+    name: 'شركتي',
+    icon: BuildingOfficeIcon,
+    description: 'إعدادات معلومات الشركة والعلامة التجارية'
   }
 ];
 
@@ -229,6 +239,25 @@ export default function SettingsPage() {
   // Ratings settings using hook
   const { showRatings, updateRatingSettings, isLoading: isRatingsLoading } = useRatingsDisplay();
 
+  // Company Settings using hook
+  const {
+    companyName: dbCompanyName,
+    logoUrl: dbLogoUrl,
+    socialMedia: dbSocialMedia,
+    branches: dbBranches,
+    updateCompanySettings,
+    isLoading: isCompanyLoading
+  } = useCompanySettings();
+
+  // Local state for pending changes (not saved until user clicks save)
+  const [companyName, setCompanyName] = useState(dbCompanyName);
+  const [logoUrl, setLogoUrl] = useState(dbLogoUrl);
+  const [socialMedia, setSocialMedia] = useState(dbSocialMedia);
+  const [branches, setBranches] = useState(dbBranches);
+
+  // State for database branches
+  const [dbBranchesFromDB, setDbBranchesFromDB] = useState<any[]>([]);
+
   // Update pending state when database values change
   useEffect(() => {
     setPendingCurrencyMode(dbCurrencyMode);
@@ -236,6 +265,38 @@ export default function SettingsPage() {
     setPendingWebsiteCurrency(dbWebsiteCurrency);
     setPendingUnifiedCurrency(dbUnifiedCurrency);
   }, [dbCurrencyMode, dbSystemCurrency, dbWebsiteCurrency, dbUnifiedCurrency]);
+
+  // Update company settings when database values change
+  useEffect(() => {
+    setCompanyName(dbCompanyName);
+    setLogoUrl(dbLogoUrl);
+    setSocialMedia(dbSocialMedia);
+    setBranches(dbBranches);
+  }, [dbCompanyName, dbLogoUrl, dbSocialMedia, dbBranches]);
+
+  // Load branches from database
+  useEffect(() => {
+    const loadBranches = async () => {
+      try {
+        const { data, error } = await (supabase as any)
+          .from('branches')
+          .select('id, name, name_en, address, phone')
+          .eq('is_active', true)
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error('Error loading branches:', error);
+          return;
+        }
+
+        setDbBranchesFromDB(data || []);
+      } catch (err) {
+        console.error('Error loading branches:', err);
+      }
+    };
+
+    loadBranches();
+  }, []);
 
   // Use dynamic currency list from database
   const arabicCurrencies = availableCurrencies;
@@ -482,26 +543,35 @@ export default function SettingsPage() {
   const handleSaveSettings = async () => {
     setIsSaving(true);
     try {
-      // Prepare currency settings from pending state
-      const newCurrencySettings = {
-        currency_mode: pendingCurrencyMode,
-        system_currency: isCustomSystemCurrency ? customSystemCurrency : pendingSystemCurrency,
-        website_currency: isCustomWebsiteCurrency ? customWebsiteCurrency : pendingWebsiteCurrency,
-        unified_currency: isCustomUnifiedCurrency ? customUnifiedCurrency : pendingUnifiedCurrency
-      };
+      // Save based on current category
+      if (selectedCategory === 'theme') {
+        // Prepare currency settings from pending state
+        const newCurrencySettings = {
+          currency_mode: pendingCurrencyMode,
+          system_currency: isCustomSystemCurrency ? customSystemCurrency : pendingSystemCurrency,
+          website_currency: isCustomWebsiteCurrency ? customWebsiteCurrency : pendingWebsiteCurrency,
+          unified_currency: isCustomUnifiedCurrency ? customUnifiedCurrency : pendingUnifiedCurrency
+        };
 
-      // Update currency settings in database
-      await updateDbCurrencySettings(newCurrencySettings);
+        // Update currency settings in database
+        await updateDbCurrencySettings(newCurrencySettings);
 
-      console.log('Settings saved:', newCurrencySettings);
-
-      // Reset custom currency states
-      setIsCustomSystemCurrency(false);
-      setIsCustomWebsiteCurrency(false);
-      setIsCustomUnifiedCurrency(false);
-      setCustomSystemCurrency('');
-      setCustomWebsiteCurrency('');
-      setCustomUnifiedCurrency('');
+        // Reset custom currency states
+        setIsCustomSystemCurrency(false);
+        setIsCustomWebsiteCurrency(false);
+        setIsCustomUnifiedCurrency(false);
+        setCustomSystemCurrency('');
+        setCustomWebsiteCurrency('');
+        setCustomUnifiedCurrency('');
+      } else if (selectedCategory === 'company') {
+        // Save company settings
+        await updateCompanySettings({
+          name: companyName,
+          logoUrl: logoUrl,
+          socialMedia: socialMedia,
+          branches: branches
+        });
+      }
 
       alert('تم حفظ الإعدادات بنجاح!');
     } catch (error) {
@@ -513,7 +583,7 @@ export default function SettingsPage() {
   };
 
   const handleCancelSettings = () => {
-    // Reset to current database values
+    // Reset currency settings
     setPendingCurrencyMode(dbCurrencyMode);
     setPendingSystemCurrency(dbSystemCurrency);
     setPendingWebsiteCurrency(dbWebsiteCurrency);
@@ -525,6 +595,12 @@ export default function SettingsPage() {
     setCustomSystemCurrency('');
     setCustomWebsiteCurrency('');
     setCustomUnifiedCurrency('');
+
+    // Reset company settings
+    setCompanyName(dbCompanyName);
+    setLogoUrl(dbLogoUrl);
+    setSocialMedia(dbSocialMedia);
+    setBranches(dbBranches);
   };
 
   const handleDeleteCurrency = async (currency: string) => {
@@ -677,12 +753,264 @@ export default function SettingsPage() {
     );
   };
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('حجم الملف كبير جداً. الحد الأقصى 2 ميجابايت');
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        alert('يرجى اختيار صورة فقط');
+        return;
+      }
+
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const renderCompanySettings = () => {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <h3 className="text-white font-medium text-lg mb-6">إعدادات الشركة</h3>
+
+        {/* Company Name */}
+        <div>
+          <label className="block text-white text-sm font-medium mb-2">اسم الشركة</label>
+          <input
+            type="text"
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+            placeholder="اسم شركتك"
+            className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
+          />
+        </div>
+
+        {/* Logo Upload */}
+        <div>
+          <label className="block text-white text-sm font-medium mb-2">شعار الشركة (Logo)</label>
+          <div className="flex items-start gap-4">
+            {/* Logo Preview */}
+            <div className="w-32 h-32 bg-[#374151] rounded-lg flex items-center justify-center overflow-hidden border-2 border-gray-600">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Company Logo" className="w-full h-full object-contain" />
+              ) : (
+                <PhotoIcon className="w-16 h-16 text-gray-500" />
+              )}
+            </div>
+
+            {/* Upload Button */}
+            <div className="flex-1">
+              <label className="cursor-pointer">
+                <div className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 w-fit">
+                  <PhotoIcon className="w-5 h-5" />
+                  اختر صورة
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                />
+              </label>
+              <p className="text-xs text-gray-400 mt-2">
+                الحد الأقصى: 2 ميجابايت • الأنواع المدعومة: JPG, PNG, GIF, WebP
+              </p>
+              {logoUrl && (
+                <button
+                  onClick={() => setLogoUrl('')}
+                  className="mt-2 text-red-400 hover:text-red-300 text-sm"
+                >
+                  حذف الشعار
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Social Media */}
+        <div>
+          <label className="block text-white text-sm font-medium mb-3">وسائل التواصل الاجتماعي</label>
+          <div className="space-y-3">
+            {socialMedia.map((social, index) => {
+              const getPlatformIcon = (platform: string) => {
+                const icons: Record<string, string> = {
+                  facebook: '📘',
+                  instagram: '📷',
+                  twitter: '🐦',
+                  linkedin: '💼',
+                  youtube: '📺',
+                  tiktok: '🎵',
+                  snapchat: '👻',
+                  whatsapp: '💬',
+                  telegram: '✈️'
+                };
+                return icons[platform] || '🌐';
+              };
+
+              return (
+                <div key={index} className="flex gap-3 items-center p-3 bg-[#374151] rounded-lg">
+                  <select
+                    value={social.platform}
+                    onChange={(e) => {
+                      const newSocialMedia = [...socialMedia];
+                      newSocialMedia[index].platform = e.target.value;
+                      setSocialMedia(newSocialMedia);
+                    }}
+                    className="w-48 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    style={{ direction: 'ltr', textAlign: 'left' }}
+                  >
+                    <option value="">Select Platform</option>
+                    <option value="facebook">📘 Facebook</option>
+                    <option value="instagram">📷 Instagram</option>
+                    <option value="twitter">🐦 Twitter (X)</option>
+                    <option value="linkedin">💼 LinkedIn</option>
+                    <option value="youtube">📺 YouTube</option>
+                    <option value="tiktok">🎵 TikTok</option>
+                    <option value="snapchat">👻 Snapchat</option>
+                    <option value="whatsapp">💬 WhatsApp</option>
+                    <option value="telegram">✈️ Telegram</option>
+                  </select>
+
+                  {social.platform && (
+                    <span className="text-2xl">{getPlatformIcon(social.platform)}</span>
+                  )}
+
+                  <input
+                    type="text"
+                    value={social.link}
+                    onChange={(e) => {
+                      const newSocialMedia = [...socialMedia];
+                      newSocialMedia[index].link = e.target.value;
+                      setSocialMedia(newSocialMedia);
+                    }}
+                    placeholder="https://..."
+                    className="flex-1 px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    style={{ direction: 'ltr', textAlign: 'left' }}
+                  />
+
+                  <button
+                    onClick={() => {
+                      if (socialMedia.length > 1) {
+                        setSocialMedia(socialMedia.filter((_, i) => i !== index));
+                      }
+                    }}
+                    className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors"
+                  >
+                    حذف
+                  </button>
+                </div>
+              );
+            })}
+            <button
+              onClick={() => setSocialMedia([...socialMedia, { platform: '', link: '' }])}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
+            >
+              + إضافة وسيلة تواصل
+            </button>
+          </div>
+        </div>
+
+        {/* Branches */}
+        <div>
+          <label className="block text-white text-sm font-medium mb-3">الفروع والعناوين</label>
+          <p className="text-sm text-gray-400 mb-4">
+            يمكنك إضافة رابط الموقع على الخريطة لكل فرع من فروعك المسجلة في النظام
+          </p>
+
+          {dbBranchesFromDB.length === 0 ? (
+            <div className="p-6 bg-[#374151] rounded-lg text-center">
+              <p className="text-gray-400">لا توجد فروع مسجلة في النظام</p>
+              <p className="text-sm text-gray-500 mt-2">قم بإضافة فروع من قسم إدارة الفروع أولاً</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {dbBranchesFromDB.map((branch) => {
+                // Find existing location link for this branch
+                const existingBranch = branches.find((b: any) => b.branchId === branch.id);
+                const locationLink = existingBranch?.locationLink || '';
+
+                return (
+                  <div key={branch.id} className="p-4 bg-[#374151] rounded-lg space-y-3">
+                    {/* Branch Info (Read-only) */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">اسم الفرع</label>
+                        <div className="px-3 py-2 bg-[#2B3544] border border-gray-700 rounded text-white text-sm">
+                          {branch.name}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">رقم الهاتف</label>
+                        <div className="px-3 py-2 bg-[#2B3544] border border-gray-700 rounded text-white text-sm">
+                          {branch.phone || '-'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">العنوان</label>
+                      <div className="px-3 py-2 bg-[#2B3544] border border-gray-700 rounded text-white text-sm">
+                        {branch.address || '-'}
+                      </div>
+                    </div>
+
+                    {/* Location Link (Editable) */}
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">
+                        رابط الموقع على الخريطة (Google Maps / Apple Maps)
+                      </label>
+                      <input
+                        type="text"
+                        value={locationLink}
+                        onChange={(e) => {
+                          const newBranches = [...branches];
+                          const branchIndex = newBranches.findIndex((b: any) => b.branchId === branch.id);
+
+                          if (branchIndex >= 0) {
+                            newBranches[branchIndex].locationLink = e.target.value;
+                          } else {
+                            newBranches.push({
+                              branchId: branch.id,
+                              branchName: branch.name,
+                              address: branch.address,
+                              locationLink: e.target.value
+                            });
+                          }
+
+                          setBranches(newBranches);
+                        }}
+                        placeholder="https://maps.google.com/..."
+                        className="w-full px-3 py-2 bg-[#2B3544] border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        style={{ direction: 'ltr', textAlign: 'left' }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderSettingsContent = () => {
     switch (selectedCategory) {
       case 'system':
         return renderSystemSettings();
       case 'theme':
         return renderThemeSettings();
+      case 'company':
+        return renderCompanySettings();
       default:
         return renderPlaceholderContent(selectedCategory);
     }

@@ -37,6 +37,7 @@ interface SystemSettingsContextType {
   getPOSSettings: () => SystemSettingsObject['pos'];
   getReportsSettings: () => SystemSettingsObject['reports'];
   getSecuritySettings: () => SystemSettingsObject['security'];
+  getCompanySettings: () => SystemSettingsObject['company'];
 }
 
 const SystemSettingsContext = createContext<SystemSettingsContextType | null>(null);
@@ -123,7 +124,8 @@ export const SystemSettingsProvider: React.FC<SystemSettingsProviderProps> = ({ 
           system: { ...DEFAULT_SETTINGS.system, ...settingsData.settings_data.system },
           pos: { ...DEFAULT_SETTINGS.pos, ...settingsData.settings_data.pos },
           reports: { ...DEFAULT_SETTINGS.reports, ...settingsData.settings_data.reports },
-          security: { ...DEFAULT_SETTINGS.security, ...settingsData.settings_data.security }
+          security: { ...DEFAULT_SETTINGS.security, ...settingsData.settings_data.security },
+          company: { ...DEFAULT_SETTINGS.company, ...settingsData.settings_data.company }
         };
         setSettings(loadedSettings);
       } else {
@@ -157,6 +159,7 @@ export const SystemSettingsProvider: React.FC<SystemSettingsProviderProps> = ({ 
         ...(updates.pos && { pos: { ...settings.pos, ...updates.pos } }),
         ...(updates.reports && { reports: { ...settings.reports, ...updates.reports } }),
         ...(updates.security && { security: { ...settings.security, ...updates.security } }),
+        ...(updates.company && { company: { ...settings.company, ...updates.company } }),
         last_updated: new Date().toISOString()
       } as SystemSettingsObject;
 
@@ -300,6 +303,7 @@ export const SystemSettingsProvider: React.FC<SystemSettingsProviderProps> = ({ 
   const getPOSSettings = () => settings.pos;
   const getReportsSettings = () => settings.reports;
   const getSecuritySettings = () => settings.security;
+  const getCompanySettings = () => settings.company;
 
   // Load settings on mount
   useEffect(() => {
@@ -347,7 +351,8 @@ export const SystemSettingsProvider: React.FC<SystemSettingsProviderProps> = ({ 
     getSystemSettings,
     getPOSSettings,
     getReportsSettings,
-    getSecuritySettings
+    getSecuritySettings,
+    getCompanySettings
   };
 
   return (
