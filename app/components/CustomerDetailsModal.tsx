@@ -33,6 +33,9 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
   const [isLoadingSales, setIsLoadingSales] = useState(false)
   const [isLoadingItems, setIsLoadingItems] = useState(false)
 
+  // Customer balance state - independent of date filter
+  const [customerBalance, setCustomerBalance] = useState(0)
+
   // Delete confirmation modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -145,6 +148,38 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
     }
   }
 
+  // Fetch customer balance - independent of date filter
+  const fetchCustomerBalance = async () => {
+    if (!customer?.id) return
+
+    try {
+      // Get all sales for this customer (without date filter)
+      const { data: allSales, error } = await supabase
+        .from('sales')
+        .select('total_amount, invoice_type')
+        .eq('customer_id', customer.id)
+
+      if (error) {
+        console.error('Error fetching customer balance:', error)
+        return
+      }
+
+      // Calculate balance: Sale Invoices add to balance, Sale Returns subtract
+      const balance = (allSales || []).reduce((total, sale) => {
+        if (sale.invoice_type === 'Sale Invoice') {
+          return total + (sale.total_amount || 0)
+        } else if (sale.invoice_type === 'Sale Return') {
+          return total - (sale.total_amount || 0)
+        }
+        return total
+      }, 0)
+
+      setCustomerBalance(balance)
+    } catch (error) {
+      console.error('Error calculating customer balance:', error)
+    }
+  }
+
   // Fetch sales from Supabase for the specific customer
   const fetchSales = async () => {
     if (!customer?.id) return
@@ -245,11 +280,12 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
       // Set up real-time subscription for sales
       const salesChannel = supabase
         .channel('modal_sales_changes')
-        .on('postgres_changes', 
+        .on('postgres_changes',
           { event: '*', schema: 'public', table: 'sales' },
           (payload: any) => {
             console.log('Sales real-time update:', payload)
             fetchSales()
+            fetchCustomerBalance() // Also update balance on sales changes
           }
         )
         .subscribe()
@@ -257,7 +293,7 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
       // Set up real-time subscription for sale_items
       const saleItemsChannel = supabase
         .channel('modal_sale_items_changes')
-        .on('postgres_changes', 
+        .on('postgres_changes',
           { event: '*', schema: 'public', table: 'sale_items' },
           (payload: any) => {
             console.log('Sale items real-time update:', payload)
@@ -274,6 +310,13 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
       }
     }
   }, [isOpen, customer?.id, dateFilter])
+
+  // Fetch customer balance independently of date filter
+  useEffect(() => {
+    if (isOpen && customer?.id) {
+      fetchCustomerBalance()
+    }
+  }, [isOpen, customer?.id])
 
   // Fetch sale items when selected transaction changes
   useEffect(() => {
@@ -884,7 +927,7 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
                 {/* Customer Balance */}
                 <div className="p-4 border-b border-gray-600">
                   <div className="bg-blue-600 rounded p-4 text-center">
-                    <div className="text-2xl font-bold text-white">{formatPrice(190322, 'system')}</div>
+                    <div className="text-2xl font-bold text-white">{formatPrice(customerBalance, 'system')}</div>
                     <div className="text-blue-200 text-sm">رصيد العميل</div>
                   </div>
                 </div>
@@ -1001,7 +1044,7 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
                     <div className="bg-[#2B3544] border-b border-gray-600 p-4">
                       <div className="flex items-center justify-between">
                         <div className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
-                          مدين {formatPrice(190322, 'system')}
+                          مدين {formatPrice(customerBalance, 'system')}
                         </div>
                         <div className="text-white text-lg font-medium">كشف حساب العميل</div>
                       </div>

@@ -32,6 +32,9 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(false)
   const [isLoadingItems, setIsLoadingItems] = useState(false)
 
+  // Supplier balance state - independent of date filter
+  const [supplierBalance, setSupplierBalance] = useState(0)
+
   // Delete confirmation modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -144,6 +147,38 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
     }
   }
 
+  // Fetch supplier balance - independent of date filter
+  const fetchSupplierBalance = async () => {
+    if (!supplier?.id) return
+
+    try {
+      // Get all purchase invoices for this supplier (without date filter)
+      const { data: allInvoices, error } = await supabase
+        .from('purchase_invoices')
+        .select('total_amount, invoice_type')
+        .eq('supplier_id', supplier.id)
+
+      if (error) {
+        console.error('Error fetching supplier balance:', error)
+        return
+      }
+
+      // Calculate balance: Purchase Invoices add to balance, Purchase Returns subtract
+      const balance = (allInvoices || []).reduce((total, invoice) => {
+        if (invoice.invoice_type === 'Purchase Invoice') {
+          return total + (invoice.total_amount || 0)
+        } else if (invoice.invoice_type === 'Purchase Return') {
+          return total - (invoice.total_amount || 0)
+        }
+        return total
+      }, 0)
+
+      setSupplierBalance(balance)
+    } catch (error) {
+      console.error('Error calculating supplier balance:', error)
+    }
+  }
+
   // Fetch purchase invoices from Supabase for the specific supplier
   const fetchPurchaseInvoices = async () => {
     if (!supplier?.id) return
@@ -243,11 +278,12 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       // Set up real-time subscription for purchase_invoices
       const invoicesChannel = supabase
         .channel('modal_purchase_invoices_changes')
-        .on('postgres_changes', 
+        .on('postgres_changes',
           { event: '*', schema: 'public', table: 'purchase_invoices' },
           (payload: any) => {
             console.log('Purchase invoices real-time update:', payload)
             fetchPurchaseInvoices()
+            fetchSupplierBalance() // Also update balance on invoice changes
           }
         )
         .subscribe()
@@ -255,7 +291,7 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       // Set up real-time subscription for purchase_invoice_items
       const invoiceItemsChannel = supabase
         .channel('modal_purchase_invoice_items_changes')
-        .on('postgres_changes', 
+        .on('postgres_changes',
           { event: '*', schema: 'public', table: 'purchase_invoice_items' },
           (payload: any) => {
             console.log('Purchase invoice items real-time update:', payload)
@@ -272,6 +308,13 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       }
     }
   }, [isOpen, supplier?.id, dateFilter])
+
+  // Fetch supplier balance independently of date filter
+  useEffect(() => {
+    if (isOpen && supplier?.id) {
+      fetchSupplierBalance()
+    }
+  }, [isOpen, supplier?.id])
 
   // Fetch purchase invoice items when selected transaction changes
   useEffect(() => {
@@ -875,7 +918,7 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
                 {/* Supplier Balance */}
                 <div className="p-4 border-b border-gray-600">
                   <div className="bg-blue-600 rounded p-4 text-center">
-                    <div className="text-2xl font-bold text-white">{formatPrice(190322)}</div>
+                    <div className="text-2xl font-bold text-white">{formatPrice(supplierBalance)}</div>
                     <div className="text-blue-200 text-sm">رصيد المورد</div>
                   </div>
                 </div>
@@ -992,7 +1035,7 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
                     <div className="bg-[#2B3544] border-b border-gray-600 p-4">
                       <div className="flex items-center justify-between">
                         <div className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
-                          دائن {formatPrice(190322)}
+                          دائن {formatPrice(supplierBalance)}
                         </div>
                         <div className="text-white text-lg font-medium">كشف حساب المورد</div>
                       </div>
