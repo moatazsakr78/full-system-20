@@ -680,14 +680,26 @@ export default function ProductsPage() {
         .from('categories')
         .select('*')
         .order('name', { ascending: true })
-      
+
       if (error) throw error
-      
+
       setCategories(data || [])
     } catch (error) {
       console.error('Error fetching categories:', error)
     }
     // setIsLoading is now handled by the useProducts hook
+  }, [])
+
+  // Helper function to get all subcategory IDs recursively
+  const getAllSubcategoryIds = useCallback((categoryId: string, allCategories: Category[]): string[] => {
+    const subcategories = allCategories.filter(cat => cat.parent_id === categoryId)
+    let ids = [categoryId]
+
+    subcategories.forEach(subcat => {
+      ids = [...ids, ...getAllSubcategoryIds(subcat.id, allCategories)]
+    })
+
+    return ids
   }, [])
 
   useEffect(() => {
@@ -697,14 +709,28 @@ export default function ProductsPage() {
 
   // OPTIMIZED: Memoized product filtering to prevent unnecessary re-renders
   const filteredProducts = useMemo(() => {
-    if (!searchQuery) return products
-    
-    const query = searchQuery.toLowerCase()
-    return products.filter(product =>
-      product.name.toLowerCase().includes(query) ||
-      (product.barcode && product.barcode.toLowerCase().includes(query))
-    )
-  }, [products, searchQuery])
+    let filtered = products
+
+    // Category filter: If a category is selected and it's not the root "منتجات" category
+    if (selectedCategory && selectedCategory.name !== 'منتجات') {
+      const categoryIds = getAllSubcategoryIds(selectedCategory.id, categories)
+
+      filtered = filtered.filter(product =>
+        product.category_id && categoryIds.includes(product.category_id)
+      )
+    }
+
+    // Search query filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(product =>
+        product.name.toLowerCase().includes(query) ||
+        (product.barcode && product.barcode.toLowerCase().includes(query))
+      )
+    }
+
+    return filtered
+  }, [products, searchQuery, selectedCategory, categories, getAllSubcategoryIds])
 
   // Use tablet view if detected as tablet or mobile device
   if (isTablet) {

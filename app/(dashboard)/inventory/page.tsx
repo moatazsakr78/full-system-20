@@ -13,6 +13,7 @@ import CategoriesTreeView from '../../components/CategoriesTreeView'
 import ColumnsControlModal from '../../components/ColumnsControlModal'
 import QuantityAdjustmentModal from '../../components/QuantityAdjustmentModal'
 import { useProducts } from '../../lib/hooks/useProductsOptimized'
+import { supabase } from '../../lib/supabase/client'
 import {
   ArrowPathIcon,
   BuildingStorefrontIcon,
@@ -111,6 +112,41 @@ export default function InventoryPage() {
 
   // Get products and branches data using the same hook as products page
   const { products, setProducts, branches, isLoading, error, fetchProducts } = useProducts()
+
+  // Categories state for filtering
+  const [categories, setCategories] = useState<Category[]>([])
+
+  // Fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .order('name', { ascending: true })
+
+        if (error) throw error
+
+        setCategories(data || [])
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+      }
+    }
+
+    fetchCategories()
+  }, [])
+
+  // Helper function to get all subcategory IDs recursively
+  const getAllSubcategoryIds = useCallback((categoryId: string, allCategories: Category[]): string[] => {
+    const subcategories = allCategories.filter(cat => cat.parent_id === categoryId)
+    let ids = [categoryId]
+
+    subcategories.forEach(subcat => {
+      ids = [...ids, ...getAllSubcategoryIds(subcat.id, allCategories)]
+    })
+
+    return ids
+  }, [])
 
   // Device detection for mobile and tablet optimization
   useEffect(() => {
@@ -576,20 +612,28 @@ export default function InventoryPage() {
   // OPTIMIZED: Memoized product filtering to prevent unnecessary re-renders
   const filteredProducts = useMemo(() => {
     if (!products.length) return []
-    
+
     return products.filter(item => {
+      // Category filter: If a category is selected and it's not the root "منتجات" category
+      if (selectedCategory && selectedCategory.name !== 'منتجات') {
+        const categoryIds = getAllSubcategoryIds(selectedCategory.id, categories)
+        if (!item.category_id || !categoryIds.includes(item.category_id)) {
+          return false
+        }
+      }
+
       // Text search filter
-      const matchesSearch = !searchQuery || 
+      const matchesSearch = !searchQuery ||
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.barcode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.category?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-      
+
       if (!matchesSearch) return false
-      
+
       // Stock status filter
       const stockStatus = getStockStatus(item)
       if (!stockStatusFilters[stockStatus as keyof typeof stockStatusFilters]) return false
-      
+
       // Audit status filter - check selected audit branch or all branches
       if (selectedAuditBranch) {
         // Filter by specific branch audit status
@@ -604,7 +648,7 @@ export default function InventoryPage() {
         })
       }
     })
-  }, [products, searchQuery, stockStatusFilters, auditStatusFilters, selectedAuditBranch, selectedBranches, getStockStatus])
+  }, [products, searchQuery, stockStatusFilters, auditStatusFilters, selectedAuditBranch, selectedBranches, getStockStatus, selectedCategory, categories, getAllSubcategoryIds])
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
