@@ -200,6 +200,7 @@ function POSPageContent() {
     setCustomer,
     setBranch,
     clearSelections,
+    resetToDefaultCustomer,
     hasRequiredForCart,
     hasRequiredForSale,
   } = usePersistentSelections();
@@ -988,6 +989,11 @@ function POSPageContent() {
 
       // Clear cart after successful invoice creation
       clearCart();
+
+      // Reset to default customer after sales (not purchase or transfer)
+      if (!isPurchaseMode && !isTransferMode) {
+        await resetToDefaultCustomer();
+      }
 
       // Exit return mode after successful return
       if (isReturnMode) {

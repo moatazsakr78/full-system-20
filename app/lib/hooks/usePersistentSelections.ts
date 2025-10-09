@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { supabase } from '../supabase/client'
 
 export interface SelectionData {
   record: any | null
@@ -9,6 +10,7 @@ export interface SelectionData {
 }
 
 const STORAGE_KEY = 'pos_selections'
+const DEFAULT_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001' // العميل الافتراضي
 
 export function usePersistentSelections() {
   const [selections, setSelections] = useState<SelectionData>({
@@ -19,19 +21,64 @@ export function usePersistentSelections() {
 
   const [isLoaded, setIsLoaded] = useState(false)
 
+  // Load default customer from database
+  const loadDefaultCustomer = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', DEFAULT_CUSTOMER_ID)
+        .single()
+
+      if (error) {
+        console.error('Error loading default customer:', error)
+        return null
+      }
+
+      return data
+    } catch (error) {
+      console.error('Error loading default customer:', error)
+      return null
+    }
+  }
+
   // Load from localStorage on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        const parsedSelections = JSON.parse(stored)
-        setSelections(parsedSelections)
+    const initializeSelections = async () => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY)
+        let loadedSelections: SelectionData = {
+          record: null,
+          customer: null,
+          branch: null
+        }
+
+        if (stored) {
+          loadedSelections = JSON.parse(stored)
+        }
+
+        // Always ensure default customer is set if no customer is selected
+        if (!loadedSelections.customer) {
+          const defaultCustomer = await loadDefaultCustomer()
+          if (defaultCustomer) {
+            loadedSelections.customer = defaultCustomer
+          }
+        }
+
+        setSelections(loadedSelections)
+      } catch (error) {
+        console.error('Error loading selections from localStorage:', error)
+        // Even if there's an error, try to load the default customer
+        const defaultCustomer = await loadDefaultCustomer()
+        if (defaultCustomer) {
+          setSelections(prev => ({ ...prev, customer: defaultCustomer }))
+        }
+      } finally {
+        setIsLoaded(true)
       }
-    } catch (error) {
-      console.error('Error loading selections from localStorage:', error)
-    } finally {
-      setIsLoaded(true)
     }
+
+    initializeSelections()
   }, [])
 
   // Save to localStorage whenever selections change
@@ -65,6 +112,14 @@ export function usePersistentSelections() {
     })
   }
 
+  // Reset customer to default customer
+  const resetToDefaultCustomer = async () => {
+    const defaultCustomer = await loadDefaultCustomer()
+    if (defaultCustomer) {
+      setSelections(prev => ({ ...prev, customer: defaultCustomer }))
+    }
+  }
+
   const isComplete = () => {
     return selections.record && selections.customer && selections.branch
   }
@@ -86,6 +141,7 @@ export function usePersistentSelections() {
     setCustomer,
     setBranch,
     clearSelections,
+    resetToDefaultCustomer,
     isComplete,
     hasRequiredForCart,
     hasRequiredForSale
