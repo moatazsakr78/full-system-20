@@ -32,9 +32,7 @@ export default function ColorSelectionModal({
   transferFromLocation
 }: ColorSelectionModalProps) {
   const [selections, setSelections] = useState<{[key: string]: number}>({})
-  const [totalQuantity, setTotalQuantity] = useState(1)
-  const [isEditingQuantity, setIsEditingQuantity] = useState(false)
-  const [tempQuantity, setTempQuantity] = useState('1')
+  const [manualQuantity, setManualQuantity] = useState(1) // للمنتجات بدون ألوان
   const [editingColorQuantity, setEditingColorQuantity] = useState<string | null>(null)
   const [tempColorQuantities, setTempColorQuantities] = useState<{[key: string]: string}>({})
 
@@ -197,6 +195,11 @@ export default function ColorSelectionModal({
 
   const colors = getProductColors()
 
+  // حساب الكمية الإجمالية: إذا كان هناك ألوان، نحسب من selections، وإلا نستخدم manualQuantity
+  const totalQuantity = colors.length > 0
+    ? Object.values(selections).reduce((sum, qty) => sum + qty, 0)
+    : manualQuantity
+
   // دوال التعامل مع الكميات
   const handleQuantityChange = (colorName: string, change: number) => {
     setSelections(prev => {
@@ -217,6 +220,12 @@ export default function ColorSelectionModal({
 
       return { ...prev, [colorName]: newValue }
     })
+  }
+
+  // دالة لتغيير الكمية اليدوية (للمنتجات بدون ألوان)
+  const handleManualQuantityChange = (change: number) => {
+    const newQuantity = Math.max(1, manualQuantity + change)
+    setManualQuantity(newQuantity)
   }
 
   const selectedQuantity = Object.values(selections).reduce((sum, qty) => sum + qty, 0)
@@ -249,16 +258,8 @@ export default function ColorSelectionModal({
       }
       onClose()
       setSelections({})
-      setTotalQuantity(1)
-      setTempQuantity('1')
+      setManualQuantity(1) // إعادة تعيين الكمية اليدوية
     }
-  }
-
-  // دوال تحرير الكمية الإجمالية
-  const handleTotalQuantityChange = (change: number) => {
-    const newQuantity = Math.max(1, totalQuantity + change)
-    setTotalQuantity(newQuantity)
-    setTempQuantity(newQuantity.toString())
   }
 
   return (
@@ -312,38 +313,47 @@ export default function ColorSelectionModal({
                   )}
                 </div>
 
-                {/* Quantity Controls */}
-                <div className="flex items-center gap-4 flex-1 justify-center relative">
-                  <button 
-                    onClick={() => handleTotalQuantityChange(-1)}
-                    className="w-8 h-8 bg-[#374151] hover:bg-[#4A5568] rounded-lg flex items-center justify-center transition-colors duration-150 flex-shrink-0"
-                  >
-                    <MinusIcon className="h-4 w-4 text-white" />
-                  </button>
-                  <input
-                    type="text"
-                    value={totalQuantity}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      if (value === '' || /^\d+$/.test(value)) {
-                        const num = parseInt(value) || 1
-                        if (num >= 1 && num <= 9999) {
-                          setTotalQuantity(num)
-                          setTempQuantity(num.toString())
+                {/* Quantity Controls - Different based on colors */}
+                {colors.length > 0 ? (
+                  /* Read-only when colors exist */
+                  <div className="flex items-center gap-4 flex-1 justify-center relative">
+                    <div className="bg-[#2B3544] text-white font-bold text-xl text-center rounded-lg px-4 py-2 min-w-[80px] border-2 border-gray-600">
+                      {totalQuantity}
+                    </div>
+                  </div>
+                ) : (
+                  /* Editable with buttons when no colors */
+                  <div className="flex items-center gap-4 flex-1 justify-center relative">
+                    <button
+                      onClick={() => handleManualQuantityChange(-1)}
+                      className="w-8 h-8 bg-[#374151] hover:bg-[#4A5568] rounded-lg flex items-center justify-center transition-colors duration-150 flex-shrink-0"
+                    >
+                      <MinusIcon className="h-4 w-4 text-white" />
+                    </button>
+                    <input
+                      type="text"
+                      value={manualQuantity}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        if (value === '' || /^\d+$/.test(value)) {
+                          const num = parseInt(value) || 1
+                          if (num >= 1 && num <= 9999) {
+                            setManualQuantity(num)
+                          }
                         }
-                      }
-                    }}
-                    onFocus={(e) => e.target.select()}
-                    className="bg-[#2B3544] text-white font-bold text-lg text-center rounded-lg px-4 py-2 w-[70px] outline-none border-2 border-transparent focus:border-blue-500 hover:bg-[#374151] transition-all cursor-pointer"
-                    placeholder="1"
-                  />
-                  <button 
-                    onClick={() => handleTotalQuantityChange(1)}
-                    className="w-8 h-8 bg-[#374151] hover:bg-[#4A5568] rounded-lg flex items-center justify-center transition-colors duration-150 flex-shrink-0"
-                  >
-                    <PlusIcon className="h-4 w-4 text-white" />
-                  </button>
-                </div>
+                      }}
+                      onFocus={(e) => e.target.select()}
+                      className="bg-[#2B3544] text-white font-bold text-lg text-center rounded-lg px-4 py-2 w-[70px] outline-none border-2 border-transparent focus:border-blue-500 hover:bg-[#374151] transition-all cursor-pointer"
+                      placeholder="1"
+                    />
+                    <button
+                      onClick={() => handleManualQuantityChange(1)}
+                      className="w-8 h-8 bg-[#374151] hover:bg-[#4A5568] rounded-lg flex items-center justify-center transition-colors duration-150 flex-shrink-0"
+                    >
+                      <PlusIcon className="h-4 w-4 text-white" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {!isTransferMode && (
@@ -356,8 +366,7 @@ export default function ColorSelectionModal({
             {/* Color Selection */}
             {colors.length > 0 && (
               <div>
-                <h3 className="text-white font-medium mb-3">اختيار الألوان (اختياري)</h3>
-                <p className="text-gray-400 text-sm mb-4">يمكنك اختيار ألوان محددة أو ترك الاختيار للافتراضي</p>
+                <h3 className="text-white font-medium mb-3">اختيار الألوان</h3>
 
                 {!validationInfo.isValid && (
                   <div className="mb-4 p-2 bg-red-500/10 border border-red-500/30 rounded-lg">
