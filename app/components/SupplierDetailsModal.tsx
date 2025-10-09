@@ -56,6 +56,12 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
   const [accountStatements, setAccountStatements] = useState<any[]>([])
   const [isLoadingStatements, setIsLoadingStatements] = useState(false)
 
+  // Statement invoice details state
+  const [showStatementInvoiceDetails, setShowStatementInvoiceDetails] = useState(false)
+  const [selectedStatementInvoice, setSelectedStatementInvoice] = useState<any>(null)
+  const [statementInvoiceItems, setStatementInvoiceItems] = useState<any[]>([])
+  const [isLoadingStatementInvoiceItems, setIsLoadingStatementInvoiceItems] = useState(false)
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (viewMode !== 'split' || activeTab !== 'invoices') return
     setIsDragging(true)
@@ -297,24 +303,74 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
     }
   }
 
+  // Fetch invoice items for statement invoice
+  const fetchStatementInvoiceItems = async (invoiceId: string) => {
+    try {
+      setIsLoadingStatementInvoiceItems(true)
+
+      const { data, error } = await supabase
+        .from('purchase_invoice_items')
+        .select(`
+          id,
+          quantity,
+          unit_purchase_price,
+          total_price,
+          discount_amount,
+          notes,
+          product:products(
+            name,
+            barcode,
+            category:categories(name)
+          )
+        `)
+        .eq('purchase_invoice_id', invoiceId)
+        .order('created_at', { ascending: true })
+
+      if (error) {
+        console.error('Error fetching statement invoice items:', error)
+        setStatementInvoiceItems([])
+        return
+      }
+
+      setStatementInvoiceItems(data || [])
+
+    } catch (error) {
+      console.error('Error fetching statement invoice items:', error)
+      setStatementInvoiceItems([])
+    } finally {
+      setIsLoadingStatementInvoiceItems(false)
+    }
+  }
+
+  // Handle double click on statement row
+  const handleStatementRowDoubleClick = async (statement: any) => {
+    // Only handle invoices, not payments or opening balance
+    if (statement.type !== 'فاتورة شراء' && statement.type !== 'مرتجع شراء') {
+      return
+    }
+
+    // Get invoice details
+    if (statement.invoiceId) {
+      const { data: invoiceData, error } = await supabase
+        .from('purchase_invoices')
+        .select('*')
+        .eq('id', statement.invoiceId)
+        .single()
+
+      if (!error && invoiceData) {
+        setSelectedStatementInvoice(invoiceData)
+        setShowStatementInvoiceDetails(true)
+        await fetchStatementInvoiceItems(statement.invoiceId)
+      }
+    }
+  }
+
   // Fetch account statement
   const fetchAccountStatement = async () => {
     if (!supplier?.id) return
 
     try {
       setIsLoadingStatements(true)
-
-      // Get supplier with opening balance
-      const { data: supplierData, error: supplierError } = await supabase
-        .from('suppliers')
-        .select('opening_balance, created_at')
-        .eq('id', supplier.id)
-        .single()
-
-      if (supplierError) {
-        console.error('Error fetching supplier data:', supplierError)
-        return
-      }
 
       // Get all purchase invoices for this supplier
       const { data: invoices, error: invoicesError } = await supabase
@@ -343,44 +399,36 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       // Build statements array
       const statements: any[] = []
 
-      // Add opening balance if exists
-      if (supplierData?.opening_balance && supplierData.opening_balance !== 0) {
-        statements.push({
-          id: 0,
-          date: new Date(supplierData.created_at),
-          description: 'الرصيد الافتتاحي',
-          type: 'رصيد افتتاحي',
-          amount: supplierData.opening_balance,
-          isOpening: true
-        })
-      }
-
       // Add invoices
       invoices?.forEach((invoice) => {
-        const amount = invoice.invoice_type === 'Purchase Invoice'
-          ? invoice.total_amount
-          : -invoice.total_amount
+        if (invoice.created_at) {  // Add null check
+          const amount = invoice.invoice_type === 'Purchase Invoice'
+            ? invoice.total_amount
+            : -invoice.total_amount
 
-        statements.push({
-          id: statements.length + 1,
-          date: new Date(invoice.created_at),
-          description: `فاتورة ${invoice.invoice_number}`,
-          type: invoice.invoice_type === 'Purchase Invoice' ? 'فاتورة شراء' : 'مرتجع شراء',
-          amount: amount,
-          invoiceId: invoice.id
-        })
+          statements.push({
+            id: statements.length + 1,
+            date: new Date(invoice.created_at),
+            description: `فاتورة ${invoice.invoice_number}`,
+            type: invoice.invoice_type === 'Purchase Invoice' ? 'فاتورة شراء' : 'مرتجع شراء',
+            amount: amount,
+            invoiceId: invoice.id
+          })
+        }
       })
 
       // Add payments
       payments?.forEach((payment) => {
-        statements.push({
-          id: statements.length + 1,
-          date: new Date(payment.created_at),
-          description: payment.notes || 'دفعة',
-          type: 'دفعة',
-          amount: -payment.amount, // Negative because it reduces the balance
-          paymentId: payment.id
-        })
+        if (payment.created_at) {  // Add null check
+          statements.push({
+            id: statements.length + 1,
+            date: new Date(payment.created_at),
+            description: payment.notes || 'دفعة',
+            type: 'دفعة',
+            amount: -payment.amount, // Negative because it reduces the balance
+            paymentId: payment.id
+          })
+        }
       })
 
       // Sort by date
@@ -527,6 +575,15 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
     }
   }, [selectedTransaction, purchaseInvoices])
 
+  // Reset statement invoice details when changing tabs
+  useEffect(() => {
+    if (activeTab !== 'statement') {
+      setShowStatementInvoiceDetails(false)
+      setSelectedStatementInvoice(null)
+      setStatementInvoiceItems([])
+    }
+  }, [activeTab])
+
   // Handle delete invoice
   const handleDeleteInvoice = (invoice: any) => {
     setInvoiceToDelete(invoice)
@@ -582,17 +639,6 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
     }
   }
 
-  // Cancel delete
-  const cancelDelete = () => {
-    setShowDeleteModal(false)
-    setInvoiceToDelete(null)
-  }
-
-  if (!supplier) return null
-
-  // Calculate total payments amount
-  const totalPayments = supplierPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0)
-
   // Calculate total invoices amount (for all invoices, not filtered by date)
   const [totalInvoicesAmount, setTotalInvoicesAmount] = useState(0)
 
@@ -623,6 +669,17 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
       fetchTotalInvoicesAmount()
     }
   }, [isOpen, supplier?.id])
+
+  // Cancel delete
+  const cancelDelete = () => {
+    setShowDeleteModal(false)
+    setInvoiceToDelete(null)
+  }
+
+  if (!supplier) return null
+
+  // Calculate total payments amount
+  const totalPayments = supplierPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0)
 
   // Calculate average order value
   const averageOrderValue = purchaseInvoices.length > 0
@@ -1212,22 +1269,63 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
               {/* Conditional Content Based on Active Tab and View Mode */}
               <div className="flex-1 overflow-hidden relative">
                 {activeTab === 'statement' && (
-                  <div className="h-full">
-                    {isLoadingStatements ? (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
-                        <span className="text-gray-400">جاري تحميل كشف الحساب...</span>
-                      </div>
-                    ) : accountStatements.length === 0 ? (
-                      <div className="flex items-center justify-center h-full">
-                        <span className="text-gray-400">لا توجد عمليات في كشف الحساب</span>
-                      </div>
+                  <div className="h-full flex flex-col">
+                    {showStatementInvoiceDetails ? (
+                      <>
+                        {/* Invoice Details Header */}
+                        <div className="bg-[#2B3544] border-b border-gray-600 p-4 flex items-center justify-between">
+                          <button
+                            onClick={() => {
+                              setShowStatementInvoiceDetails(false)
+                              setSelectedStatementInvoice(null)
+                              setStatementInvoiceItems([])
+                            }}
+                            className="text-blue-400 hover:text-blue-300 flex items-center gap-2 transition-colors"
+                          >
+                            <ChevronRightIcon className="h-4 w-4" />
+                            <span>العودة إلى كشف الحساب</span>
+                          </button>
+                          <h3 className="text-white font-medium text-lg">
+                            تفاصيل الفاتورة {selectedStatementInvoice?.invoice_number || ''}
+                          </h3>
+                        </div>
+
+                        {/* Invoice Details Table */}
+                        <div className="flex-1">
+                          {isLoadingStatementInvoiceItems ? (
+                            <div className="flex items-center justify-center h-full">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
+                              <span className="text-gray-400">جاري تحميل تفاصيل الفاتورة...</span>
+                            </div>
+                          ) : (
+                            <ResizableTable
+                              className="h-full w-full"
+                              columns={invoiceDetailsColumns}
+                              data={statementInvoiceItems}
+                            />
+                          )}
+                        </div>
+                      </>
                     ) : (
-                      <ResizableTable
-                        className="h-full w-full"
-                        columns={statementColumns}
-                        data={accountStatements}
-                      />
+                      <>
+                        {isLoadingStatements ? (
+                          <div className="flex items-center justify-center h-full">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
+                            <span className="text-gray-400">جاري تحميل كشف الحساب...</span>
+                          </div>
+                        ) : accountStatements.length === 0 ? (
+                          <div className="flex items-center justify-center h-full">
+                            <span className="text-gray-400">لا توجد عمليات في كشف الحساب</span>
+                          </div>
+                        ) : (
+                          <ResizableTable
+                            className="h-full w-full"
+                            columns={statementColumns}
+                            data={accountStatements}
+                            onRowDoubleClick={handleStatementRowDoubleClick}
+                          />
+                        )}
+                      </>
                     )}
                   </div>
                 )}

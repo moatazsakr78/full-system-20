@@ -102,26 +102,44 @@ export default function AddPaymentModal({
     setIsSubmitting(true)
 
     try {
-      const table = entityType === 'customer' ? 'customer_payments' : 'supplier_payments'
-      const idField = entityType === 'customer' ? 'customer_id' : 'supplier_id'
+      if (entityType === 'customer') {
+        const { data, error } = await supabase
+          .from('customer_payments')
+          .insert([
+            {
+              customer_id: entityId,
+              amount: paymentAmount,
+              payment_method: paymentMethod,
+              notes: notes || null,
+              payment_date: new Date().toISOString().split('T')[0],
+            }
+          ])
+          .select()
 
-      const { data, error } = await supabase
-        .from(table)
-        .insert([
-          {
-            [idField]: entityId,
-            amount: paymentAmount,
-            payment_method: paymentMethod,
-            notes: notes || null,
-            payment_date: new Date().toISOString().split('T')[0],
-          }
-        ])
-        .select()
+        if (error) {
+          console.error('Error adding payment:', error)
+          alert('حدث خطأ أثناء إضافة الدفعة')
+          return
+        }
+      } else {
+        const { data, error } = await supabase
+          .from('supplier_payments')
+          .insert([
+            {
+              supplier_id: entityId,
+              amount: paymentAmount,
+              payment_method: paymentMethod,
+              notes: notes || null,
+              payment_date: new Date().toISOString().split('T')[0],
+            }
+          ])
+          .select()
 
-      if (error) {
-        console.error('Error adding payment:', error)
-        alert('حدث خطأ أثناء إضافة الدفعة')
-        return
+        if (error) {
+          console.error('Error adding payment:', error)
+          alert('حدث خطأ أثناء إضافة الدفعة')
+          return
+        }
       }
 
       // Success - close modal and refresh

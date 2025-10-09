@@ -57,6 +57,12 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
   const [accountStatements, setAccountStatements] = useState<any[]>([])
   const [isLoadingStatements, setIsLoadingStatements] = useState(false)
 
+  // Statement invoice details state
+  const [showStatementInvoiceDetails, setShowStatementInvoiceDetails] = useState(false)
+  const [selectedStatementInvoice, setSelectedStatementInvoice] = useState<any>(null)
+  const [statementInvoiceItems, setStatementInvoiceItems] = useState<any[]>([])
+  const [isLoadingStatementInvoiceItems, setIsLoadingStatementInvoiceItems] = useState(false)
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (viewMode !== 'split' || activeTab !== 'invoices') return
     setIsDragging(true)
@@ -299,24 +305,77 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
     }
   }
 
+  // Fetch invoice items for statement invoice
+  const fetchStatementInvoiceItems = async (saleId: string) => {
+    try {
+      setIsLoadingStatementInvoiceItems(true)
+
+      const { data, error } = await supabase
+        .from('sale_items')
+        .select(`
+          id,
+          quantity,
+          unit_price,
+          cost_price,
+          discount,
+          notes,
+          product:products(
+            name,
+            barcode,
+            category:categories(name)
+          )
+        `)
+        .eq('sale_id', saleId)
+        .order('created_at', { ascending: true })
+
+      if (error) {
+        console.error('Error fetching statement invoice items:', error)
+        setStatementInvoiceItems([])
+        return
+      }
+
+      setStatementInvoiceItems(data || [])
+
+    } catch (error) {
+      console.error('Error fetching statement invoice items:', error)
+      setStatementInvoiceItems([])
+    } finally {
+      setIsLoadingStatementInvoiceItems(false)
+    }
+  }
+
+  // Handle double click on statement row
+  const handleStatementRowDoubleClick = async (statement: any) => {
+    // Only handle invoices, not payments or opening balance
+    if (statement.type !== 'فاتورة' && statement.type !== 'مرتجع') {
+      return
+    }
+
+    // Get invoice details - extract sale ID from statement id
+    const saleIdMatch = statement.id.match(/^sale-(.+)$/)
+    if (saleIdMatch) {
+      const saleId = saleIdMatch[1]
+
+      const { data: saleData, error } = await supabase
+        .from('sales')
+        .select('*')
+        .eq('id', saleId)
+        .single()
+
+      if (!error && saleData) {
+        setSelectedStatementInvoice(saleData)
+        setShowStatementInvoiceDetails(true)
+        await fetchStatementInvoiceItems(saleId)
+      }
+    }
+  }
+
   // Fetch and build account statement
   const fetchAccountStatement = async () => {
     if (!customer?.id) return
 
     try {
       setIsLoadingStatements(true)
-
-      // Get customer with opening balance
-      const { data: customerData, error: customerError } = await supabase
-        .from('customers')
-        .select('opening_balance, created_at')
-        .eq('id', customer.id)
-        .single()
-
-      if (customerError) {
-        console.error('Error fetching customer data:', customerError)
-        return
-      }
 
       // Get all sales for this customer
       const { data: salesData, error: salesError } = await supabase
@@ -345,42 +404,34 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
       // Build statement array
       const statements: any[] = []
 
-      // Add opening balance if exists
-      if (customerData.opening_balance && customerData.opening_balance > 0) {
-        statements.push({
-          id: 'opening-balance',
-          date: new Date(customerData.created_at),
-          description: 'الرصيد الأولي',
-          type: 'رصيد أولي',
-          amount: customerData.opening_balance,
-          balance: 0 // Will be calculated
-        })
-      }
-
       // Add sales
       salesData?.forEach(sale => {
-        const saleDate = new Date(sale.created_at)
-        statements.push({
-          id: `sale-${sale.id}`,
-          date: saleDate,
-          description: `${sale.invoice_number} فاتورة`,
-          type: sale.invoice_type === 'Sale Invoice' ? 'فاتورة' : 'مرتجع',
-          amount: sale.invoice_type === 'Sale Invoice' ? sale.total_amount : -sale.total_amount,
-          balance: 0 // Will be calculated
-        })
+        if (sale.created_at) {
+          const saleDate = new Date(sale.created_at)
+          statements.push({
+            id: `sale-${sale.id}`,
+            date: saleDate,
+            description: `${sale.invoice_number} فاتورة`,
+            type: sale.invoice_type === 'Sale Invoice' ? 'فاتورة' : 'مرتجع',
+            amount: sale.invoice_type === 'Sale Invoice' ? sale.total_amount : -sale.total_amount,
+            balance: 0 // Will be calculated
+          })
+        }
       })
 
       // Add payments
       paymentsData?.forEach(payment => {
-        const paymentDate = new Date(payment.created_at)
-        statements.push({
-          id: `payment-${payment.id}`,
-          date: paymentDate,
-          description: payment.notes ? `دفعة - ${payment.notes}` : 'دفعة',
-          type: 'دفعة',
-          amount: -payment.amount, // Negative because it reduces balance
-          balance: 0 // Will be calculated
-        })
+        if (payment.created_at) {
+          const paymentDate = new Date(payment.created_at)
+          statements.push({
+            id: `payment-${payment.id}`,
+            date: paymentDate,
+            description: payment.notes ? `دفعة - ${payment.notes}` : 'دفعة',
+            type: 'دفعة',
+            amount: -payment.amount, // Negative because it reduces balance
+            balance: 0 // Will be calculated
+          })
+        }
       })
 
       // Sort by date
@@ -518,6 +569,15 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
     }
   }, [selectedTransaction, sales])
 
+  // Reset statement invoice details when changing tabs
+  useEffect(() => {
+    if (activeTab !== 'statement') {
+      setShowStatementInvoiceDetails(false)
+      setSelectedStatementInvoice(null)
+      setStatementInvoiceItems([])
+    }
+  }, [activeTab])
+
   // Handle delete invoice
   const handleDeleteInvoice = (invoice: any) => {
     setInvoiceToDelete(invoice)
@@ -573,17 +633,6 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
     }
   }
 
-  // Cancel delete
-  const cancelDelete = () => {
-    setShowDeleteModal(false)
-    setInvoiceToDelete(null)
-  }
-
-  if (!customer) return null
-
-  // Calculate total payments amount
-  const totalPayments = customerPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0)
-
   // Calculate total invoices amount (for all sales, not filtered by date)
   const [totalInvoicesAmount, setTotalInvoicesAmount] = useState(0)
 
@@ -614,6 +663,17 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
       fetchTotalInvoicesAmount()
     }
   }, [isOpen, customer?.id])
+
+  // Cancel delete
+  const cancelDelete = () => {
+    setShowDeleteModal(false)
+    setInvoiceToDelete(null)
+  }
+
+  if (!customer) return null
+
+  // Calculate total payments amount
+  const totalPayments = customerPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0)
 
   // Calculate average order value
   const averageOrderValue = sales.length > 0
@@ -1212,22 +1272,63 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
               {/* Conditional Content Based on Active Tab and View Mode */}
               <div className="flex-1 overflow-hidden relative">
                 {activeTab === 'statement' && (
-                  <div className="h-full">
-                    {isLoadingStatements ? (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
-                        <span className="text-gray-400">جاري تحميل كشف الحساب...</span>
-                      </div>
-                    ) : accountStatements.length === 0 ? (
-                      <div className="flex items-center justify-center h-full">
-                        <span className="text-gray-400">لا توجد عمليات مسجلة</span>
-                      </div>
+                  <div className="h-full flex flex-col">
+                    {showStatementInvoiceDetails ? (
+                      <>
+                        {/* Invoice Details Header */}
+                        <div className="bg-[#2B3544] border-b border-gray-600 p-4 flex items-center justify-between">
+                          <button
+                            onClick={() => {
+                              setShowStatementInvoiceDetails(false)
+                              setSelectedStatementInvoice(null)
+                              setStatementInvoiceItems([])
+                            }}
+                            className="text-blue-400 hover:text-blue-300 flex items-center gap-2 transition-colors"
+                          >
+                            <ChevronRightIcon className="h-4 w-4" />
+                            <span>العودة إلى كشف الحساب</span>
+                          </button>
+                          <h3 className="text-white font-medium text-lg">
+                            تفاصيل الفاتورة {selectedStatementInvoice?.invoice_number || ''}
+                          </h3>
+                        </div>
+
+                        {/* Invoice Details Table */}
+                        <div className="flex-1">
+                          {isLoadingStatementInvoiceItems ? (
+                            <div className="flex items-center justify-center h-full">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
+                              <span className="text-gray-400">جاري تحميل تفاصيل الفاتورة...</span>
+                            </div>
+                          ) : (
+                            <ResizableTable
+                              className="h-full w-full"
+                              columns={invoiceDetailsColumns}
+                              data={statementInvoiceItems}
+                            />
+                          )}
+                        </div>
+                      </>
                     ) : (
-                      <ResizableTable
-                        className="h-full w-full"
-                        columns={statementColumns}
-                        data={accountStatements}
-                      />
+                      <>
+                        {isLoadingStatements ? (
+                          <div className="flex items-center justify-center h-full">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
+                            <span className="text-gray-400">جاري تحميل كشف الحساب...</span>
+                          </div>
+                        ) : accountStatements.length === 0 ? (
+                          <div className="flex items-center justify-center h-full">
+                            <span className="text-gray-400">لا توجد عمليات مسجلة</span>
+                          </div>
+                        ) : (
+                          <ResizableTable
+                            className="h-full w-full"
+                            columns={statementColumns}
+                            data={accountStatements}
+                            onRowDoubleClick={handleStatementRowDoubleClick}
+                          />
+                        )}
+                      </>
                     )}
                   </div>
                 )}
