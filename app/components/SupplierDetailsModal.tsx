@@ -6,6 +6,7 @@ import ResizableTable from './tables/ResizableTable'
 import { supabase } from '../lib/supabase/client'
 import ConfirmDeleteModal from './ConfirmDeleteModal'
 import SimpleDateFilterModal, { DateFilter } from './SimpleDateFilterModal'
+import AddPaymentModal from './AddPaymentModal'
 import { useFormatPrice } from '@/lib/hooks/useCurrency'
 
 interface SupplierDetailsModalProps {
@@ -43,6 +44,17 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
   // Date filter state
   const [showDateFilter, setShowDateFilter] = useState(false)
   const [dateFilter, setDateFilter] = useState<DateFilter>({ type: 'all' })
+
+  // Add Payment Modal state
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false)
+
+  // Supplier payments state
+  const [supplierPayments, setSupplierPayments] = useState<any[]>([])
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false)
+
+  // Account statement state
+  const [accountStatements, setAccountStatements] = useState<any[]>([])
+  const [isLoadingStatements, setIsLoadingStatements] = useState(false)
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (viewMode !== 'split' || activeTab !== 'invoices') return
@@ -153,18 +165,29 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
 
     try {
       // Get all purchase invoices for this supplier (without date filter)
-      const { data: allInvoices, error } = await supabase
+      const { data: allInvoices, error: invoicesError } = await supabase
         .from('purchase_invoices')
         .select('total_amount, invoice_type')
         .eq('supplier_id', supplier.id)
 
-      if (error) {
-        console.error('Error fetching supplier balance:', error)
+      if (invoicesError) {
+        console.error('Error fetching supplier invoices:', invoicesError)
         return
       }
 
-      // Calculate balance: Purchase Invoices add to balance, Purchase Returns subtract
-      const balance = (allInvoices || []).reduce((total, invoice) => {
+      // Get all payments for this supplier (without date filter)
+      const { data: allPayments, error: paymentsError } = await supabase
+        .from('supplier_payments')
+        .select('amount')
+        .eq('supplier_id', supplier.id)
+
+      if (paymentsError) {
+        console.error('Error fetching supplier payments:', paymentsError)
+        return
+      }
+
+      // Calculate invoices balance: Purchase Invoices add to balance, Purchase Returns subtract
+      const invoicesBalance = (allInvoices || []).reduce((total, invoice) => {
         if (invoice.invoice_type === 'Purchase Invoice') {
           return total + (invoice.total_amount || 0)
         } else if (invoice.invoice_type === 'Purchase Return') {
@@ -173,7 +196,15 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
         return total
       }, 0)
 
-      setSupplierBalance(balance)
+      // Calculate total payments
+      const totalPayments = (allPayments || []).reduce((total, payment) => {
+        return total + (payment.amount || 0)
+      }, 0)
+
+      // Final balance = Invoices Balance - Total Payments
+      const finalBalance = invoicesBalance - totalPayments
+
+      setSupplierBalance(finalBalance)
     } catch (error) {
       console.error('Error calculating supplier balance:', error)
     }
@@ -231,6 +262,161 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
     }
   }
 
+  // Fetch supplier payments
+  const fetchSupplierPayments = async () => {
+    if (!supplier?.id) return
+
+    try {
+      setIsLoadingPayments(true)
+
+      const { data, error } = await supabase
+        .from('supplier_payments')
+        .select(`
+          id,
+          amount,
+          payment_method,
+          reference_number,
+          notes,
+          payment_date,
+          created_at
+        `)
+        .eq('supplier_id', supplier.id)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching supplier payments:', error)
+        return
+      }
+
+      setSupplierPayments(data || [])
+
+    } catch (error) {
+      console.error('Error fetching supplier payments:', error)
+    } finally {
+      setIsLoadingPayments(false)
+    }
+  }
+
+  // Fetch account statement
+  const fetchAccountStatement = async () => {
+    if (!supplier?.id) return
+
+    try {
+      setIsLoadingStatements(true)
+
+      // Get supplier with opening balance
+      const { data: supplierData, error: supplierError } = await supabase
+        .from('suppliers')
+        .select('opening_balance, created_at')
+        .eq('id', supplier.id)
+        .single()
+
+      if (supplierError) {
+        console.error('Error fetching supplier data:', supplierError)
+        return
+      }
+
+      // Get all purchase invoices for this supplier
+      const { data: invoices, error: invoicesError } = await supabase
+        .from('purchase_invoices')
+        .select('id, invoice_number, total_amount, invoice_type, created_at')
+        .eq('supplier_id', supplier.id)
+        .order('created_at', { ascending: true })
+
+      if (invoicesError) {
+        console.error('Error fetching invoices:', invoicesError)
+        return
+      }
+
+      // Get all payments for this supplier
+      const { data: payments, error: paymentsError } = await supabase
+        .from('supplier_payments')
+        .select('id, amount, payment_method, notes, created_at')
+        .eq('supplier_id', supplier.id)
+        .order('created_at', { ascending: true })
+
+      if (paymentsError) {
+        console.error('Error fetching payments:', paymentsError)
+        return
+      }
+
+      // Build statements array
+      const statements: any[] = []
+
+      // Add opening balance if exists
+      if (supplierData?.opening_balance && supplierData.opening_balance !== 0) {
+        statements.push({
+          id: 0,
+          date: new Date(supplierData.created_at),
+          description: 'الرصيد الافتتاحي',
+          type: 'رصيد افتتاحي',
+          amount: supplierData.opening_balance,
+          isOpening: true
+        })
+      }
+
+      // Add invoices
+      invoices?.forEach((invoice) => {
+        const amount = invoice.invoice_type === 'Purchase Invoice'
+          ? invoice.total_amount
+          : -invoice.total_amount
+
+        statements.push({
+          id: statements.length + 1,
+          date: new Date(invoice.created_at),
+          description: `فاتورة ${invoice.invoice_number}`,
+          type: invoice.invoice_type === 'Purchase Invoice' ? 'فاتورة شراء' : 'مرتجع شراء',
+          amount: amount,
+          invoiceId: invoice.id
+        })
+      })
+
+      // Add payments
+      payments?.forEach((payment) => {
+        statements.push({
+          id: statements.length + 1,
+          date: new Date(payment.created_at),
+          description: payment.notes || 'دفعة',
+          type: 'دفعة',
+          amount: -payment.amount, // Negative because it reduces the balance
+          paymentId: payment.id
+        })
+      })
+
+      // Sort by date
+      statements.sort((a, b) => a.date.getTime() - b.date.getTime())
+
+      // Calculate running balance
+      let runningBalance = 0
+      const statementsWithBalance = statements.map((statement, index) => {
+        runningBalance += statement.amount
+
+        return {
+          ...statement,
+          balance: runningBalance,
+          displayDate: statement.date.toLocaleDateString('en-GB'),
+          displayTime: statement.date.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          }),
+          displayAmount: statement.amount >= 0
+            ? `+${formatPrice(statement.amount)}`
+            : formatPrice(statement.amount),
+          displayBalance: formatPrice(runningBalance),
+          id: index + 1 // Reassign IDs to be sequential
+        }
+      })
+
+      setAccountStatements(statementsWithBalance)
+
+    } catch (error) {
+      console.error('Error fetching account statement:', error)
+    } finally {
+      setIsLoadingStatements(false)
+    }
+  }
+
   // Fetch purchase invoice items for selected invoice
   const fetchPurchaseInvoiceItems = async (invoiceId: string) => {
     try {
@@ -274,6 +460,8 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
   useEffect(() => {
     if (isOpen && supplier?.id) {
       fetchPurchaseInvoices()
+      fetchSupplierPayments()
+      fetchAccountStatement()
 
       // Set up real-time subscription for purchase_invoices
       const invoicesChannel = supabase
@@ -284,6 +472,7 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
             console.log('Purchase invoices real-time update:', payload)
             fetchPurchaseInvoices()
             fetchSupplierBalance() // Also update balance on invoice changes
+            fetchAccountStatement() // Update account statement on invoice changes
           }
         )
         .subscribe()
@@ -302,9 +491,24 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
         )
         .subscribe()
 
+      // Set up real-time subscription for supplier_payments
+      const paymentsChannel = supabase
+        .channel('modal_supplier_payments_changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'supplier_payments' },
+          (payload: any) => {
+            console.log('Supplier payments real-time update:', payload)
+            fetchSupplierPayments()
+            fetchSupplierBalance() // Also update balance on payment changes
+            fetchAccountStatement() // Update account statement on payment changes
+          }
+        )
+        .subscribe()
+
       return () => {
         supabase.removeChannel(invoicesChannel)
         supabase.removeChannel(invoiceItemsChannel)
+        supabase.removeChannel(paymentsChannel)
       }
     }
   }, [isOpen, supplier?.id, dateFilter])
@@ -386,170 +590,117 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
 
   if (!supplier) return null
 
-  // Sample account statement data - opening balance, invoices, and payments
-  const accountStatements = [
-    {
-      id: 1,
-      date: '7/15/2025',
-      time: '07:46 AM',
-      description: 'INV-175254784358 فاتورة شراء',
-      type: 'فاتورة شراء',
-      amount: `${formatPrice(1677)}-`,
-      balance: formatPrice(190322)
-    },
-    {
-      id: 2,
-      date: '7/3/2025',
-      time: '01:22 AM',
-      description: 'دفعة للمورد',
-      type: 'دفعة',
-      amount: `${formatPrice(6000)}+`,
-      balance: formatPrice(188645)
-    },
-    {
-      id: 3,
-      date: '7/2/2025',
-      time: '04:44 AM',
-      description: 'INV-175142668178 فاتورة شراء',
-      type: 'فاتورة شراء',
-      amount: `${formatPrice(210)}-`,
-      balance: formatPrice(194645)
-    },
-    {
-      id: 4,
-      date: '6/30/2025',
-      time: '12:33 AM',
-      description: 'دفعة - سداد',
-      type: 'دفعة',
-      amount: `${formatPrice(7000)}+`,
-      balance: formatPrice(194435)
-    },
-    {
-      id: 5,
-      date: '6/29/2025',
-      time: '06:05 PM',
-      description: 'INV-175120953803 فاتورة شراء',
-      type: 'فاتورة شراء',
-      amount: `${formatPrice(850)}-`,
-      balance: formatPrice(201435)
-    },
-    {
-      id: 6,
-      date: '6/29/2025',
-      time: '05:42 PM',
-      description: 'INV-175120816250 فاتورة شراء',
-      type: 'فاتورة شراء',
-      amount: `${formatPrice(100)}-`,
-      balance: formatPrice(200585)
-    },
-    {
-      id: 7,
-      date: '6/28/2025',
-      time: '11:23 PM',
-      description: 'INV-175114219445 فاتورة شراء',
-      type: 'فاتورة شراء',
-      amount: `${formatPrice(485)}-`,
-      balance: formatPrice(200485)
-    },
-    {
-      id: 8,
-      date: '6/24/2025',
-      time: '04:35 PM',
-      description: 'الرصيد الأولي',
-      type: 'رصيد أولي',
-      amount: `${formatPrice(200000)}+`,
-      balance: formatPrice(200000)
-    }
-  ]
+  // Calculate total payments amount
+  const totalPayments = supplierPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0)
 
-  // Sample payments data
-  const payments = [
-    {
-      id: 1,
-      date: '7/2/2025',
-      time: '01:22 AM',
-      amount: formatPrice(6000),
-      notes: '-'
-    },
-    {
-      id: 2,
-      date: '6/29/2025', 
-      time: '12:33 AM',
-      amount: formatPrice(7000),
-      notes: 'سداد'
+  // Calculate total invoices amount (for all invoices, not filtered by date)
+  const [totalInvoicesAmount, setTotalInvoicesAmount] = useState(0)
+
+  // Fetch total invoices amount
+  useEffect(() => {
+    const fetchTotalInvoicesAmount = async () => {
+      if (!supplier?.id) return
+
+      const { data, error } = await supabase
+        .from('purchase_invoices')
+        .select('total_amount, invoice_type')
+        .eq('supplier_id', supplier.id)
+
+      if (!error && data) {
+        const total = data.reduce((sum, invoice) => {
+          if (invoice.invoice_type === 'Purchase Invoice') {
+            return sum + (invoice.total_amount || 0)
+          } else if (invoice.invoice_type === 'Purchase Return') {
+            return sum - (invoice.total_amount || 0)
+          }
+          return sum
+        }, 0)
+        setTotalInvoicesAmount(total)
+      }
     }
-  ]
+
+    if (isOpen && supplier?.id) {
+      fetchTotalInvoicesAmount()
+    }
+  }, [isOpen, supplier?.id])
+
+  // Calculate average order value
+  const averageOrderValue = purchaseInvoices.length > 0
+    ? totalInvoicesAmount / purchaseInvoices.length
+    : 0
 
   // Define columns for each table - exactly like RecordDetailsModal structure
   const statementColumns = [
-    { 
-      id: 'index', 
-      header: '#', 
-      accessor: '#', 
+    {
+      id: 'index',
+      header: '#',
+      accessor: 'id',
       width: 50,
       render: (value: any, item: any, index: number) => (
         <span className="text-gray-400">{item.id}</span>
       )
     },
-    { 
-      id: 'date', 
-      header: 'التاريخ', 
-      accessor: 'date', 
+    {
+      id: 'date',
+      header: 'التاريخ',
+      accessor: 'displayDate',
       width: 120,
       render: (value: string) => <span className="text-white">{value}</span>
     },
-    { 
-      id: 'time', 
-      header: '⏰ الساعة', 
-      accessor: 'time', 
+    {
+      id: 'time',
+      header: '⏰ الساعة',
+      accessor: 'displayTime',
       width: 80,
       render: (value: string) => <span className="text-blue-400">{value}</span>
     },
-    { 
-      id: 'description', 
-      header: 'البيان', 
-      accessor: 'description', 
+    {
+      id: 'description',
+      header: 'البيان',
+      accessor: 'description',
       width: 300,
       render: (value: string) => <span className="text-white">{value}</span>
     },
-    { 
-      id: 'type', 
-      header: 'نوع العملية', 
-      accessor: 'type', 
+    {
+      id: 'type',
+      header: 'نوع العملية',
+      accessor: 'type',
       width: 120,
       render: (value: string) => (
         <span className={`px-2 py-1 rounded text-xs font-medium ${
-          value === 'فاتورة شراء' 
-            ? 'bg-red-600/20 text-red-400 border border-red-600' 
+          value === 'فاتورة شراء'
+            ? 'bg-blue-600/20 text-blue-400 border border-blue-600'
             : value === 'دفعة'
-            ? 'bg-gray-600/20 text-gray-300 border border-gray-600'
+            ? 'bg-green-600/20 text-green-400 border border-green-600'
             : 'bg-blue-600/20 text-blue-400 border border-blue-600'
         }`}>
           {value}
         </span>
       )
     },
-    { 
-      id: 'amount', 
-      header: 'المبلغ', 
-      accessor: 'amount', 
+    {
+      id: 'amount',
+      header: 'المبلغ',
+      accessor: 'amount',
       width: 140,
-      render: (value: string) => (
-        <span className={`font-medium ${
-          value && value.includes('+') 
-            ? 'text-green-400' 
-            : 'text-red-400'
-        }`}>
-          {value}
-        </span>
-      )
+      render: (value: number, item: any) => {
+        const isDafeaa = item.type === 'دفعة'
+        const isPositive = value > 0
+        return (
+          <span className={`font-medium ${
+            isDafeaa ? 'text-green-400' : 'text-blue-400'
+          }`}>
+            {isPositive ? '' : ''}{formatPrice(Math.abs(value))}
+          </span>
+        )
+      }
     },
-    { 
-      id: 'balance', 
-      header: 'الرصيد', 
-      accessor: 'balance', 
+    {
+      id: 'balance',
+      header: 'الرصيد',
+      accessor: 'displayBalance',
       width: 140,
-      render: (value: string) => <span className="text-blue-400 font-medium">{value}</span>
+      render: (value: string) => <span className="text-white font-medium">{value}</span>
     }
   ]
 
@@ -651,42 +802,64 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
   ]
 
   const paymentsColumns = [
-    { 
-      id: 'index', 
-      header: '#', 
-      accessor: '#', 
+    {
+      id: 'index',
+      header: '#',
+      accessor: '#',
       width: 50,
       render: (value: any, item: any, index: number) => (
-        <span className="text-gray-400">{item.id}</span>
+        <span className="text-gray-400">{index + 1}</span>
       )
     },
-    { 
-      id: 'date', 
-      header: 'التاريخ', 
-      accessor: 'date', 
+    {
+      id: 'payment_date',
+      header: 'التاريخ',
+      accessor: 'payment_date',
       width: 120,
-      render: (value: string) => <span className="text-white">{value}</span>
+      render: (value: string) => {
+        const date = new Date(value)
+        return <span className="text-white">{date.toLocaleDateString('en-GB')}</span>
+      }
     },
-    { 
-      id: 'time', 
-      header: '⏰ الساعة', 
-      accessor: 'time', 
+    {
+      id: 'created_at',
+      header: '⏰ الساعة',
+      accessor: 'created_at',
       width: 80,
-      render: (value: string) => <span className="text-blue-400">{value}</span>
+      render: (value: string) => {
+        const date = new Date(value)
+        const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+        return <span className="text-blue-400">{time}</span>
+      }
     },
-    { 
-      id: 'amount', 
-      header: 'المبلغ', 
-      accessor: 'amount', 
+    {
+      id: 'amount',
+      header: 'المبلغ',
+      accessor: 'amount',
       width: 140,
-      render: (value: string) => <span className="text-green-400 font-medium">{value}</span>
+      render: (value: number) => <span className="text-green-400 font-medium">{formatPrice(value)}</span>
     },
-    { 
-      id: 'notes', 
-      header: 'الملاحظات', 
-      accessor: 'notes', 
+    {
+      id: 'payment_method',
+      header: 'طريقة الدفع',
+      accessor: 'payment_method',
+      width: 120,
+      render: (value: string) => {
+        const methodNames: {[key: string]: string} = {
+          'cash': 'نقدي',
+          'card': 'بطاقة',
+          'bank_transfer': 'تحويل بنكي',
+          'check': 'شيك'
+        }
+        return <span className="text-blue-400">{methodNames[value] || value}</span>
+      }
+    },
+    {
+      id: 'notes',
+      header: 'الملاحظات',
+      accessor: 'notes',
       width: 200,
-      render: (value: string) => <span className="text-gray-400">{value}</span>
+      render: (value: string) => <span className="text-gray-400">{value || '-'}</span>
     }
   ]
 
@@ -966,20 +1139,29 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
                 </h4>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-white">5</span>
+                    <span className="text-white">{purchaseInvoices.length}</span>
                     <span className="text-gray-400 text-sm">عدد الفواتير</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-green-400">{formatPrice(3322)}</span>
-                    <span className="text-gray-400 text-sm">إجمالي المشتريات</span>
+                    <span className="text-blue-400">{formatPrice(totalInvoicesAmount)}</span>
+                    <span className="text-gray-400 text-sm">إجمالي الفواتير</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-blue-400">{formatPrice(664.40)}</span>
+                    <span className="text-green-400">{formatPrice(totalPayments)}</span>
+                    <span className="text-gray-400 text-sm">إجمالي الدفعات</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white">{formatPrice(averageOrderValue)}</span>
                     <span className="text-gray-400 text-sm">متوسط قيمة الطلبية</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-white">7/15/2025</span>
-                    <span className="text-gray-400 text-sm">آخر طلبية</span>
+                    <span className="text-white">
+                      {purchaseInvoices.length > 0
+                        ? new Date(purchaseInvoices[0].created_at).toLocaleDateString('en-GB')
+                        : '-'
+                      }
+                    </span>
+                    <span className="text-gray-400 text-sm">آخر فاتورة</span>
                   </div>
                 </div>
               </div>
@@ -1030,26 +1212,23 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
               {/* Conditional Content Based on Active Tab and View Mode */}
               <div className="flex-1 overflow-hidden relative">
                 {activeTab === 'statement' && (
-                  <div className="h-full flex flex-col">
-                    {/* Account Statement Header */}
-                    <div className="bg-[#2B3544] border-b border-gray-600 p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
-                          دائن {formatPrice(supplierBalance)}
-                        </div>
-                        <div className="text-white text-lg font-medium">كشف حساب المورد</div>
+                  <div className="h-full">
+                    {isLoadingStatements ? (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
+                        <span className="text-gray-400">جاري تحميل كشف الحساب...</span>
                       </div>
-                      <div className="text-gray-400 text-sm mt-2">آخر تحديث: 7/24/2025</div>
-                    </div>
-                    
-                    {/* Account Statement Table */}
-                    <div className="flex-1">
+                    ) : accountStatements.length === 0 ? (
+                      <div className="flex items-center justify-center h-full">
+                        <span className="text-gray-400">لا توجد عمليات في كشف الحساب</span>
+                      </div>
+                    ) : (
                       <ResizableTable
                         className="h-full w-full"
                         columns={statementColumns}
                         data={accountStatements}
                       />
-                    </div>
+                    )}
                   </div>
                 )}
                 
@@ -1133,25 +1312,39 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
                     <div className="bg-[#2B3544] border-b border-gray-600 p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
+                          <button
+                            onClick={() => setShowAddPaymentModal(true)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors"
+                          >
                             <PlusIcon className="h-4 w-4" />
                             إضافة دفعة
                           </button>
                         </div>
                         <div className="text-right">
                           <div className="text-white text-lg font-medium">دفعات المورد</div>
-                          <div className="text-gray-400 text-sm mt-1">إجمالي الدفعات: {formatPrice(13000)}</div>
+                          <div className="text-gray-400 text-sm mt-1">إجمالي الدفعات: {formatPrice(totalPayments)}</div>
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Payments Table */}
                     <div className="flex-1">
-                      <ResizableTable
-                        className="h-full w-full"
-                        columns={paymentsColumns}
-                        data={payments}
-                      />
+                      {isLoadingPayments ? (
+                        <div className="flex items-center justify-center h-full">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
+                          <span className="text-gray-400">جاري تحميل الدفعات...</span>
+                        </div>
+                      ) : supplierPayments.length === 0 ? (
+                        <div className="flex items-center justify-center h-full">
+                          <span className="text-gray-400">لا توجد دفعات مسجلة</span>
+                        </div>
+                      ) : (
+                        <ResizableTable
+                          className="h-full w-full"
+                          columns={paymentsColumns}
+                          data={supplierPayments}
+                        />
+                      )}
                     </div>
                   </div>
                 )}
@@ -1181,6 +1374,20 @@ export default function SupplierDetailsModal({ isOpen, onClose, supplier }: Supp
           setDateFilter(filter)
         }}
         currentFilter={dateFilter}
+      />
+
+      {/* Add Payment Modal */}
+      <AddPaymentModal
+        isOpen={showAddPaymentModal}
+        onClose={() => setShowAddPaymentModal(false)}
+        entityId={supplier.id}
+        entityType="supplier"
+        entityName={supplier.name}
+        currentBalance={supplierBalance}
+        onPaymentAdded={() => {
+          fetchSupplierPayments()
+          fetchSupplierBalance()
+        }}
       />
     </>
   )

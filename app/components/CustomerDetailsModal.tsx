@@ -6,6 +6,7 @@ import ResizableTable from './tables/ResizableTable'
 import { supabase } from '../lib/supabase/client'
 import ConfirmDeleteModal from './ConfirmDeleteModal'
 import SimpleDateFilterModal, { DateFilter } from './SimpleDateFilterModal'
+import AddPaymentModal from './AddPaymentModal'
 import { useSystemCurrency, useFormatPrice } from '@/lib/hooks/useCurrency'
 
 interface CustomerDetailsModalProps {
@@ -44,6 +45,17 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
   // Date filter state
   const [showDateFilter, setShowDateFilter] = useState(false)
   const [dateFilter, setDateFilter] = useState<DateFilter>({ type: 'all' })
+
+  // Add Payment Modal state
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false)
+
+  // Customer payments state
+  const [customerPayments, setCustomerPayments] = useState<any[]>([])
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false)
+
+  // Account statement state
+  const [accountStatements, setAccountStatements] = useState<any[]>([])
+  const [isLoadingStatements, setIsLoadingStatements] = useState(false)
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (viewMode !== 'split' || activeTab !== 'invoices') return
@@ -154,18 +166,29 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
 
     try {
       // Get all sales for this customer (without date filter)
-      const { data: allSales, error } = await supabase
+      const { data: allSales, error: salesError } = await supabase
         .from('sales')
         .select('total_amount, invoice_type')
         .eq('customer_id', customer.id)
 
-      if (error) {
-        console.error('Error fetching customer balance:', error)
+      if (salesError) {
+        console.error('Error fetching customer sales:', salesError)
         return
       }
 
-      // Calculate balance: Sale Invoices add to balance, Sale Returns subtract
-      const balance = (allSales || []).reduce((total, sale) => {
+      // Get all payments for this customer (without date filter)
+      const { data: allPayments, error: paymentsError } = await supabase
+        .from('customer_payments')
+        .select('amount')
+        .eq('customer_id', customer.id)
+
+      if (paymentsError) {
+        console.error('Error fetching customer payments:', paymentsError)
+        return
+      }
+
+      // Calculate sales balance: Sale Invoices add to balance, Sale Returns subtract
+      const salesBalance = (allSales || []).reduce((total, sale) => {
         if (sale.invoice_type === 'Sale Invoice') {
           return total + (sale.total_amount || 0)
         } else if (sale.invoice_type === 'Sale Return') {
@@ -174,7 +197,15 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
         return total
       }, 0)
 
-      setCustomerBalance(balance)
+      // Calculate total payments
+      const totalPayments = (allPayments || []).reduce((total, payment) => {
+        return total + (payment.amount || 0)
+      }, 0)
+
+      // Final balance = Sales Balance - Total Payments
+      const finalBalance = salesBalance - totalPayments
+
+      setCustomerBalance(finalBalance)
     } catch (error) {
       console.error('Error calculating customer balance:', error)
     }
@@ -233,6 +264,150 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
     }
   }
 
+  // Fetch customer payments
+  const fetchCustomerPayments = async () => {
+    if (!customer?.id) return
+
+    try {
+      setIsLoadingPayments(true)
+
+      const { data, error } = await supabase
+        .from('customer_payments')
+        .select(`
+          id,
+          amount,
+          payment_method,
+          reference_number,
+          notes,
+          payment_date,
+          created_at
+        `)
+        .eq('customer_id', customer.id)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching customer payments:', error)
+        return
+      }
+
+      setCustomerPayments(data || [])
+
+    } catch (error) {
+      console.error('Error fetching customer payments:', error)
+    } finally {
+      setIsLoadingPayments(false)
+    }
+  }
+
+  // Fetch and build account statement
+  const fetchAccountStatement = async () => {
+    if (!customer?.id) return
+
+    try {
+      setIsLoadingStatements(true)
+
+      // Get customer with opening balance
+      const { data: customerData, error: customerError } = await supabase
+        .from('customers')
+        .select('opening_balance, created_at')
+        .eq('id', customer.id)
+        .single()
+
+      if (customerError) {
+        console.error('Error fetching customer data:', customerError)
+        return
+      }
+
+      // Get all sales for this customer
+      const { data: salesData, error: salesError } = await supabase
+        .from('sales')
+        .select('id, invoice_number, total_amount, invoice_type, created_at, time')
+        .eq('customer_id', customer.id)
+        .order('created_at', { ascending: true })
+
+      if (salesError) {
+        console.error('Error fetching sales:', salesError)
+        return
+      }
+
+      // Get all payments for this customer
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('customer_payments')
+        .select('id, amount, notes, created_at, payment_date')
+        .eq('customer_id', customer.id)
+        .order('created_at', { ascending: true })
+
+      if (paymentsError) {
+        console.error('Error fetching payments:', paymentsError)
+        return
+      }
+
+      // Build statement array
+      const statements: any[] = []
+
+      // Add opening balance if exists
+      if (customerData.opening_balance && customerData.opening_balance > 0) {
+        statements.push({
+          id: 'opening-balance',
+          date: new Date(customerData.created_at),
+          description: 'الرصيد الأولي',
+          type: 'رصيد أولي',
+          amount: customerData.opening_balance,
+          balance: 0 // Will be calculated
+        })
+      }
+
+      // Add sales
+      salesData?.forEach(sale => {
+        const saleDate = new Date(sale.created_at)
+        statements.push({
+          id: `sale-${sale.id}`,
+          date: saleDate,
+          description: `${sale.invoice_number} فاتورة`,
+          type: sale.invoice_type === 'Sale Invoice' ? 'فاتورة' : 'مرتجع',
+          amount: sale.invoice_type === 'Sale Invoice' ? sale.total_amount : -sale.total_amount,
+          balance: 0 // Will be calculated
+        })
+      })
+
+      // Add payments
+      paymentsData?.forEach(payment => {
+        const paymentDate = new Date(payment.created_at)
+        statements.push({
+          id: `payment-${payment.id}`,
+          date: paymentDate,
+          description: payment.notes ? `دفعة - ${payment.notes}` : 'دفعة',
+          type: 'دفعة',
+          amount: -payment.amount, // Negative because it reduces balance
+          balance: 0 // Will be calculated
+        })
+      })
+
+      // Sort by date
+      statements.sort((a, b) => a.date.getTime() - b.date.getTime())
+
+      // Calculate running balance
+      let runningBalance = 0
+      const statementsWithBalance = statements.map((statement, index) => {
+        runningBalance += statement.amount
+        return {
+          ...statement,
+          balance: runningBalance,
+          displayDate: statement.date.toLocaleDateString('en-GB'),
+          displayTime: statement.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+          index: index + 1
+        }
+      })
+
+      setAccountStatements(statementsWithBalance)
+
+    } catch (error) {
+      console.error('Error building account statement:', error)
+    } finally {
+      setIsLoadingStatements(false)
+    }
+  }
+
   // Fetch sale items for selected sale
   const fetchSaleItems = async (saleId: string) => {
     try {
@@ -276,6 +451,8 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
   useEffect(() => {
     if (isOpen && customer?.id) {
       fetchSales()
+      fetchCustomerPayments()
+      fetchAccountStatement()
 
       // Set up real-time subscription for sales
       const salesChannel = supabase
@@ -286,6 +463,7 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
             console.log('Sales real-time update:', payload)
             fetchSales()
             fetchCustomerBalance() // Also update balance on sales changes
+            fetchAccountStatement() // Update account statement
           }
         )
         .subscribe()
@@ -304,9 +482,24 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
         )
         .subscribe()
 
+      // Set up real-time subscription for customer_payments
+      const paymentsChannel = supabase
+        .channel('modal_customer_payments_changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'customer_payments' },
+          (payload: any) => {
+            console.log('Customer payments real-time update:', payload)
+            fetchCustomerPayments()
+            fetchCustomerBalance() // Also update balance on payment changes
+            fetchAccountStatement() // Update account statement
+          }
+        )
+        .subscribe()
+
       return () => {
         supabase.removeChannel(salesChannel)
         supabase.removeChannel(saleItemsChannel)
+        supabase.removeChannel(paymentsChannel)
       }
     }
   }, [isOpen, customer?.id, dateFilter])
@@ -388,170 +581,119 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
 
   if (!customer) return null
 
-  // Sample account statement data - opening balance, invoices, and payments
-  const accountStatements = [
-    {
-      id: 1,
-      date: '7/15/2025',
-      time: '07:46 AM',
-      description: 'INV-175254784358 فاتورة',
-      type: 'فاتورة',
-      amount: 'EGP 1,677.00+',
-      balance: 'EGP 190,322.00'
-    },
-    {
-      id: 2,
-      date: '7/3/2025',
-      time: '01:22 AM',
-      description: 'دفعة',
-      type: 'دفعة',
-      amount: 'EGP 6,000.00-',
-      balance: 'EGP 188,645.00'
-    },
-    {
-      id: 3,
-      date: '7/2/2025',
-      time: '04:44 AM',
-      description: 'INV-175142668178 فاتورة',
-      type: 'فاتورة',
-      amount: 'EGP 210.00+',
-      balance: 'EGP 194,645.00'
-    },
-    {
-      id: 4,
-      date: '6/30/2025',
-      time: '12:33 AM',
-      description: 'دفعة - دفع',
-      type: 'دفعة',
-      amount: 'EGP 7,000.00-',
-      balance: 'EGP 194,435.00'
-    },
-    {
-      id: 5,
-      date: '6/29/2025',
-      time: '06:05 PM',
-      description: 'INV-175120953803 فاتورة',
-      type: 'فاتورة',
-      amount: 'EGP 850.00+',
-      balance: 'EGP 201,435.00'
-    },
-    {
-      id: 6,
-      date: '6/29/2025',
-      time: '05:42 PM',
-      description: 'INV-175120816250 فاتورة',
-      type: 'فاتورة',
-      amount: 'EGP 100.00+',
-      balance: 'EGP 200,585.00'
-    },
-    {
-      id: 7,
-      date: '6/28/2025',
-      time: '11:23 PM',
-      description: 'INV-175114219445 فاتورة',
-      type: 'فاتورة',
-      amount: 'EGP 485.00+',
-      balance: 'EGP 200,485.00'
-    },
-    {
-      id: 8,
-      date: '6/24/2025',
-      time: '04:35 PM',
-      description: 'الرصيد الأولي',
-      type: 'رصيد أولي',
-      amount: 'EGP 200,000.00+',
-      balance: 'EGP 200,000.00'
-    }
-  ]
+  // Calculate total payments amount
+  const totalPayments = customerPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0)
 
-  // Sample payments data
-  const payments = [
-    {
-      id: 1,
-      date: '7/2/2025',
-      time: '01:22 AM',
-      amount: 'EGP 6,000.00',
-      notes: '-'
-    },
-    {
-      id: 2,
-      date: '6/29/2025', 
-      time: '12:33 AM',
-      amount: 'EGP 7,000.00',
-      notes: 'دفع'
-    }
-  ]
+  // Calculate total invoices amount (for all sales, not filtered by date)
+  const [totalInvoicesAmount, setTotalInvoicesAmount] = useState(0)
 
-  // Define columns for each table - exactly like RecordDetailsModal structure
+  // Fetch total invoices amount
+  useEffect(() => {
+    const fetchTotalInvoicesAmount = async () => {
+      if (!customer?.id) return
+
+      const { data, error } = await supabase
+        .from('sales')
+        .select('total_amount, invoice_type')
+        .eq('customer_id', customer.id)
+
+      if (!error && data) {
+        const total = data.reduce((sum, sale) => {
+          if (sale.invoice_type === 'Sale Invoice') {
+            return sum + (sale.total_amount || 0)
+          } else if (sale.invoice_type === 'Sale Return') {
+            return sum - (sale.total_amount || 0)
+          }
+          return sum
+        }, 0)
+        setTotalInvoicesAmount(total)
+      }
+    }
+
+    if (isOpen && customer?.id) {
+      fetchTotalInvoicesAmount()
+    }
+  }, [isOpen, customer?.id])
+
+  // Calculate average order value
+  const averageOrderValue = sales.length > 0
+    ? totalInvoicesAmount / sales.length
+    : 0
+
+  // Define columns for account statement table
   const statementColumns = [
-    { 
-      id: 'index', 
-      header: '#', 
-      accessor: '#', 
+    {
+      id: 'index',
+      header: '#',
+      accessor: 'index',
       width: 50,
-      render: (value: any, item: any, index: number) => (
-        <span className="text-gray-400">{item.id}</span>
+      render: (value: number) => (
+        <span className="text-gray-400">{value}</span>
       )
     },
-    { 
-      id: 'date', 
-      header: 'التاريخ', 
-      accessor: 'date', 
+    {
+      id: 'date',
+      header: 'التاريخ',
+      accessor: 'displayDate',
       width: 120,
       render: (value: string) => <span className="text-white">{value}</span>
     },
-    { 
-      id: 'time', 
-      header: '⏰ الساعة', 
-      accessor: 'time', 
+    {
+      id: 'time',
+      header: '⏰ الساعة',
+      accessor: 'displayTime',
       width: 80,
       render: (value: string) => <span className="text-blue-400">{value}</span>
     },
-    { 
-      id: 'description', 
-      header: 'البيان', 
-      accessor: 'description', 
+    {
+      id: 'description',
+      header: 'البيان',
+      accessor: 'description',
       width: 300,
       render: (value: string) => <span className="text-white">{value}</span>
     },
-    { 
-      id: 'type', 
-      header: 'نوع العملية', 
-      accessor: 'type', 
+    {
+      id: 'type',
+      header: 'نوع العملية',
+      accessor: 'type',
       width: 120,
       render: (value: string) => (
         <span className={`px-2 py-1 rounded text-xs font-medium ${
-          value === 'فاتورة' 
-            ? 'bg-red-600/20 text-red-400 border border-red-600' 
+          value === 'فاتورة'
+            ? 'bg-blue-600/20 text-blue-400 border border-blue-600'
             : value === 'دفعة'
-            ? 'bg-gray-600/20 text-gray-300 border border-gray-600'
+            ? 'bg-green-600/20 text-green-400 border border-green-600'
+            : value === 'مرتجع'
+            ? 'bg-orange-600/20 text-orange-400 border border-orange-600'
             : 'bg-blue-600/20 text-blue-400 border border-blue-600'
         }`}>
           {value}
         </span>
       )
     },
-    { 
-      id: 'amount', 
-      header: 'المبلغ', 
-      accessor: 'amount', 
+    {
+      id: 'amount',
+      header: 'المبلغ',
+      accessor: 'amount',
       width: 140,
-      render: (value: string) => (
-        <span className={`font-medium ${
-          value && value.includes('+') 
-            ? 'text-green-400' 
-            : 'text-red-400'
-        }`}>
-          {value}
-        </span>
-      )
+      render: (value: number, item: any) => {
+        const isDafeaa = item.type === 'دفعة'
+        const isPositive = value > 0
+        return (
+          <span className={`font-medium ${
+            isDafeaa ? 'text-green-400' : 'text-blue-400'
+          }`}>
+            {isPositive ? '' : ''}{formatPrice(Math.abs(value), 'system')}
+          </span>
+        )
+      }
     },
-    { 
-      id: 'balance', 
-      header: 'الرصيد', 
-      accessor: 'balance', 
+    {
+      id: 'balance',
+      header: 'الرصيد',
+      accessor: 'balance',
       width: 140,
-      render: (value: string) => <span className="text-blue-400 font-medium">{value}</span>
+      render: (value: number) => <span className="text-white font-medium">{formatPrice(value, 'system')}</span>
     }
   ]
 
@@ -660,42 +802,64 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
   ]
 
   const paymentsColumns = [
-    { 
-      id: 'index', 
-      header: '#', 
-      accessor: '#', 
+    {
+      id: 'index',
+      header: '#',
+      accessor: '#',
       width: 50,
       render: (value: any, item: any, index: number) => (
-        <span className="text-gray-400">{item.id}</span>
+        <span className="text-gray-400">{index + 1}</span>
       )
     },
-    { 
-      id: 'date', 
-      header: 'التاريخ', 
-      accessor: 'date', 
+    {
+      id: 'payment_date',
+      header: 'التاريخ',
+      accessor: 'payment_date',
       width: 120,
-      render: (value: string) => <span className="text-white">{value}</span>
+      render: (value: string) => {
+        const date = new Date(value)
+        return <span className="text-white">{date.toLocaleDateString('en-GB')}</span>
+      }
     },
-    { 
-      id: 'time', 
-      header: '⏰ الساعة', 
-      accessor: 'time', 
+    {
+      id: 'created_at',
+      header: '⏰ الساعة',
+      accessor: 'created_at',
       width: 80,
-      render: (value: string) => <span className="text-blue-400">{value}</span>
+      render: (value: string) => {
+        const date = new Date(value)
+        const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+        return <span className="text-blue-400">{time}</span>
+      }
     },
-    { 
-      id: 'amount', 
-      header: 'المبلغ', 
-      accessor: 'amount', 
+    {
+      id: 'amount',
+      header: 'المبلغ',
+      accessor: 'amount',
       width: 140,
-      render: (value: string) => <span className="text-green-400 font-medium">{value}</span>
+      render: (value: number) => <span className="text-green-400 font-medium">{formatPrice(value, 'system')}</span>
     },
-    { 
-      id: 'notes', 
-      header: 'الملاحظات', 
-      accessor: 'notes', 
+    {
+      id: 'payment_method',
+      header: 'طريقة الدفع',
+      accessor: 'payment_method',
+      width: 120,
+      render: (value: string) => {
+        const methodNames: {[key: string]: string} = {
+          'cash': 'نقدي',
+          'card': 'بطاقة',
+          'bank_transfer': 'تحويل بنكي',
+          'check': 'شيك'
+        }
+        return <span className="text-blue-400">{methodNames[value] || value}</span>
+      }
+    },
+    {
+      id: 'notes',
+      header: 'الملاحظات',
+      accessor: 'notes',
       width: 200,
-      render: (value: string) => <span className="text-gray-400">{value}</span>
+      render: (value: string) => <span className="text-gray-400">{value || '-'}</span>
     }
   ]
 
@@ -979,16 +1143,25 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
                     <span className="text-gray-400 text-sm">عدد الفواتير</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-green-400">{formatPrice(sales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0), 'system')}</span>
-                    <span className="text-gray-400 text-sm">إجمالي المشتريات</span>
+                    <span className="text-blue-400">{formatPrice(totalInvoicesAmount, 'system')}</span>
+                    <span className="text-gray-400 text-sm">إجمالي الفواتير</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-blue-400">{formatPrice(sales.length > 0 ? (sales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0) / sales.length) : 0, 'system')}</span>
+                    <span className="text-green-400">{formatPrice(totalPayments, 'system')}</span>
+                    <span className="text-gray-400 text-sm">إجمالي الدفعات</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white">{formatPrice(averageOrderValue, 'system')}</span>
                     <span className="text-gray-400 text-sm">متوسط قيمة الطلبية</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-white">7/15/2025</span>
-                    <span className="text-gray-400 text-sm">آخر زيارة</span>
+                    <span className="text-white">
+                      {sales.length > 0
+                        ? new Date(sales[0].created_at).toLocaleDateString('en-GB')
+                        : '-'
+                      }
+                    </span>
+                    <span className="text-gray-400 text-sm">آخر فاتورة</span>
                   </div>
                 </div>
               </div>
@@ -1039,26 +1212,23 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
               {/* Conditional Content Based on Active Tab and View Mode */}
               <div className="flex-1 overflow-hidden relative">
                 {activeTab === 'statement' && (
-                  <div className="h-full flex flex-col">
-                    {/* Account Statement Header */}
-                    <div className="bg-[#2B3544] border-b border-gray-600 p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
-                          مدين {formatPrice(customerBalance, 'system')}
-                        </div>
-                        <div className="text-white text-lg font-medium">كشف حساب العميل</div>
+                  <div className="h-full">
+                    {isLoadingStatements ? (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
+                        <span className="text-gray-400">جاري تحميل كشف الحساب...</span>
                       </div>
-                      <div className="text-gray-400 text-sm mt-2">آخر تحديث: 7/24/2025</div>
-                    </div>
-                    
-                    {/* Account Statement Table */}
-                    <div className="flex-1">
+                    ) : accountStatements.length === 0 ? (
+                      <div className="flex items-center justify-center h-full">
+                        <span className="text-gray-400">لا توجد عمليات مسجلة</span>
+                      </div>
+                    ) : (
                       <ResizableTable
                         className="h-full w-full"
                         columns={statementColumns}
                         data={accountStatements}
                       />
-                    </div>
+                    )}
                   </div>
                 )}
                 
@@ -1142,25 +1312,39 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
                     <div className="bg-[#2B3544] border-b border-gray-600 p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
+                          <button
+                            onClick={() => setShowAddPaymentModal(true)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors"
+                          >
                             <PlusIcon className="h-4 w-4" />
                             إضافة دفعة
                           </button>
                         </div>
                         <div className="text-right">
                           <div className="text-white text-lg font-medium">دفعات العميل</div>
-                          <div className="text-gray-400 text-sm mt-1">إجمالي الدفعات: {formatPrice(13000, 'system')}</div>
+                          <div className="text-gray-400 text-sm mt-1">إجمالي الدفعات: {formatPrice(totalPayments, 'system')}</div>
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Payments Table */}
                     <div className="flex-1">
-                      <ResizableTable
-                        className="h-full w-full"
-                        columns={paymentsColumns}
-                        data={payments}
-                      />
+                      {isLoadingPayments ? (
+                        <div className="flex items-center justify-center h-full">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
+                          <span className="text-gray-400">جاري تحميل الدفعات...</span>
+                        </div>
+                      ) : customerPayments.length === 0 ? (
+                        <div className="flex items-center justify-center h-full">
+                          <span className="text-gray-400">لا توجد دفعات مسجلة</span>
+                        </div>
+                      ) : (
+                        <ResizableTable
+                          className="h-full w-full"
+                          columns={paymentsColumns}
+                          data={customerPayments}
+                        />
+                      )}
                     </div>
                   </div>
                 )}
@@ -1190,6 +1374,20 @@ export default function CustomerDetailsModal({ isOpen, onClose, customer }: Cust
           setDateFilter(filter)
         }}
         currentFilter={dateFilter}
+      />
+
+      {/* Add Payment Modal */}
+      <AddPaymentModal
+        isOpen={showAddPaymentModal}
+        onClose={() => setShowAddPaymentModal(false)}
+        entityId={customer.id}
+        entityType="customer"
+        entityName={customer.name}
+        currentBalance={customerBalance}
+        onPaymentAdded={() => {
+          fetchCustomerPayments()
+          fetchCustomerBalance()
+        }}
       />
     </>
   )
