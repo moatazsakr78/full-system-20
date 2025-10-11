@@ -99,6 +99,7 @@ import QuickAddProductModal from "../../components/QuickAddProductModal";
 import ColumnsControlModal from "../../components/ColumnsControlModal";
 import { useProducts, Product } from "../../lib/hooks/useProductsOptimized";
 import { usePersistentSelections } from "../../lib/hooks/usePersistentSelections";
+import { usePOSTabs } from "@/lib/hooks/usePOSTabs";
 import {
   createSalesInvoice,
   CartItem,
@@ -144,6 +145,20 @@ function POSPageContent() {
     clearCart: webClearCart,
   } = useCart();
   const { cartBadgeCount } = useCartBadge();
+
+  // POS Tabs Management
+  const {
+    tabs: posTabs,
+    activeTab: activePOSTab,
+    activeTabId,
+    addTab,
+    closeTab,
+    switchTab,
+    updateActiveTabCart,
+    updateActiveTabSelections,
+    clearActiveTabCart,
+    isLoading: isLoadingTabs,
+  } = usePOSTabs();
 
   // Dedicated POS Cart State (separate from website cart)
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -191,6 +206,10 @@ function POSPageContent() {
   // Print Receipt States
   const [showPrintReceiptModal, setShowPrintReceiptModal] = useState(false);
   const [lastInvoiceData, setLastInvoiceData] = useState<any>(null);
+
+  // Add Tab Modal States
+  const [showAddTabModal, setShowAddTabModal] = useState(false);
+  const [newTabName, setNewTabName] = useState("");
 
   // Use persistent selections hook
   const {
@@ -639,6 +658,13 @@ function POSPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally empty - fetchCategories and performance monitors are internal
 
+  // Sync cart with active tab
+  useEffect(() => {
+    if (activePOSTab) {
+      setCartItems(activePOSTab.cartItems || []);
+    }
+  }, [activeTabId, activePOSTab]);
+
   // OPTIMIZED: Memoized product filtering to prevent unnecessary re-renders
   const filteredProducts = useMemo(() => {
     if (!searchQuery) return products;
@@ -670,6 +696,7 @@ function POSPageContent() {
           (item) => item.product.id === product.id,
         );
 
+        let newCart;
         if (existingItemIndex >= 0) {
           // Product already exists in cart
           const newCartItems = [...prev];
@@ -700,7 +727,7 @@ function POSPageContent() {
           existingItem.total = existingItem.price * existingItem.quantity;
 
           newCartItems[existingItemIndex] = existingItem;
-          return newCartItems;
+          newCart = newCartItems;
         } else {
           // New product - create new cart item
           const newCartItem = {
@@ -715,22 +742,31 @@ function POSPageContent() {
             color: selectedColor || null,
           };
 
-          return [...prev, newCartItem];
+          newCart = [...prev, newCartItem];
         }
+
+        // Update active tab cart
+        updateActiveTabCart(newCart);
+        return newCart;
       });
     },
-    [],
+    [updateActiveTabCart],
   ); // Empty dependency array since we only need cartItems state
 
   // OPTIMIZED: Remove from Cart
   const removeFromCart = useCallback((itemId: string) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== itemId));
-  }, []);
+    setCartItems((prev) => {
+      const newCart = prev.filter((item) => item.id !== itemId);
+      updateActiveTabCart(newCart);
+      return newCart;
+    });
+  }, [updateActiveTabCart]);
 
   // OPTIMIZED: Clear Cart
   const clearCart = useCallback(() => {
     setCartItems([]);
-  }, []);
+    clearActiveTabCart();
+  }, [clearActiveTabCart]);
 
   const handleColorSelection = (
     selections: { [key: string]: number },
@@ -765,6 +801,7 @@ function POSPageContent() {
         existingItem.total = productWithPrice.price * totalQuantity;
 
         newCartItems[existingItemIndex] = existingItem;
+        updateActiveTabCart(newCartItems);
         return newCartItems;
       });
     } else {
@@ -778,7 +815,11 @@ function POSPageContent() {
         total: (productWithPrice.price || 0) * totalQuantity,
       };
 
-      setCartItems((prev) => [...prev, newCartItem]);
+      setCartItems((prev) => {
+        const newCart = [...prev, newCartItem];
+        updateActiveTabCart(newCart);
+        return newCart;
+      });
     }
 
     // إغلاق النافذة
@@ -989,6 +1030,11 @@ function POSPageContent() {
 
       // Clear cart after successful invoice creation
       clearCart();
+
+      // Close tab if not the main tab
+      if (activeTabId !== 'main') {
+        closeTab(activeTabId);
+      }
 
       // Reset to default customer after sales (not purchase or transfer)
       if (!isPurchaseMode && !isTransferMode) {
@@ -1791,11 +1837,12 @@ function POSPageContent() {
             </div>
           </div>
 
-          {/* Selection Display Area - Compact (hidden on mobile since info is in unified toolbar) */}
-          <div className="hidden md:flex bg-[#2B3544] border-b border-gray-600 px-4 py-2 items-center justify-between">
-            <div className="flex items-center gap-6 text-sm">
+          {/* Combined Selection Display & POS Tabs Bar (hidden on mobile) */}
+          <div className="hidden md:flex bg-[#2B3544] border-b border-gray-600 items-center justify-between">
+            {/* Right Side: Selection Display */}
+            <div className="flex items-center gap-6 text-sm px-4 py-2">
               {/* Customer/Supplier */}
-              <span className="text-gray-300">
+              <span className="text-gray-300 whitespace-nowrap">
                 {isPurchaseMode ? "المورد" : "العميل"}:{" "}
                 <span className="text-white font-medium">
                   {isPurchaseMode
@@ -1809,7 +1856,7 @@ function POSPageContent() {
               </span>
 
               {/* Branch/Warehouse */}
-              <span className="text-gray-300">
+              <span className="text-gray-300 whitespace-nowrap">
                 {isPurchaseMode
                   ? selectedWarehouse
                     ? selectedWarehouse.locationType === "branch"
@@ -1830,33 +1877,79 @@ function POSPageContent() {
               </span>
 
               {/* Record */}
-              <span className="text-gray-300">
+              <span className="text-gray-300 whitespace-nowrap">
                 السجل:{" "}
                 <span className="text-white font-medium">
                   {selections.record ? selections.record.name : "غير محدد"}
                 </span>
               </span>
+
+              {/* Clear all button - if any selections exist */}
+              {(selections.customer ||
+                selections.branch ||
+                selections.record ||
+                selectedSupplier ||
+                selectedWarehouse) && (
+                <button
+                  onClick={() => {
+                    clearSelections();
+                    if (isPurchaseMode) {
+                      setSelectedSupplier(null);
+                      setSelectedWarehouse(null);
+                    }
+                  }}
+                  className="text-xs text-gray-400 hover:text-red-400 transition-colors px-2 py-1 rounded whitespace-nowrap"
+                >
+                  مسح الكل
+                </button>
+              )}
             </div>
 
-            {/* Clear all button - if any selections exist */}
-            {(selections.customer ||
-              selections.branch ||
-              selections.record ||
-              selectedSupplier ||
-              selectedWarehouse) && (
+            {/* Vertical Divider */}
+            <div className="h-8 w-px bg-gray-600"></div>
+
+            {/* Left Side: POS Tabs */}
+            <div className="flex items-center overflow-x-auto scrollbar-hide flex-1">
+              {posTabs.map((tab) => (
+                <div
+                  key={tab.id}
+                  className={`flex items-center border-l border-gray-600 ${
+                    tab.active
+                      ? 'bg-[#F97316] text-white'
+                      : 'text-gray-300 hover:text-white hover:bg-[#4B5563]'
+                  }`}
+                >
+                  <button
+                    onClick={() => switchTab(tab.id)}
+                    className="px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap"
+                  >
+                    <span>{tab.title}</span>
+                  </button>
+
+                  {tab.id !== 'main' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        closeTab(tab.id);
+                      }}
+                      className="ml-1 p-1 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                      title="إغلاق"
+                    >
+                      <XMarkIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              {/* Add New Tab Button */}
               <button
-                onClick={() => {
-                  clearSelections();
-                  if (isPurchaseMode) {
-                    setSelectedSupplier(null);
-                    setSelectedWarehouse(null);
-                  }
-                }}
-                className="text-xs text-gray-400 hover:text-red-400 transition-colors px-2 py-1 rounded"
+                onClick={() => setShowAddTabModal(true)}
+                className="px-3 py-2 text-green-400 hover:text-green-300 hover:bg-green-500/10 transition-colors flex items-center gap-1 border-l border-gray-600"
+                title="إضافة نافذة بيع جديدة"
               >
-                مسح الكل
+                <PlusIcon className="w-4 h-4" />
               </button>
-            )}
+            </div>
           </div>
 
           {/* Desktop Toolbar - Original Design (hidden on mobile) */}
@@ -2057,7 +2150,7 @@ function POSPageContent() {
                             </div>
                             {cartItems.length > 0 && (
                               <button
-                                onClick={() => setCartItems([])}
+                                onClick={() => clearCart()}
                                 className="text-red-400 hover:text-red-300 text-sm"
                                 title="مسح السلة"
                               >
@@ -2090,11 +2183,7 @@ function POSPageContent() {
                                       {item.product.name}
                                     </h4>
                                     <button
-                                      onClick={() => {
-                                        setCartItems((prev) =>
-                                          prev.filter((cartItem) => cartItem.id !== item.id),
-                                        );
-                                      }}
+                                      onClick={() => removeFromCart(item.id)}
                                       className="text-red-400 hover:text-red-300 p-1 ml-2 flex-shrink-0"
                                       title="إزالة من السلة"
                                     >
@@ -2112,8 +2201,8 @@ function POSPageContent() {
                                         value={item.quantity}
                                         onChange={(e) => {
                                           const newQuantity = parseInt(e.target.value) || 1;
-                                          setCartItems((prev) =>
-                                            prev.map((cartItem) => {
+                                          setCartItems((prev) => {
+                                            const newCart = prev.map((cartItem) => {
                                               if (cartItem.id === item.id) {
                                                 const pricePerUnit =
                                                   newQuantity / cartItem.quantity;
@@ -2144,8 +2233,10 @@ function POSPageContent() {
                                                 };
                                               }
                                               return cartItem;
-                                            }),
-                                          );
+                                            });
+                                            updateActiveTabCart(newCart);
+                                            return newCart;
+                                          });
                                         }}
                                         className="w-16 px-2 py-1 bg-[#374151] border border-gray-600 rounded text-white text-xs text-center"
                                       />
@@ -2160,8 +2251,8 @@ function POSPageContent() {
                                         value={((item.totalPrice || (item.price * item.quantity) || 0) / item.quantity).toFixed(2)}
                                         onChange={(e) => {
                                           const newPrice = parseFloat(e.target.value) || 0;
-                                          setCartItems((prev) =>
-                                            prev.map((cartItem) =>
+                                          setCartItems((prev) => {
+                                            const newCart = prev.map((cartItem) =>
                                               cartItem.id === item.id
                                                 ? {
                                                     ...cartItem,
@@ -2170,8 +2261,10 @@ function POSPageContent() {
                                                       cartItem.quantity * newPrice,
                                                   }
                                                 : cartItem,
-                                            ),
-                                          );
+                                            );
+                                            updateActiveTabCart(newCart);
+                                            return newCart;
+                                          });
                                         }}
                                         className="w-20 px-2 py-1 bg-[#374151] border border-gray-600 rounded text-white text-xs text-center"
                                       />
@@ -2492,8 +2585,8 @@ function POSPageContent() {
                               value={item.quantity}
                               type="number"
                               onUpdate={(newQuantity) => {
-                                setCartItems((prev) =>
-                                  prev.map((cartItem) => {
+                                setCartItems((prev) => {
+                                  const newCart = prev.map((cartItem) => {
                                     if (cartItem.id === item.id) {
                                       // Calculate the ratio of change for proportional color updates
                                       const ratio =
@@ -2530,8 +2623,10 @@ function POSPageContent() {
                                       };
                                     }
                                     return cartItem;
-                                  }),
-                                );
+                                  });
+                                  updateActiveTabCart(newCart);
+                                  return newCart;
+                                });
                               }}
                               className="text-white font-medium text-right bg-transparent border-none outline-none w-16 hover:bg-gray-600/20 rounded px-1"
                             />
@@ -2548,8 +2643,8 @@ function POSPageContent() {
                                   type="number"
                                   step="0.01"
                                   onUpdate={(newPrice) => {
-                                    setCartItems((prev) =>
-                                      prev.map((cartItem) =>
+                                    setCartItems((prev) => {
+                                      const newCart = prev.map((cartItem) =>
                                         cartItem.id === item.id
                                           ? {
                                               ...cartItem,
@@ -2558,8 +2653,10 @@ function POSPageContent() {
                                                 cartItem.quantity * newPrice,
                                             }
                                           : cartItem,
-                                      ),
-                                    );
+                                      );
+                                      updateActiveTabCart(newCart);
+                                      return newCart;
+                                    });
                                   }}
                                   className="text-blue-400 font-medium text-right bg-transparent border-none outline-none w-16 hover:bg-gray-600/20 rounded px-1"
                                 />
@@ -3385,6 +3482,54 @@ function POSPageContent() {
         isOpen={isCartModalOpen}
         onClose={() => setIsCartModalOpen(false)}
       />
+
+      {/* Add Tab Modal */}
+      {showAddTabModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setShowAddTabModal(false)}>
+          <div className="bg-[#2B3544] rounded-lg p-6 w-96 max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-white text-lg font-medium mb-4">إضافة نافذة بيع جديدة</h3>
+            <input
+              type="text"
+              value={newTabName}
+              onChange={(e) => setNewTabName(e.target.value)}
+              placeholder="اسم النافذة..."
+              className="w-full px-4 py-2 bg-[#374151] border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && newTabName.trim()) {
+                  addTab(newTabName.trim());
+                  setNewTabName("");
+                  setShowAddTabModal(false);
+                }
+              }}
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setNewTabName("");
+                  setShowAddTabModal(false);
+                }}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={() => {
+                  if (newTabName.trim()) {
+                    addTab(newTabName.trim());
+                    setNewTabName("");
+                    setShowAddTabModal(false);
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                disabled={!newTabName.trim()}
+              >
+                موافق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
