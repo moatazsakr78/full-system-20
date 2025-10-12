@@ -160,35 +160,7 @@ export default function PaymentModal({
         detectedAccountNumber: analyzedAccount,
         transactionDate: analyzedDate,
       });
-      console.log('✅ Payment record saved');
-
-      // Update order's total_paid
-      console.log('💰 Updating order payment...');
-      const { supabase } = await import('@/app/lib/supabase/client');
-
-      const { data: orderData } = await (supabase as any)
-        .from('orders')
-        .select('total_paid, total_amount')
-        .eq('id', orderId)
-        .single();
-
-      if (orderData) {
-        const newTotalPaid = (orderData.total_paid || 0) + finalAmount;
-        const totalAmount = orderData.total_amount || 0;
-        const newProgress = Math.min((newTotalPaid / totalAmount) * 100, 100);
-        const isFullyPaid = newTotalPaid >= totalAmount;
-
-        await (supabase as any)
-          .from('orders')
-          .update({
-            total_paid: newTotalPaid,
-            payment_progress: newProgress,
-            fully_paid: isFullyPaid
-          })
-          .eq('id', orderId);
-
-        console.log('✅ Order payment updated:', { newTotalPaid, newProgress, isFullyPaid });
-      }
+      console.log('✅ Payment record saved and order payment recalculated automatically');
 
       setSuccess(true);
       setTimeout(() => {
