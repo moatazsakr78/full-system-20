@@ -366,7 +366,7 @@ export default function OrdersPage() {
     setDeletingReceiptId(receiptId);
 
     try {
-      await paymentService.deletePaymentReceipt(receiptId, imageUrl);
+      await paymentService.deletePaymentReceipt(receiptId, imageUrl, orderId);
 
       // Reload receipts and payment progress for this order
       const receipts = await paymentService.getOrderPaymentReceipts(orderId);
@@ -381,7 +381,7 @@ export default function OrdersPage() {
         [orderId]: progress
       }));
 
-      alert('تم حذف الإيصال بنجاح');
+      alert('تم حذف الإيصال بنجاح ✓');
     } catch (error: any) {
       console.error('Error deleting receipt:', error);
       alert(`فشل حذف الإيصال: ${error.message}`);
@@ -404,7 +404,7 @@ export default function OrdersPage() {
       setEditingReceiptId(receiptId);
 
       try {
-        await paymentService.updatePaymentReceipt(receiptId, oldImageUrl, file, orderId);
+        const updatedReceipt = await paymentService.updatePaymentReceipt(receiptId, oldImageUrl, file, orderId);
 
         // Reload receipts and payment progress
         const receipts = await paymentService.getOrderPaymentReceipts(orderId);
@@ -419,7 +419,12 @@ export default function OrdersPage() {
           [orderId]: progress
         }));
 
-        alert('تم تحديث الإيصال بنجاح');
+        const detectedAmount = updatedReceipt.detected_amount;
+        const message = detectedAmount
+          ? `تم تحديث الإيصال بنجاح ✓\nالمبلغ المكتشف: ${detectedAmount} جنيه`
+          : 'تم تحديث الإيصال بنجاح ✓\nلم يتم اكتشاف مبلغ في الإيصال';
+
+        alert(message);
       } catch (error: any) {
         console.error('Error updating receipt:', error);
         alert(`فشل تحديث الإيصال: ${error.message}`);

@@ -111,6 +111,9 @@ class PaymentService {
       throw new Error(`Failed to create payment receipt: ${error.message}`);
     }
 
+    // Recalculate order payment totals
+    await this.recalculateOrderPayment(data.orderId);
+
     return receipt;
   }
 
@@ -188,9 +191,59 @@ class PaymentService {
   }
 
   /**
+   * Recalculate and update order payment totals
+   */
+  async recalculateOrderPayment(orderId: string): Promise<void> {
+    // Get all receipts for this order (verified and pending, not rejected)
+    const { data: receipts, error: receiptsError } = await (supabase as any)
+      .from('payment_receipts')
+      .select('detected_amount')
+      .eq('order_id', orderId)
+      .neq('payment_status', 'rejected');
+
+    if (receiptsError) {
+      throw new Error(`Failed to fetch receipts: ${receiptsError.message}`);
+    }
+
+    // Get order total
+    const { data: order, error: orderError } = await (supabase as any)
+      .from('orders')
+      .select('total_amount')
+      .eq('id', orderId)
+      .single();
+
+    if (orderError) {
+      throw new Error(`Failed to fetch order: ${orderError.message}`);
+    }
+
+    // Calculate total paid from all receipts (except rejected ones)
+    const totalPaid = (receipts || []).reduce((sum: number, receipt: any) => {
+      return sum + (parseFloat(receipt.detected_amount) || 0);
+    }, 0);
+
+    const totalAmount = parseFloat(order.total_amount) || 0;
+    const paymentProgress = totalAmount > 0 ? Math.round((totalPaid / totalAmount) * 100) : 0;
+    const fullyPaid = totalPaid >= totalAmount;
+
+    // Update order with new totals
+    const { error: updateError } = await (supabase as any)
+      .from('orders')
+      .update({
+        total_paid: totalPaid,
+        payment_progress: paymentProgress,
+        fully_paid: fullyPaid
+      })
+      .eq('id', orderId);
+
+    if (updateError) {
+      throw new Error(`Failed to update order payment: ${updateError.message}`);
+    }
+  }
+
+  /**
    * Delete payment receipt
    */
-  async deletePaymentReceipt(receiptId: string, imageUrl: string): Promise<void> {
+  async deletePaymentReceipt(receiptId: string, imageUrl: string, orderId: string): Promise<void> {
     // Extract file path from URL
     const urlParts = imageUrl.split('/');
     const filePath = `receipts/${urlParts[urlParts.length - 1]}`;
@@ -214,6 +267,9 @@ class PaymentService {
     if (error) {
       throw new Error(`Failed to delete payment receipt: ${error.message}`);
     }
+
+    // Recalculate order payment totals
+    await this.recalculateOrderPayment(orderId);
   }
 
   /**
@@ -256,6 +312,9 @@ class PaymentService {
     await supabase.storage
       .from('payment-screen')
       .remove([oldFilePath]);
+
+    // Recalculate order payment totals
+    await this.recalculateOrderPayment(orderId);
 
     return receipt;
   }
