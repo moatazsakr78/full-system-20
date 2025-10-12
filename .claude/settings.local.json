@@ -286,7 +286,11 @@
       "Bash(kill:*)",
       "Bash(start test-quantity-input.html)",
       "Bash(npx supabase db push:*)",
-      "Bash(cmd /c:*)"
+      "Bash(cmd /c:*)",
+      "Bash(git reset:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "additionalDirectories": [

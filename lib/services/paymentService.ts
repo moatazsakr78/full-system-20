@@ -186,6 +186,79 @@ class PaymentService {
       fullyPaid: data.fully_paid || false
     };
   }
+
+  /**
+   * Delete payment receipt
+   */
+  async deletePaymentReceipt(receiptId: string, imageUrl: string): Promise<void> {
+    // Extract file path from URL
+    const urlParts = imageUrl.split('/');
+    const filePath = `receipts/${urlParts[urlParts.length - 1]}`;
+
+    // Delete image from storage
+    const { error: storageError } = await supabase.storage
+      .from('payment-screen')
+      .remove([filePath]);
+
+    if (storageError) {
+      console.error('Error deleting image from storage:', storageError);
+      // Continue even if storage deletion fails
+    }
+
+    // Delete receipt record from database
+    const { error } = await (supabase as any)
+      .from('payment_receipts')
+      .delete()
+      .eq('id', receiptId);
+
+    if (error) {
+      throw new Error(`Failed to delete payment receipt: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update payment receipt image
+   */
+  async updatePaymentReceipt(
+    receiptId: string,
+    oldImageUrl: string,
+    newFile: File,
+    orderId: string
+  ): Promise<PaymentReceipt> {
+    // Upload new image
+    const newImageUrl = await this.uploadReceiptImage(newFile, orderId);
+
+    // Analyze new receipt
+    const analysis = await this.analyzeReceipt(newFile);
+
+    // Update receipt record
+    const { data: receipt, error } = await (supabase as any)
+      .from('payment_receipts')
+      .update({
+        receipt_image_url: newImageUrl,
+        detected_amount: analysis.amount,
+        detected_account_number: analysis.accountNumber,
+        payment_status: 'pending', // Reset to pending after update
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', receiptId)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update payment receipt: ${error.message}`);
+    }
+
+    // Delete old image from storage
+    const urlParts = oldImageUrl.split('/');
+    const oldFilePath = `receipts/${urlParts[urlParts.length - 1]}`;
+
+    await supabase.storage
+      .from('payment-screen')
+      .remove([oldFilePath]);
+
+    return receipt;
+  }
 }
 
 export const paymentService = new PaymentService();
