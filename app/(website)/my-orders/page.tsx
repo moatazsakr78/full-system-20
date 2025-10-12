@@ -87,7 +87,6 @@ export default function OrdersPage() {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [deletingReceiptId, setDeletingReceiptId] = useState<string | null>(null);
-  const [editingReceiptId, setEditingReceiptId] = useState<string | null>(null);
   
 
   // Load orders from database
@@ -366,16 +365,33 @@ export default function OrdersPage() {
     setDeletingReceiptId(receiptId);
 
     try {
+      console.log('🗑️ UI: Starting receipt deletion...', { receiptId, orderId });
+      console.log('📊 Current receipts count BEFORE deletion:', orderReceipts[orderId]?.length || 0);
+
+      // Delete from database FIRST (no optimistic update to avoid confusion)
       await paymentService.deletePaymentReceipt(receiptId, imageUrl, orderId);
 
-      // Reload receipts and payment progress for this order
+      console.log('✅ UI: Receipt deleted from database successfully');
+
+      // Wait a moment to ensure database transaction completes
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Reload receipts from database
+      console.log('📋 UI: Reloading receipts from database...');
       const receipts = await paymentService.getOrderPaymentReceipts(orderId);
+      console.log('📊 UI: Reloaded receipts count AFTER deletion:', receipts.length);
+      console.log('📋 UI: Receipt IDs after reload:', receipts.map(r => r.id));
+
       setOrderReceipts(prev => ({
         ...prev,
         [orderId]: receipts
       }));
 
+      // Reload payment progress to get updated amounts
+      console.log('💰 UI: Reloading payment progress...');
       const progress = await paymentService.getOrderPaymentProgress(orderId);
+      console.log('💵 UI: Updated payment progress:', progress);
+
       setPaymentProgress(prev => ({
         ...prev,
         [orderId]: progress
@@ -383,57 +399,25 @@ export default function OrdersPage() {
 
       alert('تم حذف الإيصال بنجاح ✓');
     } catch (error: any) {
-      console.error('Error deleting receipt:', error);
-      alert(`فشل حذف الإيصال: ${error.message}`);
-    } finally {
-      setDeletingReceiptId(null);
-    }
-  };
+      console.error('❌ UI: Error deleting receipt:', error);
+      console.error('❌ UI: Full error object:', JSON.stringify(error, null, 2));
 
-  // Handle edit receipt
-  const handleEditReceipt = async (receiptId: string, oldImageUrl: string, orderId: string) => {
-    // Create file input
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-
-      setEditingReceiptId(receiptId);
-
+      // Reload data on error to restore correct state
       try {
-        const updatedReceipt = await paymentService.updatePaymentReceipt(receiptId, oldImageUrl, file, orderId);
-
-        // Reload receipts and payment progress
         const receipts = await paymentService.getOrderPaymentReceipts(orderId);
+        console.log('🔄 UI: Restored receipts after error:', receipts.length);
         setOrderReceipts(prev => ({
           ...prev,
           [orderId]: receipts
         }));
-
-        const progress = await paymentService.getOrderPaymentProgress(orderId);
-        setPaymentProgress(prev => ({
-          ...prev,
-          [orderId]: progress
-        }));
-
-        const detectedAmount = updatedReceipt.detected_amount;
-        const message = detectedAmount
-          ? `تم تحديث الإيصال بنجاح ✓\nالمبلغ المكتشف: ${detectedAmount} جنيه`
-          : 'تم تحديث الإيصال بنجاح ✓\nلم يتم اكتشاف مبلغ في الإيصال';
-
-        alert(message);
-      } catch (error: any) {
-        console.error('Error updating receipt:', error);
-        alert(`فشل تحديث الإيصال: ${error.message}`);
-      } finally {
-        setEditingReceiptId(null);
+      } catch (reloadError) {
+        console.error('❌ UI: Failed to reload receipts after error:', reloadError);
       }
-    };
 
-    input.click();
+      alert(`فشل حذف الإيصال: ${error.message}\n\nتحقق من Console للمزيد من التفاصيل`);
+    } finally {
+      setDeletingReceiptId(null);
+    }
   };
 
 
@@ -850,45 +834,23 @@ export default function OrdersPage() {
                                         </div>
                                       </button>
 
-                                      {/* Action Buttons */}
-                                      <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {/* Edit Button */}
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditReceipt(receipt.id, receipt.receipt_image_url, order.orderId);
-                                          }}
-                                          disabled={editingReceiptId === receipt.id}
-                                          className="p-1 bg-blue-500 hover:bg-blue-600 text-white rounded-md shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                          title="تعديل الإيصال"
-                                        >
-                                          {editingReceiptId === receipt.id ? (
-                                            <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                            </svg>
-                                          ) : (
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                            </svg>
-                                          )}
-                                        </button>
-
-                                        {/* Delete Button */}
+                                      {/* Delete Button */}
+                                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleDeleteReceipt(receipt.id, receipt.receipt_image_url, order.orderId);
                                           }}
                                           disabled={deletingReceiptId === receipt.id}
-                                          className="p-1 bg-red-500 hover:bg-red-600 text-white rounded-md shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                          className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                           title="حذف الإيصال"
                                         >
                                           {deletingReceiptId === receipt.id ? (
-                                            <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                             </svg>
                                           ) : (
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
                                           )}

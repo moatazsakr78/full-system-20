@@ -7,6 +7,7 @@ export interface PaymentReceipt {
   receipt_image_url: string;
   detected_amount: number | null;
   detected_account_number: string | null;
+  transaction_date: string | null;
   payment_status: 'pending' | 'verified' | 'rejected';
   verification_notes: string | null;
   verified_by: string | null;
@@ -194,6 +195,8 @@ class PaymentService {
    * Recalculate and update order payment totals
    */
   async recalculateOrderPayment(orderId: string): Promise<void> {
+    console.log('💰 Recalculating payment for order:', orderId);
+
     // Get all receipts for this order (verified and pending, not rejected)
     const { data: receipts, error: receiptsError } = await (supabase as any)
       .from('payment_receipts')
@@ -204,6 +207,8 @@ class PaymentService {
     if (receiptsError) {
       throw new Error(`Failed to fetch receipts: ${receiptsError.message}`);
     }
+
+    console.log('📊 Found receipts:', receipts?.length || 0);
 
     // Get order total
     const { data: order, error: orderError } = await (supabase as any)
@@ -225,6 +230,14 @@ class PaymentService {
     const paymentProgress = totalAmount > 0 ? Math.round((totalPaid / totalAmount) * 100) : 0;
     const fullyPaid = totalPaid >= totalAmount;
 
+    console.log('💵 Payment calculation:', {
+      totalAmount,
+      totalPaid,
+      paymentProgress: `${paymentProgress}%`,
+      fullyPaid,
+      receiptsCount: receipts?.length || 0
+    });
+
     // Update order with new totals
     const { error: updateError } = await (supabase as any)
       .from('orders')
@@ -238,38 +251,85 @@ class PaymentService {
     if (updateError) {
       throw new Error(`Failed to update order payment: ${updateError.message}`);
     }
+
+    console.log('✅ Order payment updated successfully');
   }
 
   /**
    * Delete payment receipt
    */
   async deletePaymentReceipt(receiptId: string, imageUrl: string, orderId: string): Promise<void> {
-    // Extract file path from URL
-    const urlParts = imageUrl.split('/');
-    const filePath = `receipts/${urlParts[urlParts.length - 1]}`;
+    console.log('🗑️ Starting receipt deletion:', { receiptId, orderId });
 
-    // Delete image from storage
-    const { error: storageError } = await supabase.storage
-      .from('payment-screen')
-      .remove([filePath]);
+    try {
+      // First check if receipt exists
+      const { data: existingReceipt, error: checkError } = await (supabase as any)
+        .from('payment_receipts')
+        .select('*')
+        .eq('id', receiptId)
+        .single();
 
-    if (storageError) {
-      console.error('Error deleting image from storage:', storageError);
-      // Continue even if storage deletion fails
+      if (checkError) {
+        console.error('❌ Error checking receipt existence:', checkError);
+        throw new Error(`Failed to find receipt: ${checkError.message}`);
+      }
+
+      console.log('📋 Found receipt to delete:', existingReceipt);
+
+      // Delete receipt record from database FIRST
+      const { data: deletedData, error: deleteError } = await (supabase as any)
+        .from('payment_receipts')
+        .delete()
+        .eq('id', receiptId)
+        .select();
+
+      if (deleteError) {
+        console.error('❌ Database deletion error:', {
+          message: deleteError.message,
+          details: deleteError.details,
+          hint: deleteError.hint,
+          code: deleteError.code
+        });
+        throw new Error(`Failed to delete payment receipt from database: ${deleteError.message}. Details: ${deleteError.details || 'No details'}. Hint: ${deleteError.hint || 'No hint'}`);
+      }
+
+      console.log('✅ Receipt deleted from database. Deleted rows:', deletedData);
+
+      // Verify deletion
+      const { data: verifyData, error: verifyError } = await (supabase as any)
+        .from('payment_receipts')
+        .select('id')
+        .eq('id', receiptId);
+
+      if (verifyError) {
+        console.error('⚠️ Error verifying deletion:', verifyError);
+      } else {
+        console.log('🔍 Verification check - remaining receipts with this ID:', verifyData?.length || 0);
+      }
+
+      // Delete image from storage (after database deletion)
+      const urlParts = imageUrl.split('/');
+      const filePath = `receipts/${urlParts[urlParts.length - 1]}`;
+
+      const { error: storageError } = await supabase.storage
+        .from('payment-screen')
+        .remove([filePath]);
+
+      if (storageError) {
+        console.error('⚠️ Error deleting image from storage:', storageError);
+        // Continue even if storage deletion fails
+      } else {
+        console.log('✅ Image deleted from storage');
+      }
+
+      // Recalculate order payment totals
+      await this.recalculateOrderPayment(orderId);
+      console.log('✅ Order payment recalculated after deletion');
+
+    } catch (error) {
+      console.error('❌ Complete error in deletePaymentReceipt:', error);
+      throw error;
     }
-
-    // Delete receipt record from database
-    const { error } = await (supabase as any)
-      .from('payment_receipts')
-      .delete()
-      .eq('id', receiptId);
-
-    if (error) {
-      throw new Error(`Failed to delete payment receipt: ${error.message}`);
-    }
-
-    // Recalculate order payment totals
-    await this.recalculateOrderPayment(orderId);
   }
 
   /**

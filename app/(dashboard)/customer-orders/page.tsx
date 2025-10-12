@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import PrepareOrderModal from '../../components/PrepareOrderModal';
+import OrderPaymentReceipts from '../../components/OrderPaymentReceipts';
 import { useFormatPrice } from '@/lib/hooks/useCurrency';
 import { supabase } from '../../lib/supabase/client';
 import { useCompanySettings } from '@/lib/hooks/useCompanySettings';
+import { paymentService, PaymentReceipt } from '@/lib/services/paymentService';
 
 // Order status type
 type OrderStatus = 'pending' | 'processing' | 'ready_for_pickup' | 'ready_for_shipping' | 'shipped' | 'delivered' | 'cancelled' | 'issue';
@@ -116,6 +118,9 @@ export default function CustomerOrdersPage() {
   const [branches, setBranches] = useState<any[]>([]);
   const [records, setRecords] = useState<any[]>([]);
   const [creatingInvoice, setCreatingInvoice] = useState(false);
+
+  // Payment receipts states
+  const [orderReceipts, setOrderReceipts] = useState<Record<string, PaymentReceipt[]>>({});
 
   // Debug: Log context menu state changes
   useEffect(() => {
@@ -250,6 +255,72 @@ export default function CustomerOrdersPage() {
 
     loadOrders();
   }, []);
+
+  // Load payment receipts for all orders
+  useEffect(() => {
+    const loadAllReceipts = async () => {
+      if (!orders || orders.length === 0) return;
+
+      const receiptsMap: Record<string, PaymentReceipt[]> = {};
+      for (const order of orders) {
+        if (order.orderId) {
+          try {
+            const receipts = await paymentService.getOrderPaymentReceipts(order.orderId);
+            receiptsMap[order.orderId] = receipts;
+          } catch (error) {
+            console.error(`Failed to load receipts for order ${order.orderId}:`, error);
+            receiptsMap[order.orderId] = [];
+          }
+        }
+      }
+      setOrderReceipts(receiptsMap);
+    };
+
+    loadAllReceipts();
+  }, [orders]);
+
+  // Verify all pending receipts for an order
+  const handleVerifyAllReceipts = async (orderId: string) => {
+    try {
+      // Get all pending receipts for this order
+      const receipts = orderReceipts[orderId] || [];
+      const pendingReceipts = receipts.filter(r => r.payment_status === 'pending');
+
+      if (pendingReceipts.length === 0) {
+        alert('لا توجد إيصالات معلقة لتأكيدها');
+        return;
+      }
+
+      // Verify all pending receipts
+      for (const receipt of pendingReceipts) {
+        await paymentService.verifyPaymentReceipt(
+          receipt.id,
+          true,
+          'تم التأكيد من صفحة طلبات العملاء'
+        );
+      }
+
+      // Reload receipts for all orders
+      const receiptsMap: Record<string, PaymentReceipt[]> = {};
+      for (const order of orders) {
+        if (order.orderId) {
+          try {
+            const receipts = await paymentService.getOrderPaymentReceipts(order.orderId);
+            receiptsMap[order.orderId] = receipts;
+          } catch (error) {
+            console.error(`Failed to load receipts for order ${order.orderId}:`, error);
+            receiptsMap[order.orderId] = [];
+          }
+        }
+      }
+      setOrderReceipts(receiptsMap);
+
+      alert(`تم تأكيد ${pendingReceipts.length} إيصال بنجاح ✓`);
+    } catch (error: any) {
+      console.error('Error verifying receipts:', error);
+      alert(`فشل تأكيد الإيصالات: ${error.message}`);
+    }
+  };
 
   // Handle page visibility changes (important for mobile devices)
   useEffect(() => {
@@ -1364,8 +1435,8 @@ export default function CustomerOrdersPage() {
                 <div key={order.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
                   {/* Status Tag with Order Info */}
                   <div className="px-3 md:px-4 lg:px-6 pt-3 md:pt-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      {/* Left Side: Status Tag + Time Remaining */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Status Tag + Time Remaining */}
                       <div className="flex items-center gap-2">
                         <span
                           className={`inline-flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1 md:py-2 rounded-full text-sm md:text-base font-semibold cursor-pointer ${
@@ -1384,8 +1455,8 @@ export default function CustomerOrdersPage() {
                             }
                           }}
                           title={
-                            !['cancelled', 'issue', 'delivered'].includes(order.status) 
-                              ? "انقر بالزر الأيمن لتغيير الحالة إلى (ملغي) أو (مشكله)" 
+                            !['cancelled', 'issue', 'delivered'].includes(order.status)
+                              ? "انقر بالزر الأيمن لتغيير الحالة إلى (ملغي) أو (مشكله)"
                               : "لا يمكن تغيير حالة هذا الطلب"
                           }
                         >
@@ -1398,10 +1469,10 @@ export default function CustomerOrdersPage() {
                           const timeRemaining = getTimeRemaining(order);
                           if (timeRemaining) {
                             return (
-                              <div 
+                              <div
                                 className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                                  timeRemaining.type === 'deletion' 
-                                    ? 'bg-red-100 text-red-800 border border-red-200' 
+                                  timeRemaining.type === 'deletion'
+                                    ? 'bg-red-100 text-red-800 border border-red-200'
                                     : 'bg-blue-100 text-blue-800 border border-blue-200'
                                 }`}
                                 title={timeRemaining.text}
@@ -1416,11 +1487,11 @@ export default function CustomerOrdersPage() {
                           return null;
                         })()}
                       </div>
-                      
-                      {/* Right Side: Order Number and Date */}
-                      <div className="flex flex-col items-end text-right">
-                        <span className="text-sm md:text-base font-medium text-gray-800">طلب رقم: {order.id}</span>
-                        <span className="text-xs md:text-sm text-gray-600">{new Date(order.date).toLocaleDateString('en-GB')}</span>
+
+                      {/* Order Number and Date */}
+                      <div className="flex flex-col items-start text-left">
+                        <span className="text-xs md:text-sm font-medium text-gray-700">طلب رقم: {order.id}</span>
+                        <span className="text-sm md:text-base font-bold text-gray-700">{new Date(order.date).toLocaleDateString('en-GB')}</span>
                       </div>
                     </div>
                   </div>
@@ -1490,12 +1561,31 @@ export default function CustomerOrdersPage() {
                           )}
                         </div>
                       </div>
+
+                      {/* Payment Receipts Section - Mobile */}
+                      {order.orderId && (
+                        <>
+                          <div className="border-t border-gray-200"></div>
+                          <div className="py-3">
+                            <h4 className="text-sm font-semibold text-blue-600 mb-3">إيصال الدفع</h4>
+                            <OrderPaymentReceipts
+                              receipts={orderReceipts[order.orderId] || []}
+                              onVerifyAllReceipts={async () => {
+                                if (order.orderId) {
+                                  await handleVerifyAllReceipts(order.orderId);
+                                }
+                              }}
+                              formatPrice={formatPrice}
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Desktop/Tablet View: Side by Side Layout */}
                     <div className="hidden md:block py-4">
                       <div className="grid grid-cols-3 gap-4 md:gap-6 lg:gap-8">
-                        {/* Customer Information - Left Side (takes more space) */}
+                        {/* Customer Information - Right Side (takes more space) */}
                         <div className="col-span-2">
                           <h5 className="text-lg font-semibold text-blue-600 mb-4">معلومات العميل</h5>
                           <div className="space-y-3 text-lg">
@@ -1509,47 +1599,66 @@ export default function CustomerOrdersPage() {
                           </div>
                         </div>
 
-                        {/* Financial Details + Arrow - Right Side (compact) */}
-                        <div className="flex flex-col">
-                          {/* Title aligned with Customer Info title */}
-                          <div className="flex justify-between items-center mb-4">
-                            <h5 className="text-lg font-semibold text-blue-600">التفاصيل المالية</h5>
-                            {/* Collapse/Expand Arrow */}
-                            <svg 
-                              className={`w-6 h-6 text-gray-500 transform transition-transform duration-200 ${
-                                isExpanded ? 'rotate-90' : 'rotate-0'
-                              }`} 
-                              fill="none" 
-                              stroke="currentColor" 
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </div>
-                          
-                          <div className="space-y-2 text-base bg-gray-50 rounded-lg p-3 md:p-4">
-                            {order.subtotal !== null && order.subtotal !== undefined && order.shipping !== null && order.shipping !== undefined ? (
-                              <>
-                                <div className="flex justify-between items-center gap-4">
-                                  <span className="text-gray-600 text-base">مبلغ الفاتورة:</span>
-                                  <span className="text-gray-800 font-medium whitespace-nowrap text-base">{formatPrice(order.subtotal!)}</span>
-                                </div>
-                                <div className="flex justify-between items-center gap-4">
-                                  <span className="text-gray-600 text-base">الشحن:</span>
-                                  <span className="text-gray-800 font-medium whitespace-nowrap text-base">{formatPrice(order.shipping!)}</span>
-                                </div>
-                                <div className="flex justify-between items-center gap-4 font-semibold text-lg pt-2 border-t border-gray-200">
+                        {/* Financial Details + Payment Receipts - Left Side (compact column) */}
+                        <div className="space-y-4">
+                          {/* Financial Details */}
+                          <div className="flex flex-col">
+                            {/* Title aligned with Customer Info title */}
+                            <div className="flex justify-between items-center mb-4">
+                              <h5 className="text-lg font-semibold text-blue-600">التفاصيل المالية</h5>
+                              {/* Collapse/Expand Arrow */}
+                              <svg
+                                className={`w-6 h-6 text-gray-500 transform transition-transform duration-200 ${
+                                  isExpanded ? 'rotate-90' : 'rotate-0'
+                                }`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </div>
+
+                            <div className="space-y-2 text-base bg-gray-50 rounded-lg p-3 md:p-4">
+                              {order.subtotal !== null && order.subtotal !== undefined && order.shipping !== null && order.shipping !== undefined ? (
+                                <>
+                                  <div className="flex justify-between items-center gap-4">
+                                    <span className="text-gray-600 text-base">مبلغ الفاتورة:</span>
+                                    <span className="text-gray-800 font-medium whitespace-nowrap text-base">{formatPrice(order.subtotal!)}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center gap-4">
+                                    <span className="text-gray-600 text-base">الشحن:</span>
+                                    <span className="text-gray-800 font-medium whitespace-nowrap text-base">{formatPrice(order.shipping!)}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center gap-4 font-semibold text-lg pt-2 border-t border-gray-200">
+                                    <span className="text-gray-800">المبلغ الإجمالي:</span>
+                                    <span className="text-gray-800 whitespace-nowrap">{formatPrice(order.total)}</span>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex justify-between items-center gap-4 font-semibold text-lg">
                                   <span className="text-gray-800">المبلغ الإجمالي:</span>
                                   <span className="text-gray-800 whitespace-nowrap">{formatPrice(order.total)}</span>
                                 </div>
-                              </>
-                            ) : (
-                              <div className="flex justify-between items-center gap-4 font-semibold text-lg">
-                                <span className="text-gray-800">المبلغ الإجمالي:</span>
-                                <span className="text-gray-800 whitespace-nowrap">{formatPrice(order.total)}</span>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </div>
+
+                          {/* Payment Receipts Section - Below Financial Details */}
+                          {order.orderId && (
+                            <div>
+                              <h5 className="text-lg font-semibold text-blue-600 mb-4">إيصال الدفع</h5>
+                              <OrderPaymentReceipts
+                                receipts={orderReceipts[order.orderId] || []}
+                                onVerifyAllReceipts={async () => {
+                                  if (order.orderId) {
+                                    await handleVerifyAllReceipts(order.orderId);
+                                  }
+                                }}
+                                formatPrice={formatPrice}
+                              />
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
