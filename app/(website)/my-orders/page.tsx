@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFormatPrice } from '@/lib/hooks/useCurrency';
 import { useCompanySettings } from '@/lib/hooks/useCompanySettings';
+import PaymentModal from '@/app/components/PaymentModal';
+import ImageViewerModal from '@/app/components/ImageViewerModal';
+import { paymentService, PaymentReceipt } from '@/lib/services/paymentService';
+import { CreditCardIcon } from '@heroicons/react/24/outline';
 
 // Order status type
 type OrderStatus = 'pending' | 'processing' | 'ready_for_pickup' | 'ready_for_shipping' | 'shipped' | 'delivered' | 'cancelled' | 'issue';
@@ -68,6 +72,20 @@ export default function OrdersPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+
+  // Payment modal states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string>('');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [paymentProgress, setPaymentProgress] = useState<Record<string, any>>({});
+  const [showPaymentAlert, setShowPaymentAlert] = useState(false);
+  const [newOrderAmount, setNewOrderAmount] = useState<number>(0);
+
+  // Receipt images states
+  const [orderReceipts, setOrderReceipts] = useState<Record<string, PaymentReceipt[]>>({});
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   
 
   // Load orders from database
@@ -222,6 +240,54 @@ export default function OrdersPage() {
     setExpandedOrders(newExpandedOrders);
   }, [orders, activeTab, dateFrom, dateTo]);
 
+  // Load payment progress for all orders
+  useEffect(() => {
+    const loadAllPaymentProgress = async () => {
+      if (!orders || orders.length === 0) return;
+
+      const progressMap: any = {};
+      for (const order of orders) {
+        try {
+          const progress = await paymentService.getOrderPaymentProgress(order.orderId);
+          progressMap[order.orderId] = progress;
+        } catch (error) {
+          console.error(`Failed to load payment progress for order ${order.orderId}:`, error);
+          // Set default values if fetch fails
+          progressMap[order.orderId] = {
+            totalAmount: order.total,
+            totalPaid: 0,
+            paymentProgress: 0,
+            fullyPaid: false
+          };
+        }
+      }
+      setPaymentProgress(progressMap);
+    };
+
+    loadAllPaymentProgress();
+  }, [orders]);
+
+  // Load payment receipts for all orders
+  useEffect(() => {
+    const loadAllReceipts = async () => {
+      if (!orders || orders.length === 0) return;
+
+      const receiptsMap: Record<string, PaymentReceipt[]> = {};
+      for (const order of orders) {
+        try {
+          const receipts = await paymentService.getOrderPaymentReceipts(order.orderId);
+          receiptsMap[order.orderId] = receipts;
+        } catch (error) {
+          console.error(`Failed to load receipts for order ${order.orderId}:`, error);
+          receiptsMap[order.orderId] = [];
+        }
+      }
+      setOrderReceipts(receiptsMap);
+    };
+
+    loadAllReceipts();
+  }, [orders]);
+
   // Toggle order expansion
   const toggleOrderExpansion = (orderId: string) => {
     const newExpandedOrders = new Set(expandedOrders);
@@ -231,6 +297,62 @@ export default function OrdersPage() {
       newExpandedOrders.add(orderId);
     }
     setExpandedOrders(newExpandedOrders);
+  };
+
+  // Open payment modal
+  const openPaymentModal = async (orderId: string) => {
+    // Get customer ID from current user
+    try {
+      const { supabase } = await import('../../lib/supabase/client');
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        alert('يرجى تسجيل الدخول أولاً');
+        return;
+      }
+
+      setSelectedOrderId(orderId);
+      setSelectedCustomerId(user.id);
+      setShowPaymentModal(true);
+    } catch (error) {
+      console.error('Error opening payment modal:', error);
+      alert('حدث خطأ. يرجى المحاولة مرة أخرى');
+    }
+  };
+
+  // Handle payment uploaded
+  const handlePaymentUploaded = () => {
+    // Reload payment progress and receipts
+    const loadAllPaymentData = async () => {
+      if (!orders || orders.length === 0) return;
+
+      const progressMap: any = {};
+      const receiptsMap: Record<string, PaymentReceipt[]> = {};
+
+      for (const order of orders) {
+        try {
+          const progress = await paymentService.getOrderPaymentProgress(order.orderId);
+          progressMap[order.orderId] = progress;
+
+          const receipts = await paymentService.getOrderPaymentReceipts(order.orderId);
+          receiptsMap[order.orderId] = receipts;
+        } catch (error) {
+          console.error(`Failed to load payment data for order ${order.orderId}:`, error);
+        }
+      }
+
+      setPaymentProgress(progressMap);
+      setOrderReceipts(receiptsMap);
+    };
+
+    loadAllPaymentData();
+  };
+
+  // Open image viewer
+  const openImageViewer = (images: string[], index: number = 0) => {
+    setSelectedImages(images);
+    setSelectedImageIndex(index);
+    setShowImageViewer(true);
   };
 
 
@@ -331,6 +453,38 @@ export default function OrdersPage() {
           </button>
         </div>
 
+        {/* Payment Alert */}
+        {showPaymentAlert && newOrderAmount > 0 && (
+          <div className="bg-orange-50 border-2 border-orange-400 rounded-lg p-4 md:p-6 mb-4 md:mb-5 lg:mb-6 shadow-lg relative">
+            <button
+              onClick={() => setShowPaymentAlert(false)}
+              className="absolute top-2 left-2 text-orange-600 hover:text-orange-800"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 text-orange-500 text-3xl">⚠️</div>
+              <div className="flex-1">
+                <h3 className="text-lg md:text-xl font-bold text-orange-800 mb-2">تنبيه مهم</h3>
+                <p className="text-base md:text-lg text-orange-900 mb-2">لقد قمت بطلب أوردر بنجاح!</p>
+                <p className="text-base md:text-lg font-bold text-orange-900 mb-3">
+                  المبلغ المطلوب: {formatPrice(newOrderAmount)}
+                </p>
+                <div className="bg-orange-100 border border-orange-300 rounded-lg p-3 md:p-4">
+                  <p className="text-sm md:text-base text-orange-900 leading-relaxed">
+                    من فضلك قم بتحويل المبلغ المطلوب وارفع صورة إيصال التحويل حتى يتم مراجعتها وتأكيد طلبك.
+                    <br />
+                    <strong>لن يتم تنفيذ الطلب إلا بعد تأكيد الدفع.</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Date Filter (only for completed orders) */}
         {activeTab === 'completed' && (
           <div className="bg-white rounded-lg p-3 md:p-4 lg:p-6 mb-4 md:mb-5 lg:mb-6 shadow-lg">
@@ -402,27 +556,45 @@ export default function OrdersPage() {
           ) : (
             filteredOrders.map((order) => {
               const isExpanded = expandedOrders.has(order.id);
+              const orderProgress = paymentProgress[order.orderId] || {
+                totalAmount: order.total,
+                totalPaid: 0,
+                paymentProgress: 0,
+                fullyPaid: false
+              };
+
+              const { totalAmount, totalPaid, paymentProgress: progress, fullyPaid } = orderProgress;
+              const remaining = totalAmount - totalPaid;
+
+              const receipts = orderReceipts[order.orderId] || [];
+              const receiptImages = receipts.map(r => r.receipt_image_url);
+
               return (
                 <div key={order.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
-                  {/* Status Tag with Order Info */}
-                  <div className="px-3 md:px-4 lg:px-6 pt-3 md:pt-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      {/* Left Side: Status Tag */}
-                      <div className="flex items-center gap-2">
+                  {/* Order Header - Status + Order Info */}
+                  <div className="px-3 md:px-4 lg:px-6 py-3 md:py-4 border-b border-gray-200">
+                    <div className="flex items-center gap-4">
+                      {/* Status Badge + Order Info grouped together */}
+                      <div className="flex items-center gap-3 md:gap-4">
+                        {/* Status Badge */}
                         <span
-                          className={`inline-flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1 md:py-2 rounded-full text-sm md:text-base font-semibold ${
+                          className={`inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-full text-base md:text-lg font-bold ${
                             order.status === 'ready_for_pickup' ? 'text-green-800' : 'text-white'
                           }`}
                           style={{ backgroundColor: statusColors[order.status] }}
                         >
-                          <span className="text-sm md:text-base">{statusTranslations[order.status]}</span>
+                          {statusTranslations[order.status]}
                         </span>
-                      </div>
-                      
-                      {/* Right Side: Order Number and Date */}
-                      <div className="flex flex-col items-end text-right">
-                        <span className="text-sm md:text-base font-medium text-gray-800">طلب رقم: {order.id}</span>
-                        <span className="text-xs md:text-sm text-gray-600">{new Date(order.date).toLocaleDateString('en-GB')}</span>
+
+                        {/* Order Number + Date */}
+                        <div className="text-right">
+                          <span className="text-xs md:text-sm font-medium text-gray-700 block">
+                            طلب رقم: {order.id}
+                          </span>
+                          <span className="text-sm md:text-base font-bold text-gray-700">
+                            {new Date(order.date).toLocaleDateString('en-GB')}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -483,9 +655,9 @@ export default function OrdersPage() {
 
                     {/* Desktop/Tablet View: Side by Side Layout */}
                     <div className="hidden md:block py-4">
-                      <div className="grid grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+                      <div className="grid grid-cols-12 gap-4 md:gap-6 lg:gap-8">
                         {/* Customer Information - Left Side (takes more space) */}
-                        <div className="col-span-2">
+                        <div className="col-span-5">
                           <h5 className="text-lg font-semibold text-blue-600 mb-4">معلومات العميل</h5>
                           <div className="space-y-3 text-lg">
                             <p className="text-gray-700">الاسم: {order.customerName}</p>
@@ -494,41 +666,124 @@ export default function OrdersPage() {
                           </div>
                         </div>
 
-                        {/* Financial Details + Arrow - Right Side (compact) */}
-                        <div className="flex flex-col">
-                          {/* Title aligned with Customer Info title */}
+                        {/* Financial Details - Middle */}
+                        <div className="col-span-3 flex flex-col">
                           <div className="flex justify-between items-center mb-4">
                             <h5 className="text-lg font-semibold text-blue-600">التفاصيل المالية</h5>
                             {/* Collapse/Expand Arrow */}
-                            <svg 
+                            <svg
                               className={`w-6 h-6 text-gray-500 transform transition-transform duration-200 ${
                                 isExpanded ? 'rotate-90' : 'rotate-0'
-                              }`} 
-                              fill="none" 
-                              stroke="currentColor" 
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                           </div>
-                          
+
                           <div className="space-y-2 text-base bg-gray-50 rounded-lg p-3 md:p-4">
                             {order.subtotal && (
                               <div className="flex justify-between items-center gap-4">
-                                <span className="text-gray-600 text-base">مبلغ الفاتورة:</span>
-                                <span className="text-gray-800 font-medium whitespace-nowrap text-base">{formatPrice(order.subtotal)}</span>
+                                <span className="text-gray-600 text-sm">مبلغ الفاتورة:</span>
+                                <span className="text-gray-800 font-medium whitespace-nowrap text-sm">{formatPrice(order.subtotal)}</span>
                               </div>
                             )}
                             {order.shipping && (
                               <div className="flex justify-between items-center gap-4">
-                                <span className="text-gray-600 text-base">الشحن:</span>
-                                <span className="text-gray-800 font-medium whitespace-nowrap text-base">{formatPrice(order.shipping)}</span>
+                                <span className="text-gray-600 text-sm">الشحن:</span>
+                                <span className="text-gray-800 font-medium whitespace-nowrap text-sm">{formatPrice(order.shipping)}</span>
                               </div>
                             )}
-                            <div className="flex justify-between items-center gap-4 font-semibold text-lg pt-2 border-t border-gray-200">
+                            <div className="flex justify-between items-center gap-4 font-semibold text-base pt-2 border-t border-gray-200">
                               <span className="text-gray-800">المبلغ الإجمالي:</span>
                               <span className="text-gray-800 whitespace-nowrap">{formatPrice(order.total)}</span>
                             </div>
+                          </div>
+                        </div>
+
+                        {/* Payment Information - Right Side */}
+                        <div className="col-span-4 flex flex-col">
+                          <h5 className="text-lg font-semibold text-blue-600 mb-4">معلومات الدفع</h5>
+                          <div className="space-y-3 text-base bg-gray-50 rounded-lg p-3 md:p-4">
+                            {/* Payment Progress */}
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-gray-600 text-sm">المطلوب:</span>
+                                <span className="text-gray-800 font-medium whitespace-nowrap text-sm">{formatPrice(totalAmount)}</span>
+                              </div>
+                              <div className="flex justify-between items-center gap-2">
+                                <span className="text-gray-600 text-sm">المدفوع:</span>
+                                <span className="text-green-600 font-medium whitespace-nowrap text-sm">{formatPrice(totalPaid)}</span>
+                              </div>
+                              {!fullyPaid && (
+                                <div className="flex justify-between items-center gap-2 border-t border-gray-200 pt-2">
+                                  <span className="text-gray-600 text-sm">المتبقي:</span>
+                                  <span className="text-orange-600 font-semibold whitespace-nowrap text-sm">{formatPrice(remaining)}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Progress Bar */}
+                            <div className="mb-3">
+                              <div className="flex justify-between text-xs text-gray-600 mb-1">
+                                <span>نسبة الدفع</span>
+                                <span className="font-semibold">{progress}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full transition-all ${fullyPaid ? 'bg-green-500' : 'bg-blue-500'}`}
+                                  style={{width: `${progress}%`}}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Receipt Images */}
+                            {receiptImages.length > 0 && (
+                              <div className="border-t border-gray-200 pt-3">
+                                <div className="text-sm font-semibold text-gray-700 mb-2">إيصالات التحويل:</div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {receiptImages.map((img, idx) => (
+                                    <button
+                                      key={idx}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openImageViewer(receiptImages, idx);
+                                      }}
+                                      className="relative w-full h-20 bg-gray-200 rounded-lg overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all group"
+                                    >
+                                      <img
+                                        src={img}
+                                        alt={`إيصال ${idx + 1}`}
+                                        className="w-full h-full object-cover"
+                                      />
+                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                        <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                        </svg>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Upload Button */}
+                            {!fullyPaid && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openPaymentModal(order.orderId);
+                                }}
+                                className="w-full py-2 bg-[#7d2e2e] hover:bg-[#6d2525] text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-2"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                رفع إيصال الدفع
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -708,7 +963,24 @@ export default function OrdersPage() {
         </div>
       </main>
 
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        orderId={selectedOrderId}
+        customerId={selectedCustomerId}
+        orderAmount={paymentProgress[selectedOrderId]?.totalAmount || 0}
+        currentPaid={paymentProgress[selectedOrderId]?.totalPaid || 0}
+        onPaymentUploaded={handlePaymentUploaded}
+      />
 
+      {/* Image Viewer Modal */}
+      <ImageViewerModal
+        isOpen={showImageViewer}
+        onClose={() => setShowImageViewer(false)}
+        images={selectedImages}
+        initialIndex={selectedImageIndex}
+      />
     </div>
   );
 }

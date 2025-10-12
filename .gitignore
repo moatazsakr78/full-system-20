@@ -174,3 +174,6 @@ storybook-static
 # Temporary folders
 tmp/
 temp/
+
+# Sensitive API credentials
+money-check.json

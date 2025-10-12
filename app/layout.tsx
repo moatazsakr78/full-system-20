@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import './globals.css'
 import TopHeader from './components/layout/TopHeader'
 import { CurrencyProvider } from '@/lib/hooks/useCurrency'

@@ -7,11 +7,36 @@ import { Bars3Icon, GlobeAltIcon } from '@heroicons/react/24/outline';
 interface TopHeaderProps {
   onMenuClick?: () => void;
   isMenuOpen?: boolean;
+  pageTitle?: string;
 }
 
-export default function TopHeader({ onMenuClick, isMenuOpen = false }: TopHeaderProps) {
+export default function TopHeader({ onMenuClick, isMenuOpen = false, pageTitle }: TopHeaderProps) {
   const [isConnected, setIsConnected] = useState(true);
   const pathname = usePathname();
+
+  // Function to get page title based on pathname
+  const getPageTitle = (): string => {
+    // If pageTitle prop is provided, use it
+    if (pageTitle) {
+      return pageTitle;
+    }
+
+    // Otherwise, determine title from pathname
+    const pathMap: { [key: string]: string } = {
+      '/pos': 'نقطة البيع',
+      '/products': 'المنتجات',
+      '/inventory': 'المخزون',
+      '/customers': 'العملاء',
+      '/suppliers': 'الموردين',
+      '/records': 'السجلات',
+      '/reports': 'التقارير',
+      '/permissions': 'الصلاحيات',
+      '/settings': 'الإعدادات',
+      '/dashboard': 'لوحة التحكم',
+    };
+
+    return pathMap[pathname || ''] || 'نظام نقاط البيع';
+  };
 
   useEffect(() => {
     const checkConnection = () => {
@@ -59,7 +84,7 @@ export default function TopHeader({ onMenuClick, isMenuOpen = false }: TopHeader
 
         {/* Center - App title */}
         <div className="flex items-center">
-          <h1 className="text-white text-lg font-semibold">نظام نقاط البيع</h1>
+          <h1 className="text-white text-lg font-semibold">{getPageTitle()}</h1>
         </div>
 
         {/* Right side - Website button */}
