@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PaymentReceipt } from '@/lib/services/paymentService';
 import ImageViewerModal from './ImageViewerModal';
 
@@ -8,6 +8,12 @@ interface OrderPaymentReceiptsProps {
   receipts: PaymentReceipt[];
   onVerifyAllReceipts: () => Promise<void>;
   formatPrice: (amount: number) => string;
+}
+
+interface VerifierInfo {
+  name: string;
+  email: string;
+  verified_at: string;
 }
 
 export default function OrderPaymentReceipts({
@@ -19,10 +25,59 @@ export default function OrderPaymentReceipts({
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showVerifierInfo, setShowVerifierInfo] = useState<string | null>(null);
+  const [verifierInfo, setVerifierInfo] = useState<Record<string, VerifierInfo>>({});
 
   // Check if all receipts are verified
   const allVerified = receipts.every(r => r.payment_status === 'verified');
   const hasPendingReceipts = receipts.some(r => r.payment_status === 'pending');
+
+  // Load verifier information for verified receipts
+  useEffect(() => {
+    const loadVerifierInfo = async () => {
+      const verifiedReceipts = receipts.filter(r => r.payment_status === 'verified' && r.verified_by);
+
+      for (const receipt of verifiedReceipts) {
+        if (!receipt.verified_by || verifierInfo[receipt.id]) continue;
+
+        try {
+          const { supabase } = await import('@/app/lib/supabase/client');
+
+          // Try to get from user_profiles first
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('full_name, email')
+            .eq('id', receipt.verified_by)
+            .single();
+
+          if (profile) {
+            setVerifierInfo(prev => ({
+              ...prev,
+              [receipt.id]: {
+                name: profile.full_name || profile.email || 'مستخدم غير معروف',
+                email: profile.email || '',
+                verified_at: receipt.verified_at || ''
+              }
+            }));
+          } else {
+            // Fallback: try auth.users (admin access needed)
+            setVerifierInfo(prev => ({
+              ...prev,
+              [receipt.id]: {
+                name: 'موظف',
+                email: '',
+                verified_at: receipt.verified_at || ''
+              }
+            }));
+          }
+        } catch (error) {
+          console.error('Error loading verifier info:', error);
+        }
+      }
+    };
+
+    loadVerifierInfo();
+  }, [receipts]);
 
   const handleVerifyAll = async () => {
     if (!confirm('هل تريد تأكيد جميع التحويلات؟\n\n⚠️ لا يمكن التراجع عن هذا الإجراء')) {
@@ -44,6 +99,21 @@ export default function OrderPaymentReceipts({
     setSelectedImageIndex(index);
     setShowImageViewer(true);
   };
+
+  // Close verifier info when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showVerifierInfo) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.verifier-info-container')) {
+          setShowVerifierInfo(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showVerifierInfo]);
 
   if (receipts.length === 0) {
     return (
@@ -132,23 +202,63 @@ export default function OrderPaymentReceipts({
 
                 {/* Verified Badge */}
                 {isVerified && (
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: '#5d1f1f' }}
-                  >
-                    <svg
-                      className="w-6 h-6 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                  <div className="relative verifier-info-container">
+                    <button
+                      onClick={() => setShowVerifierInfo(showVerifierInfo === receipt.id ? null : receipt.id)}
+                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
+                      style={{ backgroundColor: '#5d1f1f' }}
+                      title="عرض معلومات التأكيد"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
+                      <svg
+                        className="w-6 h-6 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </button>
+
+                    {/* Verifier Info Popup */}
+                    {showVerifierInfo === receipt.id && verifierInfo[receipt.id] && (
+                      <div className="absolute top-12 left-0 z-50 bg-white border-2 border-gray-300 rounded-lg shadow-xl p-3 min-w-[200px]">
+                        <div className="text-sm space-y-2">
+                          <div className="font-semibold text-gray-800 border-b pb-2">
+                            معلومات التأكيد
+                          </div>
+                          <div>
+                            <span className="text-gray-600">تم التأكيد بواسطة:</span>
+                            <div className="font-medium text-gray-900 mt-1">
+                              {verifierInfo[receipt.id].name}
+                            </div>
+                            {verifierInfo[receipt.id].email && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {verifierInfo[receipt.id].email}
+                              </div>
+                            )}
+                          </div>
+                          {verifierInfo[receipt.id].verified_at && (
+                            <div>
+                              <span className="text-gray-600">التاريخ:</span>
+                              <div className="text-xs text-gray-700 mt-1">
+                                {new Date(verifierInfo[receipt.id].verified_at).toLocaleString('ar-EG', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

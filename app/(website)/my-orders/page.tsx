@@ -809,7 +809,9 @@ export default function OrdersPage() {
                               <div className="border-t border-gray-200 pt-3">
                                 <div className="text-sm font-semibold text-gray-700 mb-2">إيصالات التحويل:</div>
                                 <div className="grid grid-cols-2 gap-2">
-                                  {receipts.map((receipt, idx) => (
+                                  {receipts.map((receipt, idx) => {
+                                    const isVerified = receipt.payment_status === 'verified';
+                                    return (
                                     <div
                                       key={receipt.id}
                                       className="relative w-full h-20 bg-gray-200 rounded-lg overflow-hidden group"
@@ -834,31 +836,53 @@ export default function OrdersPage() {
                                         </div>
                                       </button>
 
-                                      {/* Delete Button */}
-                                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeleteReceipt(receipt.id, receipt.receipt_image_url, order.orderId);
-                                          }}
-                                          disabled={deletingReceiptId === receipt.id}
-                                          className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                          title="حذف الإيصال"
-                                        >
-                                          {deletingReceiptId === receipt.id ? (
-                                            <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                            </svg>
-                                          ) : (
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                          )}
-                                        </button>
-                                      </div>
+                                      {/* Verified Badge */}
+                                      {isVerified && (
+                                        <div className="absolute top-1 left-1 bg-green-500 text-white rounded-full p-1">
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        </div>
+                                      )}
+
+                                      {/* Delete Button - Only show for non-verified receipts */}
+                                      {!isVerified && (
+                                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeleteReceipt(receipt.id, receipt.receipt_image_url, order.orderId);
+                                            }}
+                                            disabled={deletingReceiptId === receipt.id}
+                                            className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="حذف الإيصال"
+                                          >
+                                            {deletingReceiptId === receipt.id ? (
+                                              <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                              </svg>
+                                            ) : (
+                                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                              </svg>
+                                            )}
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
+
+                                {/* Verified Receipts Summary */}
+                                {receipts.some(r => r.payment_status === 'verified') && (
+                                  <div className="mt-3 flex items-center gap-2 text-sm bg-green-50 border border-green-200 rounded-lg p-2">
+                                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span className="text-green-800 font-medium">تم تأكيد التحويل</span>
+                                  </div>
+                                )}
                               </div>
                             )}
 
