@@ -52,6 +52,19 @@ export default function SignUpPage() {
     try {
       const result = await signUpWithEmail(formData.email, formData.password, formData.name);
       if (result.success) {
+        // Bind user to current tenant
+        if (result.data?.user) {
+          try {
+            await fetch('/api/auth/bind-tenant', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: result.data.user.id })
+            });
+          } catch (bindError) {
+            console.error('Failed to bind user to tenant:', bindError);
+          }
+        }
+
         // Check if email confirmation is required
         if (result.data?.user && !result.data.session) {
           alert('تم إرسال رابط التأكيد إلى بريدك الإلكتروني. يرجى التحقق من صندوق الوارد.');
