@@ -5,7 +5,7 @@
 import { DomainInfo, Tenant } from '@/types/tenant';
 
 // قاعدة الدومين الأساسية (يجب تغييرها حسب الـ production domain)
-const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'mysystem.com';
+const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'elfaroukgroup.store';
 
 /**
  * استخراج معلومات الدومين من hostname

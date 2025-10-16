@@ -7,7 +7,7 @@ import type { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 // قاعدة الدومين الأساسية
-const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'mysystem.com';
+const BASE_DOMAIN = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'elfaroukgroup.store';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
