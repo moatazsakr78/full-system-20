@@ -47,7 +47,7 @@ export async function middleware(request: NextRequest) {
     // جلب الـ tenant من database
     const supabase = createClient();
 
-    const { data: tenant, error } = await supabase
+    const { data: tenant, error } = await (supabase as any)
       .rpc(
         isCustomDomain ? 'get_tenant_by_custom_domain' : 'get_tenant_by_subdomain',
         isCustomDomain
@@ -94,7 +94,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // تعيين tenant context في Supabase
-    await supabase.rpc('set_current_tenant', { tenant_uuid: tenant.id });
+    await (supabase as any).rpc('set_current_tenant', { tenant_uuid: tenant.id });
 
     // إضافة tenant info في الـ headers للصفحات
     const response = NextResponse.next();

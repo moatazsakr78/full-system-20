@@ -11,7 +11,7 @@ import { Tenant } from '@/types/tenant';
 export async function getTenantBySubdomain(subdomain: string): Promise<Tenant | null> {
   const supabase = createClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .rpc('get_tenant_by_subdomain', { subdomain_param: subdomain })
     .single();
 
@@ -29,7 +29,7 @@ export async function getTenantBySubdomain(subdomain: string): Promise<Tenant | 
 export async function getTenantByCustomDomain(domain: string): Promise<Tenant | null> {
   const supabase = createClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .rpc('get_tenant_by_custom_domain', { domain_param: domain })
     .single();
 
@@ -47,7 +47,7 @@ export async function getTenantByCustomDomain(domain: string): Promise<Tenant | 
 export async function getTenantByDomain(domain: string): Promise<Tenant | null> {
   const supabase = createClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .rpc('get_tenant_by_domain', { domain_param: domain })
     .single();
 
@@ -65,7 +65,7 @@ export async function getTenantByDomain(domain: string): Promise<Tenant | null> 
 export async function getTenantById(tenantId: string): Promise<Tenant | null> {
   const supabase = createClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('tenants')
     .select('*')
     .eq('id', tenantId)
@@ -86,7 +86,7 @@ export async function getTenantById(tenantId: string): Promise<Tenant | null> {
 export async function setTenantContext(tenantId: string): Promise<boolean> {
   const supabase = createClient();
 
-  const { error } = await supabase.rpc('set_current_tenant', {
+  const { error } = await (supabase as any).rpc('set_current_tenant', {
     tenant_uuid: tenantId,
   });
 
@@ -107,7 +107,7 @@ export async function userBelongsToTenant(
 ): Promise<boolean> {
   const supabase = createClient();
 
-  const { data, error } = await supabase.rpc('user_belongs_to_tenant', {
+  const { data, error } = await (supabase as any).rpc('user_belongs_to_tenant', {
     user_uuid: userId,
     tenant_uuid: tenantId,
   });
@@ -126,7 +126,7 @@ export async function userBelongsToTenant(
 export async function getUserTenantId(userId: string): Promise<string | null> {
   const supabase = createClient();
 
-  const { data, error } = await supabase.rpc('get_user_tenant_id', {
+  const { data, error } = await (supabase as any).rpc('get_user_tenant_id', {
     user_uuid: userId,
   });
 
@@ -148,7 +148,7 @@ export async function createTenant(
 ): Promise<string | null> {
   const supabase = createClient();
 
-  const { data, error } = await supabase.rpc('create_new_tenant', {
+  const { data, error } = await (supabase as any).rpc('create_new_tenant', {
     subdomain_param: subdomain,
     name_param: name,
     owner_email: ownerEmail,
