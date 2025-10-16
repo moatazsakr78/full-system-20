@@ -108,6 +108,10 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
+
+  /* Tenant-specific colors (will be dynamically updated) */
+  --tenant-primary-color: #3B82F6;
+  --tenant-secondary-color: #1F2937;
 }
 
 @media (prefers-color-scheme: dark) {

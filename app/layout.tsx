@@ -6,6 +6,8 @@ import { CurrencyProvider } from '@/lib/hooks/useCurrency'
 import { SystemSettingsProvider } from '@/lib/hooks/useSystemSettings'
 import { CartProvider } from '@/lib/contexts/CartContext'
 import { UserProfileProvider } from '@/lib/contexts/UserProfileContext'
+import { TenantProvider } from '@/lib/tenant/TenantContext'
+import TenantTheme from './components/TenantTheme'
 
 export const metadata: Metadata = {
   title: 'نظام نقاط البيع',
@@ -32,16 +34,19 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <body className="font-arabic bg-[#1F2937] text-gray-800">
-        <SystemSettingsProvider>
-          <CurrencyProvider>
-            <UserProfileProvider>
-              <CartProvider>
-                <TopHeader />
-                {children}
-              </CartProvider>
-            </UserProfileProvider>
-          </CurrencyProvider>
-        </SystemSettingsProvider>
+        <TenantProvider>
+          <TenantTheme />
+          <SystemSettingsProvider>
+            <CurrencyProvider>
+              <UserProfileProvider>
+                <CartProvider>
+                  <TopHeader />
+                  {children}
+                </CartProvider>
+              </UserProfileProvider>
+            </CurrencyProvider>
+          </SystemSettingsProvider>
+        </TenantProvider>
       </body>
     </html>
   )
