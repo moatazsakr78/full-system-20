@@ -156,13 +156,19 @@ export function useAuth() {
   // Sign up with email/password
   const signUpWithEmail = useCallback(async (email: string, password: string, name?: string) => {
     try {
+      const redirectUrl = getOAuthRedirectUrl('/auth/callback');
+      console.log('🔗 Email SignUp Debug Info:');
+      console.log('- Redirect URL:', redirectUrl);
+      console.log('- Current window origin:', typeof window !== 'undefined' ? window.location.origin : 'server-side');
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: name
-          }
+          },
+          emailRedirectTo: redirectUrl
         }
       });
 
@@ -170,12 +176,13 @@ export function useAuth() {
         throw error;
       }
 
+      console.log('✅ Email signup successful');
       return { success: true, data };
     } catch (error) {
       console.error('Error signing up:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'خطأ في إنشاء الحساب' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'خطأ في إنشاء الحساب'
       };
     }
   }, []);
