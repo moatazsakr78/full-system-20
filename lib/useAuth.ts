@@ -140,11 +140,15 @@ export function useAuth() {
       console.log('- Redirect URL:', redirectUrl);
       console.log('- Current window origin:', typeof window !== 'undefined' ? window.location.origin : 'server-side');
       console.log('- Environment NEXT_PUBLIC_SITE_URL:', process.env.NEXT_PUBLIC_SITE_URL);
+      console.log('- Current Tenant ID:', tenantId);
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectUrl
+          redirectTo: redirectUrl,
+          data: {
+            tenant_id: tenantId // ✅ إرسال tenant_id الحالي
+          }
         }
       });
 
@@ -153,16 +157,16 @@ export function useAuth() {
         throw error;
       }
 
-      console.log('✅ OAuth initiated successfully');
+      console.log('✅ OAuth initiated successfully for tenant:', tenantId);
       return { success: true, data };
     } catch (error) {
       console.error('Error signing in with Google:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'خطأ في تسجيل الدخول' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'خطأ في تسجيل الدخول'
       };
     }
-  }, []);
+  }, [tenantId]);
 
   // Sign in with email/password
   const signInWithEmail = useCallback(async (email: string, password: string) => {
@@ -220,13 +224,15 @@ export function useAuth() {
       console.log('🔗 Email SignUp Debug Info:');
       console.log('- Redirect URL:', redirectUrl);
       console.log('- Current window origin:', typeof window !== 'undefined' ? window.location.origin : 'server-side');
+      console.log('- Current Tenant ID:', tenantId);
 
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: name
+            full_name: name,
+            tenant_id: tenantId // ✅ إرسال tenant_id الحالي
           },
           emailRedirectTo: redirectUrl
         }
@@ -236,7 +242,7 @@ export function useAuth() {
         throw error;
       }
 
-      console.log('✅ Email signup successful');
+      console.log('✅ Email signup successful for tenant:', tenantId);
       return { success: true, data };
     } catch (error) {
       console.error('Error signing up:', error);
@@ -245,7 +251,7 @@ export function useAuth() {
         error: error instanceof Error ? error.message : 'خطأ في إنشاء الحساب'
       };
     }
-  }, []);
+  }, [tenantId]);
 
   // Sign out
   const signOut = useCallback(async () => {
