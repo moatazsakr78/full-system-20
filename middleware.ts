@@ -23,7 +23,12 @@ export async function middleware(request: NextRequest) {
   }
 
   const hostname = request.headers.get('host') || '';
-  const domain = hostname.split(':')[0]; // إزالة الـ port
+  let domain = hostname.split(':')[0]; // إزالة الـ port
+
+  // ✅ إزالة www. من بداية الدومين (للتعامل مع www.domain.com و domain.com كنفس المتجر)
+  if (domain.startsWith('www.')) {
+    domain = domain.substring(4); // حذف "www."
+  }
 
   // تحديد نوع الدومين
   const isCustomDomain = !domain.endsWith(`.${BASE_DOMAIN}`) && domain !== BASE_DOMAIN;
