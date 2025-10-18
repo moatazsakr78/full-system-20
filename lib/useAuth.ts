@@ -85,9 +85,9 @@ export function useAuth() {
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
 
-        // ℹ️ فقط تسجيل معلومات عن tenant membership (بدون تسجيل خروج تلقائي)
+        // 🔒 STRICT TENANT VERIFICATION - إجباري
         if (event === 'SIGNED_IN' && session?.user && tenantId) {
-          console.log('🔍 Checking tenant access for user:', session.user.id);
+          console.log('🔍 Verifying tenant access for user:', session.user.id, 'tenant:', tenantId);
 
           const { data: userTenant, error: tenantError } = await (supabase as any)
             .from('user_tenant_mapping')
@@ -98,9 +98,31 @@ export function useAuth() {
             .single();
 
           if (tenantError || !userTenant) {
-            console.warn('⚠️ User may not belong to this tenant, but allowing access');
-          } else {
-            console.log('✅ User belongs to tenant');
+            console.error('❌ User does NOT belong to this tenant!');
+            console.error('User ID:', session.user.id);
+            console.error('Tenant ID:', tenantId);
+            console.error('Error:', tenantError);
+
+            // 🚨 تسجيل خروج فوري - المستخدم ليس له صلاحية
+            await supabase.auth.signOut();
+
+            // إعادة توجيه للصفحة الرئيسية مع رسالة خطأ
+            if (typeof window !== 'undefined') {
+              window.location.href = '/?error=unauthorized_tenant';
+            }
+            return;
+          }
+
+          console.log('✅ User verified for tenant:', userTenant.role);
+
+          // تعيين tenant context في Supabase
+          try {
+            await (supabase as any).rpc('set_current_tenant', {
+              tenant_uuid: tenantId
+            });
+            console.log('✅ Tenant context set successfully');
+          } catch (err) {
+            console.error('❌ Failed to set tenant context:', err);
           }
         }
 
@@ -171,9 +193,9 @@ export function useAuth() {
         throw error;
       }
 
-      // ℹ️ فقط تسجيل معلومات عن tenant membership (بدون منع الدخول)
+      // 🔒 STRICT TENANT VERIFICATION - إجباري
       if (data.user && tenantId) {
-        console.log('🔍 Checking tenant access for user:', data.user.id, 'in tenant:', tenantId);
+        console.log('🔍 Verifying tenant access for user:', data.user.id, 'tenant:', tenantId);
 
         const { data: userTenant, error: tenantError } = await (supabase as any)
           .from('user_tenant_mapping')
@@ -184,9 +206,26 @@ export function useAuth() {
           .single();
 
         if (tenantError || !userTenant) {
-          console.warn('⚠️ User may not belong to this tenant, but allowing access');
-        } else {
-          console.log('✅ User belongs to tenant, login successful');
+          console.error('❌ Access Denied: User does NOT belong to this tenant');
+
+          // تسجيل خروج فوري
+          await supabase.auth.signOut();
+
+          return {
+            success: false,
+            error: 'ليس لديك صلاحية الوصول لهذا المتجر. يرجى إنشاء حساب جديد للمتجر.'
+          };
+        }
+
+        console.log('✅ User verified for tenant:', userTenant.role);
+
+        // تعيين tenant context
+        try {
+          await (supabase as any).rpc('set_current_tenant', {
+            tenant_uuid: tenantId
+          });
+        } catch (err) {
+          console.error('Failed to set tenant context:', err);
         }
       }
 

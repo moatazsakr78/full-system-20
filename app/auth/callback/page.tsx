@@ -31,30 +31,53 @@ export default function AuthCallback() {
           if (data.session) {
             console.log('✅ User authenticated successfully:', data.session.user.email);
 
-            // ✅ التحقق من وجود المستخدم في user_profiles
+            // الحصول على tenant_id من sessionStorage أو استخدام الحالي
+            const savedTenantId = sessionStorage.getItem('pending_oauth_tenant_id');
+            const tenantId = savedTenantId || currentTenantId;
+
+            if (!tenantId) {
+              console.error('❌ No tenant context available!');
+              await supabase.auth.signOut();
+              router.push('/?error=no_tenant');
+              return;
+            }
+
             const userId = data.session.user.id;
-            const { data: profile } = await (supabase as any)
-              .from('user_profiles')
-              .select('id')
-              .eq('id', userId)
+
+            // 🔒 التحقق من صلاحية المستخدم للـ tenant
+            const { data: userTenantMapping } = await (supabase as any)
+              .from('user_tenant_mapping')
+              .select('*')
+              .eq('user_id', userId)
+              .eq('tenant_id', tenantId)
+              .eq('is_active', true)
               .single();
 
-            // إذا المستخدم جديد (مش موجود في user_profiles)
-            if (!profile) {
-              console.log('🆕 New OAuth user detected, creating profile...');
+            // إذا المستخدم مش موجود في الـ tenant ده، نشوف لو هو جديد
+            if (!userTenantMapping) {
+              console.log('🔍 User not found in tenant mapping, checking if new user...');
 
-              // الحصول على tenant_id من sessionStorage أو استخدام الحالي
-              const savedTenantId = sessionStorage.getItem('pending_oauth_tenant_id');
-              const tenantId = savedTenantId || currentTenantId;
+              // التحقق من وجود المستخدم في user_profiles
+              const { data: profile } = await (supabase as any)
+                .from('user_profiles')
+                .select('id')
+                .eq('id', userId)
+                .single();
 
-              if (tenantId) {
-                console.log('📍 Using tenant ID:', tenantId);
+              if (!profile) {
+                // مستخدم جديد تماماً - نضيفه للـ tenant
+                console.log('🆕 New OAuth user, creating profile for tenant:', tenantId);
 
-                // إضافة المستخدم للـ user_profiles
                 const userName = data.session.user.user_metadata?.full_name ||
                                 data.session.user.user_metadata?.name ||
                                 data.session.user.email?.split('@')[0];
 
+                // تعيين tenant context أولاً
+                await (supabase as any).rpc('set_current_tenant', {
+                  tenant_uuid: tenantId
+                });
+
+                // إضافة للـ user_profiles
                 await (supabase as any).from('user_profiles').insert({
                   id: userId,
                   tenant_id: tenantId,
@@ -65,7 +88,7 @@ export default function AuthCallback() {
                   is_admin: false
                 });
 
-                // إضافة المستخدم للـ user_tenant_mapping
+                // إضافة للـ user_tenant_mapping
                 await (supabase as any).from('user_tenant_mapping').insert({
                   user_id: userId,
                   tenant_id: tenantId,
@@ -74,11 +97,27 @@ export default function AuthCallback() {
                 });
 
                 console.log('✅ OAuth user profile created successfully');
+              } else {
+                // مستخدم موجود لكن مش في الـ tenant ده
+                console.error('❌ User exists but NOT in this tenant!');
+                console.error('User must create a NEW account for this tenant');
 
-                // مسح tenant_id من sessionStorage
+                await supabase.auth.signOut();
                 sessionStorage.removeItem('pending_oauth_tenant_id');
+                router.push('/?error=wrong_tenant');
+                return;
               }
+            } else {
+              console.log('✅ User verified for tenant:', userTenantMapping.role);
+
+              // تعيين tenant context
+              await (supabase as any).rpc('set_current_tenant', {
+                tenant_uuid: tenantId
+              });
             }
+
+            // مسح tenant_id من sessionStorage
+            sessionStorage.removeItem('pending_oauth_tenant_id');
 
             // Redirect to home page
             router.push('/');
