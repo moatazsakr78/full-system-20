@@ -142,13 +142,15 @@ export function useAuth() {
       console.log('- Environment NEXT_PUBLIC_SITE_URL:', process.env.NEXT_PUBLIC_SITE_URL);
       console.log('- Current Tenant ID:', tenantId);
 
+      // ✅ حفظ tenant_id في sessionStorage قبل OAuth redirect
+      if (typeof window !== 'undefined' && tenantId) {
+        sessionStorage.setItem('pending_oauth_tenant_id', tenantId);
+      }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectUrl,
-          data: {
-            tenant_id: tenantId // ✅ إرسال tenant_id الحالي
-          }
+          redirectTo: redirectUrl
         }
       });
 
