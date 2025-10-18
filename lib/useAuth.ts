@@ -89,7 +89,7 @@ export function useAuth() {
         if (event === 'SIGNED_IN' && session?.user && tenantId) {
           console.log('🔍 Checking tenant access for OAuth user:', session.user.id);
 
-          const { data: userTenant, error: tenantError } = await supabase
+          const { data: userTenant, error: tenantError } = await (supabase as any)
             .from('user_tenant_mapping')
             .select('*')
             .eq('user_id', session.user.id)
@@ -180,7 +180,7 @@ export function useAuth() {
       if (data.user && tenantId) {
         console.log('🔍 Checking tenant access for user:', data.user.id, 'in tenant:', tenantId);
 
-        const { data: userTenant, error: tenantError } = await supabase
+        const { data: userTenant, error: tenantError } = await (supabase as any)
           .from('user_tenant_mapping')
           .select('*')
           .eq('user_id', data.user.id)
