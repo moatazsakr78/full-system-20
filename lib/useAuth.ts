@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/app/lib/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { getOAuthRedirectUrl } from './utils/auth-urls';
+import { useTenantId } from './tenant/TenantContext';
 
 export interface AuthUser {
   id: string;
@@ -21,6 +22,8 @@ export interface AuthState {
 }
 
 export function useAuth() {
+  const tenantId = useTenantId(); // الحصول على tenant ID الحالي
+
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     session: null,
@@ -81,7 +84,37 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
-        
+
+        // ✅ التحقق من الـ tenant عند تسجيل دخول عبر OAuth (Google)
+        if (event === 'SIGNED_IN' && session?.user && tenantId) {
+          console.log('🔍 Checking tenant access for OAuth user:', session.user.id);
+
+          const { data: userTenant, error: tenantError } = await supabase
+            .from('user_tenant_mapping')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .eq('tenant_id', tenantId)
+            .eq('is_active', true)
+            .single();
+
+          if (tenantError || !userTenant) {
+            console.warn('❌ OAuth user does not belong to this tenant');
+
+            // تسجيل خروج المستخدم فوراً
+            await supabase.auth.signOut();
+
+            // عرض رسالة للمستخدم
+            if (typeof window !== 'undefined') {
+              alert('هذا الحساب غير مسجل في هذا المتجر. يرجى إنشاء حساب جديد أو تسجيل الدخول من المتجر الصحيح.');
+              window.location.href = '/auth/login';
+            }
+
+            return;
+          }
+
+          console.log('✅ OAuth user belongs to tenant');
+        }
+
         if (mounted) {
           setAuthState({
             user: formatUser(session?.user ?? null),
@@ -97,7 +130,7 @@ export function useAuth() {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [formatUser]);
+  }, [formatUser, tenantId]);
 
   // Sign in with Google
   const signInWithGoogle = useCallback(async () => {
@@ -143,15 +176,42 @@ export function useAuth() {
         throw error;
       }
 
+      // ✅ التحقق من أن المستخدم ينتمي لهذا المتجر
+      if (data.user && tenantId) {
+        console.log('🔍 Checking tenant access for user:', data.user.id, 'in tenant:', tenantId);
+
+        const { data: userTenant, error: tenantError } = await supabase
+          .from('user_tenant_mapping')
+          .select('*')
+          .eq('user_id', data.user.id)
+          .eq('tenant_id', tenantId)
+          .eq('is_active', true)
+          .single();
+
+        if (tenantError || !userTenant) {
+          console.warn('❌ User does not belong to this tenant');
+
+          // تسجيل خروج المستخدم فوراً
+          await supabase.auth.signOut();
+
+          return {
+            success: false,
+            error: 'هذا الحساب غير مسجل في هذا المتجر. يرجى إنشاء حساب جديد أو تسجيل الدخول من المتجر الصحيح.'
+          };
+        }
+
+        console.log('✅ User belongs to tenant, login successful');
+      }
+
       return { success: true, data };
     } catch (error) {
       console.error('Error signing in with email:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'خطأ في تسجيل الدخول' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'خطأ في تسجيل الدخول'
       };
     }
-  }, []);
+  }, [tenantId]);
 
   // Sign up with email/password
   const signUpWithEmail = useCallback(async (email: string, password: string, name?: string) => {

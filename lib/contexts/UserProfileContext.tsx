@@ -103,6 +103,45 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
     fetchProfile(userId);
   }, [user?.id, isAuthenticated]);
 
+  // ✨ Real-time subscription for profile changes
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('👂 Setting up real-time subscription for user profile:', user.id);
+
+    const subscription = supabase
+      .channel(`user_profile_${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'user_profiles',
+          filter: `id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔄 Profile updated in real-time:', payload);
+
+          if (payload.eventType === 'DELETE') {
+            setProfile(null);
+          } else {
+            // Update profile with new data
+            setProfile(payload.new as UserProfile);
+            console.log('✅ Profile updated:', payload.new);
+            console.log('🔒 New Role:', payload.new.role);
+            console.log('🔒 New Is Admin:', payload.new.is_admin);
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      console.log('🧹 Cleaning up real-time subscription');
+      subscription.unsubscribe();
+    };
+  }, [user?.id]);
+
   const refetch = async () => {
     if (user?.id) {
       lastFetchedUserId.current = null; // Force refetch
