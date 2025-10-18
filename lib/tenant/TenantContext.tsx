@@ -38,6 +38,11 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         // تعيين tenant context في Supabase
         await setTenantContext(tenantData.id);
 
+        // حفظ tenant_id في localStorage للاستخدام في client
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('current_tenant_id', tenantData.id);
+        }
+
         setTenant(tenantData);
       } catch (err) {
         console.error('Error loading tenant:', err);
