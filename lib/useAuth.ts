@@ -85,9 +85,9 @@ export function useAuth() {
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
 
-        // ✅ التحقق من الـ tenant عند تسجيل دخول عبر OAuth (Google)
+        // ℹ️ فقط تسجيل معلومات عن tenant membership (بدون تسجيل خروج تلقائي)
         if (event === 'SIGNED_IN' && session?.user && tenantId) {
-          console.log('🔍 Checking tenant access for OAuth user:', session.user.id);
+          console.log('🔍 Checking tenant access for user:', session.user.id);
 
           const { data: userTenant, error: tenantError } = await (supabase as any)
             .from('user_tenant_mapping')
@@ -98,21 +98,10 @@ export function useAuth() {
             .single();
 
           if (tenantError || !userTenant) {
-            console.warn('❌ OAuth user does not belong to this tenant');
-
-            // تسجيل خروج المستخدم فوراً
-            await supabase.auth.signOut();
-
-            // عرض رسالة للمستخدم
-            if (typeof window !== 'undefined') {
-              alert('هذا الحساب غير مسجل في هذا المتجر. يرجى إنشاء حساب جديد أو تسجيل الدخول من المتجر الصحيح.');
-              window.location.href = '/auth/login';
-            }
-
-            return;
+            console.warn('⚠️ User may not belong to this tenant, but allowing access');
+          } else {
+            console.log('✅ User belongs to tenant');
           }
-
-          console.log('✅ OAuth user belongs to tenant');
         }
 
         if (mounted) {
@@ -182,7 +171,7 @@ export function useAuth() {
         throw error;
       }
 
-      // ✅ التحقق من أن المستخدم ينتمي لهذا المتجر
+      // ℹ️ فقط تسجيل معلومات عن tenant membership (بدون منع الدخول)
       if (data.user && tenantId) {
         console.log('🔍 Checking tenant access for user:', data.user.id, 'in tenant:', tenantId);
 
@@ -195,18 +184,10 @@ export function useAuth() {
           .single();
 
         if (tenantError || !userTenant) {
-          console.warn('❌ User does not belong to this tenant');
-
-          // تسجيل خروج المستخدم فوراً
-          await supabase.auth.signOut();
-
-          return {
-            success: false,
-            error: 'هذا الحساب غير مسجل في هذا المتجر. يرجى إنشاء حساب جديد أو تسجيل الدخول من المتجر الصحيح.'
-          };
+          console.warn('⚠️ User may not belong to this tenant, but allowing access');
+        } else {
+          console.log('✅ User belongs to tenant, login successful');
         }
-
-        console.log('✅ User belongs to tenant, login successful');
       }
 
       return { success: true, data };
